@@ -31,20 +31,33 @@ pub struct ExternalMatchClient {
 
 impl ExternalMatchClient {
     /// Create a new client
-    pub fn new(api_key: &str, api_secret: HmacKey, base_url: &str) -> Self {
-        Self {
+    pub fn new(
+        api_key: &str,
+        api_secret: &str,
+        base_url: &str,
+    ) -> Result<Self, ExternalMatchClientError> {
+        let api_secret = HmacKey::from_base64_string(api_secret)
+            .map_err(|_| ExternalMatchClientError::InvalidApiSecret)?;
+
+        Ok(Self {
             api_key: api_key.to_string(),
             http_client: RelayerHttpClient::new(base_url.to_string(), api_secret),
-        }
+        })
     }
 
     /// Create a new client for the sepolia network
-    pub fn new_sepolia_client(api_key: &str, api_secret: HmacKey) -> Self {
+    pub fn new_sepolia_client(
+        api_key: &str,
+        api_secret: &str,
+    ) -> Result<Self, ExternalMatchClientError> {
         Self::new(api_key, api_secret, SEPOLIA_BASE_URL)
     }
 
     /// Create a new client for the mainnet
-    pub fn new_mainnet_client(api_key: &str, api_secret: HmacKey) -> Self {
+    pub fn new_mainnet_client(
+        api_key: &str,
+        api_secret: &str,
+    ) -> Result<Self, ExternalMatchClientError> {
         Self::new(api_key, api_secret, MAINNET_BASE_URL)
     }
 

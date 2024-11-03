@@ -6,5 +6,6 @@
 
 mod external_match_client;
 mod http;
+pub mod types;
 
 pub use external_match_client::*;
