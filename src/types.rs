@@ -4,3 +4,4 @@
 pub use renegade_api::http::external_match::AtomicMatchApiBundle;
 pub use renegade_circuit_types::order::OrderSide;
 pub use renegade_common::types::wallet::keychain::HmacKey;
+pub use renegade_common::types::wallet::Wallet;

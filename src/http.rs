@@ -73,8 +73,8 @@ impl RelayerHttpClient {
         let body_bytes = serde_json::to_vec(&body).unwrap();
         self.add_auth(path, &mut custom_headers, &body_bytes);
 
-        let response =
-            self.client.post(url).headers(custom_headers).body(body_bytes).send().await?;
+        let raw = self.client.post(url).headers(custom_headers).body(body_bytes).send().await?;
+        let response = raw.error_for_status()?;
         Ok(response)
     }
 
@@ -88,7 +88,8 @@ impl RelayerHttpClient {
         let url = format!("{}{}", self.base_url, path);
         self.add_auth(path, &mut custom_headers, &[]);
 
-        let response = self.client.get(url).headers(custom_headers).send().await?;
+        let raw = self.client.get(url).headers(custom_headers).send().await?;
+        let response = raw.error_for_status()?;
         Ok(response)
     }
 
