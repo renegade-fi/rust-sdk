@@ -13,7 +13,7 @@ darkpool-client = []
 renegade-api = { package = "external-api", git = "https://github.com/renegade-fi/renegade.git", features = [
     "auth",
 ] }
-renegade-auth-api = { package = "auth-server-api", path = "/Users/joeykraut/work/relayer-extensions/auth/auth-server-api" }
+renegade-auth-api = { package = "auth-server-api", git = "https://github.com/renegade-fi/relayer-extensions.git" }
 renegade-circuit-types = { package = "circuit-types", git = "https://github.com/renegade-fi/renegade.git" }
 renegade-common = { package = "common", git = "https://github.com/renegade-fi/renegade.git" }
 renegade-constants = { package = "constants", git = "https://github.com/renegade-fi/renegade.git" }
