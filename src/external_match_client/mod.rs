@@ -22,7 +22,9 @@ pub struct ExternalOrderBuilder {
     /// The mint (erc20 address) of the base token
     base_mint: Option<BigUint>,
     /// The amount of the order
-    amount: Option<Amount>,
+    base_amount: Option<Amount>,
+    /// The amount of the order
+    quote_amount: Option<Amount>,
     /// The side of the order
     side: Option<OrderSide>,
     /// The minimum fill size
@@ -63,9 +65,21 @@ impl ExternalOrderBuilder {
         self
     }
 
-    /// Set the amount
-    pub fn amount(mut self, amount: Amount) -> Self {
-        self.amount = Some(amount);
+    /// Set the amount (deprecated -- use base_amount or quote_amount instead)
+    #[deprecated(since = "0.1.0", note = "use base_amount() or quote_amount() instead")]
+    pub fn amount(self, amount: Amount) -> Self {
+        self.base_amount(amount)
+    }
+
+    /// Set the base amount
+    pub fn base_amount(mut self, base_amount: Amount) -> Self {
+        self.base_amount = Some(base_amount);
+        self
+    }
+
+    /// Set the quote amount
+    pub fn quote_amount(mut self, quote_amount: Amount) -> Self {
+        self.quote_amount = Some(quote_amount);
         self
     }
 
@@ -87,11 +101,26 @@ impl ExternalOrderBuilder {
             self.quote_mint.ok_or(ExternalMatchClientError::invalid_order("invalid quote mint"))?;
         let base_mint =
             self.base_mint.ok_or(ExternalMatchClientError::invalid_order("invalid base mint"))?;
-        let amount =
-            self.amount.ok_or(ExternalMatchClientError::invalid_order("invalid amount"))?;
-        let side = self.side.ok_or(ExternalMatchClientError::invalid_order("invalid side"))?;
-        let min_fill_size = self.min_fill_size.unwrap_or_else(|| Amount::from(0u64));
 
-        Ok(ExternalOrder { quote_mint, base_mint, amount, side, min_fill_size })
+        // Ensure exactly one of `base_amount` or `quote_amount` is set
+        let (base_amount, quote_amount) = match (self.base_amount, self.quote_amount) {
+            (Some(base), None) => (base, 0),
+            (None, Some(quote)) => (0, quote),
+            (None, None) => {
+                return Err(ExternalMatchClientError::invalid_order(
+                    "must set either `base_amount` or `quote_amount`",
+                ))
+            },
+            (Some(_), Some(_)) => {
+                return Err(ExternalMatchClientError::invalid_order(
+                    "cannot set both `base_amount` and `quote_amount`",
+                ))
+            },
+        };
+
+        let side = self.side.ok_or(ExternalMatchClientError::invalid_order("invalid side"))?;
+        let min_fill_size = self.min_fill_size.unwrap_or_default();
+
+        Ok(ExternalOrder { quote_mint, base_mint, base_amount, quote_amount, side, min_fill_size })
     }
 }
