@@ -20,6 +20,26 @@ const SEPOLIA_BASE_URL: &str = "https://testnet.auth-server.renegade.fi";
 /// The mainnet base URL
 const MAINNET_BASE_URL: &str = "https://mainnet.auth-server.renegade.fi";
 
+/// The options for requesting an external match
+#[derive(Clone, Default)]
+pub struct ExternalMatchOptions {
+    /// Whether to perform gas estimation
+    pub do_gas_estimation: bool,
+}
+
+impl ExternalMatchOptions {
+    /// Create a new options with default values
+    pub fn new() -> Self {
+        Default::default()
+    }
+
+    /// Create a new options with gas estimation enabled
+    pub fn with_gas_estimation(mut self, do_gas_estimation: bool) -> Self {
+        self.do_gas_estimation = do_gas_estimation;
+        self
+    }
+}
+
 /// A client for requesting external matches from the relayer
 #[derive(Clone)]
 pub struct ExternalMatchClient {
@@ -66,9 +86,19 @@ impl ExternalMatchClient {
         &self,
         order: ExternalOrder,
     ) -> Result<Option<AtomicMatchApiBundle>, ExternalMatchClientError> {
+        self.request_external_match_with_options(order, Default::default()).await
+    }
+
+    /// Request an external match and specify any options for the request
+    pub async fn request_external_match_with_options(
+        &self,
+        order: ExternalOrder,
+        options: ExternalMatchOptions,
+    ) -> Result<Option<AtomicMatchApiBundle>, ExternalMatchClientError> {
         // Build the request, we attach the api key as a header and let the auth path
         // sign with the api secret
-        let request = ExternalMatchRequest { external_order: order };
+        let do_gas_estimation = options.do_gas_estimation;
+        let request = ExternalMatchRequest { external_order: order, do_gas_estimation };
 
         let mut headers = HeaderMap::new();
         let api_key = HeaderValue::from_str(&self.api_key)
@@ -85,7 +115,9 @@ impl ExternalMatchClient {
             let resp = resp.json::<ExternalMatchResponse>().await?;
             Ok(Some(resp.match_bundle))
         } else {
-            Err(ExternalMatchClientError::Http(resp.error_for_status().unwrap_err()))
+            let status = resp.status();
+            let msg = resp.text().await?;
+            Err(ExternalMatchClientError::http(status, msg))
         }
     }
 }

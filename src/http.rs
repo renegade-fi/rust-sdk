@@ -74,8 +74,7 @@ impl RelayerHttpClient {
         self.add_auth(path, &mut custom_headers, &body_bytes);
 
         let raw = self.client.post(url).headers(custom_headers).body(body_bytes).send().await?;
-        let response = raw.error_for_status()?;
-        Ok(response)
+        Ok(raw)
     }
 
     /// Send a GET request with custom headers to the relayer and return raw
@@ -89,8 +88,7 @@ impl RelayerHttpClient {
         self.add_auth(path, &mut custom_headers, &[]);
 
         let raw = self.client.get(url).headers(custom_headers).send().await?;
-        let response = raw.error_for_status()?;
-        Ok(response)
+        Ok(raw)
     }
 
     // -----------
