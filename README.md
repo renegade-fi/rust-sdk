@@ -93,3 +93,17 @@ async fn create_ethers_client() -> Result<Arc<SignerMiddleware<Provider<Http>, L
     Ok(Arc::new(SignerMiddleware::new(provider, wallet)))
 }
 ```
+
+You can also request that the relayer estimate gas for the settlement transaction by using `request_external_match_with_options` as below:
+```rust
+async fn request_match() -> Result<> {
+    // ... Build client and order ... // 
+    let options = ExternalMatchOptions::new().with_gas_estimation(true);
+    let bundle = client
+        .request_external_match_with_options(order, options)
+        .await?;
+    println!("Gas estimate: {:?}", bundle.settlement_tx.gas());
+
+    // ... Submit Settlement Transaction ... //
+}
+```
