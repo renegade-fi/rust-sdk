@@ -36,7 +36,7 @@ use std::sync::Arc;
 /// The quote mint for the atomic match
 const QUOTE_MINT: &str = "0xdf8d259c04020562717557f2b5a3cf28e92707d1"; // USDC on Arbitrum Sepolia
 /// The base mint for the atomic match
-const BASE_MINT: &str = "0xcf8a4dbdc5c23a599bf045784b3740b1722c86dd"; // wETH on Arbitrum Sepolia
+const BASE_MINT: &str = "0xc3414a7ef14aaaa9c4522dfc00a4e66e74e9c25a"; // wETH on Arbitrum Sepolia
 /// The RPC URL for the Arbitrum Sepolia network
 const ARBITRUM_SEPOLIA_RPC: &str = "..."; // replace with your RPC URL
 
