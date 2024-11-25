@@ -107,3 +107,11 @@ async fn request_match() -> Result<> {
     // ... Submit Settlement Transaction ... //
 }
 ```
+
+### Bundle Details
+The `AtomicMatchApiBundle` type returned by the external match client contains the following fields:
+- `match_result`: The result of the match (does not account for fees)
+- `fees`: The fees due by the caller when the match is submitted. This includes a `relayer_fee` and a `protocol_fee`.
+- `receive`: The address and amount of the token the caller will receive from the match. This value _does_ account for fees, so it is exactly the ERC20 amount that the caller can expect to receive from the darkpool contract.
+- `send`: The address and amount of the token the caller will send to the darkpool contract.
+- `settlement_tx`: The EVM transaction that the caller must submit to the network in order to settle the match.
