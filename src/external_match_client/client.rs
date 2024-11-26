@@ -1,8 +1,10 @@
 //! The client for requesting external matches
 
 use renegade_api::http::external_match::{
-    AtomicMatchApiBundle, ExternalMatchRequest, ExternalMatchResponse, ExternalOrder,
-    REQUEST_EXTERNAL_MATCH_ROUTE,
+    AssembleExternalMatchRequest, AtomicMatchApiBundle, ExternalMatchRequest,
+    ExternalMatchResponse, ExternalOrder, ExternalQuoteRequest, ExternalQuoteResponse,
+    SignedExternalQuote, ASSEMBLE_EXTERNAL_MATCH_ROUTE, REQUEST_EXTERNAL_MATCH_ROUTE,
+    REQUEST_EXTERNAL_QUOTE_ROUTE,
 };
 use renegade_auth_api::RENEGADE_API_KEY_HEADER;
 use renegade_common::types::wallet::keychain::HmacKey;
@@ -81,6 +83,46 @@ impl ExternalMatchClient {
         Self::new(api_key, api_secret, MAINNET_BASE_URL)
     }
 
+    /// Request a quote for an external match
+    pub async fn request_quote(
+        &self,
+        order: ExternalOrder,
+    ) -> Result<Option<SignedExternalQuote>, ExternalMatchClientError> {
+        let request = ExternalQuoteRequest { external_order: order };
+        let path = REQUEST_EXTERNAL_QUOTE_ROUTE;
+        let headers = self.get_headers()?;
+
+        let resp = self.http_client.post_with_headers_raw(path, request, headers).await?;
+        let quote_resp = Self::handle_optional_response::<ExternalQuoteResponse>(resp).await?;
+        Ok(quote_resp.map(|r| r.signed_quote))
+    }
+
+    /// Assemble a quote into a match bundle, ready for settlement
+    pub async fn assemble_quote(
+        &self,
+        quote: SignedExternalQuote,
+    ) -> Result<Option<AtomicMatchApiBundle>, ExternalMatchClientError> {
+        self.assemble_quote_with_options(quote, ExternalMatchOptions::default()).await
+    }
+
+    /// Assemble a quote into a match bundle, ready for settlement, with options
+    pub async fn assemble_quote_with_options(
+        &self,
+        quote: SignedExternalQuote,
+        options: ExternalMatchOptions,
+    ) -> Result<Option<AtomicMatchApiBundle>, ExternalMatchClientError> {
+        let request = AssembleExternalMatchRequest {
+            signed_quote: quote,
+            do_gas_estimation: options.do_gas_estimation,
+        };
+        let path = ASSEMBLE_EXTERNAL_MATCH_ROUTE;
+        let headers = self.get_headers()?;
+
+        let resp = self.http_client.post_with_headers_raw(path, request, headers).await?;
+        let match_resp = Self::handle_optional_response::<ExternalMatchResponse>(resp).await?;
+        Ok(match_resp.map(|r| r.match_bundle))
+    }
+
     /// Request an external match
     pub async fn request_external_match(
         &self,
@@ -95,29 +137,43 @@ impl ExternalMatchClient {
         order: ExternalOrder,
         options: ExternalMatchOptions,
     ) -> Result<Option<AtomicMatchApiBundle>, ExternalMatchClientError> {
-        // Build the request, we attach the api key as a header and let the auth path
-        // sign with the api secret
         let do_gas_estimation = options.do_gas_estimation;
         let request = ExternalMatchRequest { external_order: order, do_gas_estimation };
+        let path = REQUEST_EXTERNAL_MATCH_ROUTE;
+        let headers = self.get_headers()?;
 
+        let resp = self.http_client.post_with_headers_raw(path, request, headers).await?;
+        let match_resp = Self::handle_optional_response::<ExternalMatchResponse>(resp).await?;
+        Ok(match_resp.map(|r| r.match_bundle))
+    }
+
+    /// Helper function to handle response that might be NO_CONTENT, OK with
+    /// json, or an error
+    async fn handle_optional_response<T>(
+        response: reqwest::Response,
+    ) -> Result<Option<T>, ExternalMatchClientError>
+    where
+        T: serde::de::DeserializeOwned,
+    {
+        if response.status() == StatusCode::NO_CONTENT {
+            Ok(None)
+        } else if response.status() == StatusCode::OK {
+            let resp = response.json::<T>().await?;
+            Ok(Some(resp))
+        } else {
+            let status = response.status();
+            let msg = response.text().await?;
+            Err(ExternalMatchClientError::http(status, msg))
+        }
+    }
+
+    /// Get a header map with the api key added
+    fn get_headers(&self) -> Result<HeaderMap, ExternalMatchClientError> {
         let mut headers = HeaderMap::new();
         let api_key = HeaderValue::from_str(&self.api_key)
             .map_err(|_| ExternalMatchClientError::InvalidApiKey)?;
         headers.insert(RENEGADE_API_KEY_HEADER, api_key);
 
-        // Send the request and handle the response
-        let path = REQUEST_EXTERNAL_MATCH_ROUTE;
-        let resp = self.http_client.post_with_headers_raw(path, request, headers).await?;
-
-        if resp.status() == StatusCode::NO_CONTENT {
-            Ok(None)
-        } else if resp.status() == StatusCode::OK {
-            let resp = resp.json::<ExternalMatchResponse>().await?;
-            Ok(Some(resp.match_bundle))
-        } else {
-            let status = resp.status();
-            let msg = resp.text().await?;
-            Err(ExternalMatchClientError::http(status, msg))
-        }
+        Ok(headers)
     }
 }
