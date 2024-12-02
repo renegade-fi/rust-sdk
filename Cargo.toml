@@ -3,6 +3,12 @@ name = "renegade-sdk"
 version = "0.1.0"
 edition = "2021"
 
+[[example]]
+name = "external_match"
+
+[[example]]
+name = "quote_validation"
+
 [features]
 default = ["external-match-client", "darkpool-client"]
 external-match-client = []
@@ -32,3 +38,7 @@ ethers = "2.0.0"
 eyre = "0.6.10"
 num-bigint = "0.4.3"
 thiserror = "1.0.31"
+
+# === Example Dependencies === #
+[dev-dependencies]
+tokio = { version = "1.30.0", features = ["full"] }

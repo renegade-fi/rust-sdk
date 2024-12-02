@@ -38,7 +38,7 @@ impl ExternalMatchClientError {
     }
 
     /// Construct a new deserialize error
-    #[allow(clippy::needless_pass_by_value)]
+    #[allow(clippy::needless_pass_by_value, unused)]
     pub(crate) fn deserialize<T: ToString>(msg: T) -> Self {
         Self::Deserialize(msg.to_string())
     }

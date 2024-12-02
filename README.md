@@ -17,7 +17,96 @@ The client should then submit this match to the darkpool.
 
 Upon receiving an external match, the darkpool contract will update the encrypted state of the internal party, and fulfill obligations to the external party directly through ERC20 transfers. As such, the external party must approve the token they _sell_ before the external match can be settled.
 
-Below is an example of how to build and use the external match client.
+There are two ways to request an external match:
+
+## Method 1: Quote + Assemble
+This method is the recommended method as it has more permissive rate limits.
+The code breaks down into two steps:
+1. Fetch a quote for the order
+2. If the quote is acceptable, assemble the transaction to submit on-chain
+
+### Example
+A full example can be found in [`examples/external_match.rs`](examples/external_match.rs).
+
+This can be run with `cargo run --example external_match`.
+
+<details>
+<summary>Rust Code</summary>
+
+```rust
+
+// ... See `examples/external_match.rs` for full example ... //
+
+#[tokio::main]
+async fn main() -> Result<(), eyre::Error> {
+    // Get wallet from private key
+    let signer = get_signer().await?;
+
+    // Get the external match client
+    let api_key = std::env::var("EXTERNAL_MATCH_KEY").unwrap();
+    let api_secret = std::env::var("EXTERNAL_MATCH_SECRET").unwrap();
+    let client = ExternalMatchClient::new_sepolia_client(&api_key, &api_secret).unwrap();
+
+    let order = ExternalOrderBuilder::new()
+        .base_mint(BASE_MINT)
+        .quote_mint(QUOTE_MINT)
+        .quote_amount(30_000_000) // $30 USDC
+        .min_fill_size(30_000_000) // $30 USDC
+        .side(OrderSide::Sell)
+        .build()
+        .unwrap();
+
+    fetch_quote_and_execute(&client, order, &signer).await?;
+    Ok(())
+}
+
+/// Fetch a quote from the external api and print it
+async fn fetch_quote_and_execute(
+    client: &ExternalMatchClient,
+    order: ExternalOrder,
+    wallet: &OurMiddleware,
+) -> Result<(), eyre::Error> {
+    // Fetch a quote from the relayer
+    println!("Fetching quote...");
+    let res = client.request_quote(order).await?;
+    let quote = match res {
+        Some(quote) => quote,
+        None => eyre::bail!("No quote found"),
+    };
+
+    // Assemble the quote into a bundle
+    println!("Assembling quote...");
+    let bundle = match client.assemble_quote(quote).await? {
+        Some(bundle) => bundle,
+        None => eyre::bail!("No bundle found"),
+    };
+    execute_bundle(wallet, bundle).await
+}
+
+/// Execute a bundle directly
+async fn execute_bundle(
+    wallet: &OurMiddleware,
+    bundle: AtomicMatchApiBundle,
+) -> Result<(), eyre::Error> {
+    println!("Submitting bundle...\n");
+    let tx = bundle.settlement_tx.clone();
+    let receipt: PendingTransaction<_> = wallet.send_transaction(tx, None).await.unwrap();
+
+    println!("Successfully submitted transaction: {:#x}", receipt.tx_hash());
+    Ok(())
+}
+```
+</details>
+
+## Method 2: Direct Match
+**Note:** It is recommended to use Method 1; this method is subject to strict rate limits.
+
+Using this method, clients may directly request a match bundle from the relayer, without first requesting a quote.
+
+### Example
+
+<details>
+<summary>Rust Code</summary>
 
 ```rust
 use anyhow::{anyhow, Result};
@@ -94,6 +183,10 @@ async fn create_ethers_client() -> Result<Arc<SignerMiddleware<Provider<Http>, L
 }
 ```
 
+</details>
+
+## Gas Estimation
+
 You can also request that the relayer estimate gas for the settlement transaction by using `request_external_match_with_options` as below:
 ```rust
 async fn request_match() -> Result<> {
@@ -108,10 +201,31 @@ async fn request_match() -> Result<> {
 }
 ```
 
-### Bundle Details
-The `AtomicMatchApiBundle` type returned by the external match client contains the following fields:
-- `match_result`: The result of the match (does not account for fees)
-- `fees`: The fees due by the caller when the match is submitted. This includes a `relayer_fee` and a `protocol_fee`.
-- `receive`: The address and amount of the token the caller will receive from the match. This value _does_ account for fees, so it is exactly the ERC20 amount that the caller can expect to receive from the darkpool contract.
-- `send`: The address and amount of the token the caller will send to the darkpool contract.
-- `settlement_tx`: The EVM transaction that the caller must submit to the network in order to settle the match.
+## Bundle Details
+The *quote* returned by the relayer for an external match has the following structure:
+- `order`: The original external order
+- `match_result`: The result of the match, including:
+- `fees`: The fees for the match
+    - `relayer_fee`: The fee paid to the relayer
+    - `protocol_fee`: The fee paid to the protocol
+- `receive`: The asset transfer the external party will receive, *after fees are deducted*.
+    - `mint`: The token address
+    - `amount`: The amount to receive
+- `send`: The asset transfer the external party needs to send. No fees are charged on the send transfer. (same fields as `receive`)
+- `price`: The price used for the match
+- `timestamp`: The timestamp of the quote
+
+When assembled into a bundle (returned from `assemble_quote` or `request_external_match`), the structure is as follows:
+- `match_result`: The final match result
+- `fees`: The fees to be paid
+- `receive`: The asset transfer the external party will receive
+- `send`: The asset transfer the external party needs to send
+- `settlement_tx`: The transaction to submit on-chain
+    - `tx_type`: The transaction type
+    - `to`: The contract address
+    - `data`: The calldata
+    - `value`: The ETH value to send
+
+See example [`quote_validation.rs`](examples/quote_validation.rs) for an example of using these fields to validate a quote before submitting it.
+
+This can be run with `cargo run --example quote_validation`.
