@@ -27,6 +27,10 @@ const MAINNET_BASE_URL: &str = "https://mainnet.auth-server.renegade.fi";
 pub struct ExternalMatchOptions {
     /// Whether to perform gas estimation
     pub do_gas_estimation: bool,
+    /// The receiver address that the darkpool will send funds to
+    ///
+    /// If not provided, the receiver address is the message sender
+    pub receiver_address: Option<String>,
 }
 
 impl ExternalMatchOptions {
@@ -35,9 +39,15 @@ impl ExternalMatchOptions {
         Default::default()
     }
 
-    /// Create a new options with gas estimation enabled
+    /// Set the gas estimation flag
     pub fn with_gas_estimation(mut self, do_gas_estimation: bool) -> Self {
         self.do_gas_estimation = do_gas_estimation;
+        self
+    }
+
+    /// Set the receiver address
+    pub fn with_receiver_address(mut self, receiver_address: String) -> Self {
+        self.receiver_address = Some(receiver_address);
         self
     }
 }
@@ -113,6 +123,7 @@ impl ExternalMatchClient {
     ) -> Result<Option<AtomicMatchApiBundle>, ExternalMatchClientError> {
         let request = AssembleExternalMatchRequest {
             signed_quote: quote,
+            receiver_address: options.receiver_address,
             do_gas_estimation: options.do_gas_estimation,
         };
         let path = ASSEMBLE_EXTERNAL_MATCH_ROUTE;
@@ -138,7 +149,11 @@ impl ExternalMatchClient {
         options: ExternalMatchOptions,
     ) -> Result<Option<AtomicMatchApiBundle>, ExternalMatchClientError> {
         let do_gas_estimation = options.do_gas_estimation;
-        let request = ExternalMatchRequest { external_order: order, do_gas_estimation };
+        let request = ExternalMatchRequest {
+            external_order: order,
+            do_gas_estimation,
+            receiver_address: options.receiver_address,
+        };
         let path = REQUEST_EXTERNAL_MATCH_ROUTE;
         let headers = self.get_headers()?;
 

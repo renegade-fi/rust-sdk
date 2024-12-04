@@ -5,9 +5,15 @@ edition = "2021"
 
 [[example]]
 name = "external_match"
+path = "examples/external_match/external_match.rs"
 
 [[example]]
 name = "quote_validation"
+path = "examples/quote_validation/quote_validation.rs"
+
+[[example]]
+name = "non_sender_receiver"
+path = "examples/external_match/non_sender_receiver.rs"
 
 [features]
 default = ["external-match-client", "darkpool-client"]
@@ -18,13 +24,13 @@ darkpool-client = []
 # === Renegade Dependencies === #
 renegade-api = { package = "external-api", git = "https://github.com/renegade-fi/renegade.git", features = [
     "auth",
-], rev = "cee76d2" }
+], rev = "6309588" }
 renegade-auth-api = { package = "auth-server-api", git = "https://github.com/renegade-fi/relayer-extensions.git", rev = "d3aa518" }
-renegade-circuit-types = { package = "circuit-types", git = "https://github.com/renegade-fi/renegade.git", rev = "cee76d2" }
-renegade-common = { package = "common", git = "https://github.com/renegade-fi/renegade.git", rev = "cee76d2" }
-renegade-constants = { package = "constants", git = "https://github.com/renegade-fi/renegade.git", rev = "cee76d2" }
-renegade-crypto = { git = "https://github.com/renegade-fi/renegade.git", rev = "cee76d2" }
-renegade-util = { package = "util", git = "https://github.com/renegade-fi/renegade.git", rev = "cee76d2" }
+renegade-circuit-types = { package = "circuit-types", git = "https://github.com/renegade-fi/renegade.git", rev = "6309588" }
+renegade-common = { package = "common", git = "https://github.com/renegade-fi/renegade.git", rev = "6309588" }
+renegade-constants = { package = "constants", git = "https://github.com/renegade-fi/renegade.git", rev = "6309588" }
+renegade-crypto = { git = "https://github.com/renegade-fi/renegade.git", rev = "6309588" }
+renegade-util = { package = "util", git = "https://github.com/renegade-fi/renegade.git", rev = "6309588" }
 
 # === Http === #
 reqwest = { version = "0.11", features = ["json"] }
