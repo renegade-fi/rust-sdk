@@ -33,6 +33,22 @@ pub struct ExternalMatchOptions {
     pub receiver_address: Option<String>,
 }
 
+/// The options for assembling a quote
+#[derive(Clone, Default)]
+pub struct AssembleQuoteOptions {
+    /// Whether to do gas estimation
+    pub do_gas_estimation: bool,
+    /// The receiver address that the darkpool will send funds to
+    ///
+    /// If not provided, the receiver address is the message sender
+    pub receiver_address: Option<String>,
+    /// The updated order to use when assembling the quote
+    ///
+    /// The `base_amount`, `quote_amount`, and `min_fill_size` are allowed to
+    /// change, but the pair and side is not
+    pub updated_order: Option<ExternalOrder>,
+}
+
 impl ExternalMatchOptions {
     /// Create a new options with default values
     pub fn new() -> Self {
@@ -48,6 +64,31 @@ impl ExternalMatchOptions {
     /// Set the receiver address
     pub fn with_receiver_address(mut self, receiver_address: String) -> Self {
         self.receiver_address = Some(receiver_address);
+        self
+    }
+}
+
+impl AssembleQuoteOptions {
+    /// Create a new options with default values
+    pub fn new() -> Self {
+        Default::default()
+    }
+
+    /// Set the gas estimation flag
+    pub fn with_gas_estimation(mut self, do_gas_estimation: bool) -> Self {
+        self.do_gas_estimation = do_gas_estimation;
+        self
+    }
+
+    /// Set the receiver address
+    pub fn with_receiver_address(mut self, receiver_address: String) -> Self {
+        self.receiver_address = Some(receiver_address);
+        self
+    }
+
+    /// Set the updated order
+    pub fn with_updated_order(mut self, updated_order: ExternalOrder) -> Self {
+        self.updated_order = Some(updated_order);
         self
     }
 }
@@ -112,19 +153,20 @@ impl ExternalMatchClient {
         &self,
         quote: SignedExternalQuote,
     ) -> Result<Option<AtomicMatchApiBundle>, ExternalMatchClientError> {
-        self.assemble_quote_with_options(quote, ExternalMatchOptions::default()).await
+        self.assemble_quote_with_options(quote, AssembleQuoteOptions::default()).await
     }
 
     /// Assemble a quote into a match bundle, ready for settlement, with options
     pub async fn assemble_quote_with_options(
         &self,
         quote: SignedExternalQuote,
-        options: ExternalMatchOptions,
+        options: AssembleQuoteOptions,
     ) -> Result<Option<AtomicMatchApiBundle>, ExternalMatchClientError> {
         let request = AssembleExternalMatchRequest {
             signed_quote: quote,
             receiver_address: options.receiver_address,
             do_gas_estimation: options.do_gas_estimation,
+            updated_order: options.updated_order,
         };
         let path = ASSEMBLE_EXTERNAL_MATCH_ROUTE;
         let headers = self.get_headers()?;

@@ -5,7 +5,7 @@
 //! state committed into the Renegade darkpool.
 
 mod client;
-pub use client::{ExternalMatchClient, ExternalMatchOptions};
+pub use client::{AssembleQuoteOptions, ExternalMatchClient, ExternalMatchOptions};
 
 mod error;
 pub use error::ExternalMatchClientError;
