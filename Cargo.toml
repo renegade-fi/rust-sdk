@@ -28,13 +28,13 @@ darkpool-client = []
 # === Renegade Dependencies === #
 renegade-api = { package = "external-api", git = "https://github.com/renegade-fi/renegade.git", features = [
     "auth",
-], rev = "31129bc" }
+], rev = "0185663" }
 renegade-auth-api = { package = "auth-server-api", git = "https://github.com/renegade-fi/relayer-extensions.git", rev = "d3aa518" }
-renegade-circuit-types = { package = "circuit-types", git = "https://github.com/renegade-fi/renegade.git", rev = "31129bc" }
-renegade-common = { package = "common", git = "https://github.com/renegade-fi/renegade.git", rev = "31129bc" }
-renegade-constants = { package = "constants", git = "https://github.com/renegade-fi/renegade.git", rev = "31129bc" }
-renegade-crypto = { git = "https://github.com/renegade-fi/renegade.git", rev = "31129bc" }
-renegade-util = { package = "util", git = "https://github.com/renegade-fi/renegade.git", rev = "31129bc" }
+renegade-circuit-types = { package = "circuit-types", git = "https://github.com/renegade-fi/renegade.git", rev = "0185663" }
+renegade-common = { package = "common", git = "https://github.com/renegade-fi/renegade.git", rev = "0185663" }
+renegade-constants = { package = "constants", git = "https://github.com/renegade-fi/renegade.git", rev = "0185663" }
+renegade-crypto = { git = "https://github.com/renegade-fi/renegade.git", rev = "0185663" }
+renegade-util = { package = "util", git = "https://github.com/renegade-fi/renegade.git", rev = "0185663" }
 
 # === Http === #
 reqwest = { version = "0.11", features = ["json"] }
