@@ -17,13 +17,12 @@ The client should then submit this match to the darkpool.
 
 Upon receiving an external match, the darkpool contract will update the encrypted state of the internal party, and fulfill obligations to the external party directly through ERC20 transfers. As such, the external party must approve the token they _sell_ before the external match can be settled.
 
-There are two ways to request an external match:
+### Generating an External Match
 
-## Method 1: Quote + Assemble
-This method is the recommended method as it has more permissive rate limits.
-The code breaks down into two steps:
-1. Fetch a quote for the order
-2. If the quote is acceptable, assemble the transaction to submit on-chain
+Generating an external match breaks down into three steps:
+1. Fetch a quote for the order.
+2. If the quote is acceptable, assemble the quote into a **bundle**. Bundles contain a transaction that may be used to settle the trade on-chain.
+3. Submit the settlement transaction on-chain.
 
 ### Example
 A full example can be found in [`examples/external_match.rs`](examples/external_match.rs).
@@ -96,93 +95,6 @@ async fn execute_bundle(
     Ok(())
 }
 ```
-</details>
-
-## Method 2: Direct Match
-**Note:** It is recommended to use Method 1; this method is subject to strict rate limits.
-
-Using this method, clients may directly request a match bundle from the relayer, without first requesting a quote.
-
-### Example
-
-<details>
-<summary>Rust Code</summary>
-
-```rust
-use anyhow::{anyhow, Result};
-use ethers::{
-    middleware::SignerMiddleware,
-    providers::{Http, Middleware, Provider},
-    signers::{LocalWallet, Signer},
-};
-use renegade_sdk::{
-    types::{AtomicMatchApiBundle, HmacKey, OrderSide},
-    ExternalMatchClient, ExternalOrderBuilder,
-};
-use std::env;
-use std::sync::Arc;
-
-/// The quote mint for the atomic match
-const QUOTE_MINT: &str = "0xdf8d259c04020562717557f2b5a3cf28e92707d1"; // USDC on Arbitrum Sepolia
-/// The base mint for the atomic match
-const BASE_MINT: &str = "0xc3414a7ef14aaaa9c4522dfc00a4e66e74e9c25a"; // wETH on Arbitrum Sepolia
-/// The RPC URL for the Arbitrum Sepolia network
-const ARBITRUM_SEPOLIA_RPC: &str = "..."; // replace with your RPC URL
-
-#[tokio::main]
-async fn main() -> Result<()> {
-    // ... Token approvals before submitting settlement transaction ... //
-
-    // Build the client and an order
-    let api_key = env::var("API_KEY").expect("API_KEY must be set");
-    let api_secret = env::var("API_SECRET").expect("API_SECRET must be set");
-    let client = ExternalMatchClient::new_sepolia_client(&api_key, &api_secret)?;
-    let order = ExternalOrderBuilder::new()
-        .quote_mint(QUOTE_MINT)
-        .base_mint(BASE_MINT)
-        .side(OrderSide::Sell)
-        .amount(100000000000000000) // 10^17 or 0.1 wETH
-        .build()
-        .unwrap();
-
-    // Request and submit an external match
-    let bundle = client.request_external_match(order).await.unwrap();
-    match bundle {
-        Some(bundle) => submit_settlement_transaction(bundle).await?,
-        None => println!("No external match"),
-    }
-
-    Ok(())
-}
-
-/// Submit the settlement transaction
-async fn submit_settlement_transaction(bundle: AtomicMatchApiBundle) -> Result<()> {
-    let ethers_client = create_ethers_client().await?;
-    let receipt = ethers_client
-        .send_transaction(bundle.settlement_tx, None)
-        .await?
-        .await?
-        .expect("no transaction receipt");
-
-    println!(
-        "Settlement transaction submitted. Hash: {:?}",
-        receipt.transaction_hash
-    );
-    Ok(())
-}
-
-/// Create an Ethers client for Arbitrum Sepolia
-async fn create_ethers_client() -> Result<Arc<SignerMiddleware<Provider<Http>, LocalWallet>>> {
-    let provider = Provider::<Http>::try_from(ARBITRUM_SEPOLIA_RPC)?;
-    let chain_id = provider.get_chainid().await?.as_u64();
-
-    let private_key = env::var("PRIVATE_KEY").expect("PRIVATE_KEY must be set");
-    let wallet = private_key.parse::<LocalWallet>()?.with_chain_id(chain_id);
-
-    Ok(Arc::new(SignerMiddleware::new(provider, wallet)))
-}
-```
-
 </details>
 
 ## Gas Estimation
