@@ -141,3 +141,9 @@ When assembled into a bundle (returned from `assemble_quote` or `request_externa
 See example [`quote_validation.rs`](examples/quote_validation.rs) for an example of using these fields to validate a quote before submitting it.
 
 This can be run with `cargo run --example quote_validation`.
+
+### Rate Limits
+The rate limits for external match endpoints are as follows: 
+- **Quote**: 100 requests per minute
+- **Assemble**: 5 _unsettled_ bundles per minute. That is, if an assembled bundle is submitted on-chain, the rate limiter will reset. 
+If an assembled match is not settled on-chain, the rate limiter will remove one token from the per-minute allowance.
