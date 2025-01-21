@@ -7,7 +7,7 @@ use renegade_api::http::external_match::{
     REQUEST_EXTERNAL_QUOTE_ROUTE,
 };
 use renegade_auth_api::RENEGADE_API_KEY_HEADER;
-use renegade_common::types::wallet::keychain::HmacKey;
+use renegade_common::types::hmac::HmacKey;
 use reqwest::{
     header::{HeaderMap, HeaderValue},
     StatusCode,

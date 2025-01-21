@@ -1,6 +1,6 @@
 //! HTTP client for connecting to the relayer
 
-use renegade_common::types::wallet::keychain::HmacKey;
+use renegade_common::types::hmac::HmacKey;
 use reqwest::{header::HeaderMap, Client, Error};
 use serde::{de::DeserializeOwned, Serialize};
 use std::time::Duration;
