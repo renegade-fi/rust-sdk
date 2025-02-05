@@ -1,10 +1,13 @@
 //! The client for requesting external matches
 
-use renegade_api::http::external_match::{
-    AssembleExternalMatchRequest, AtomicMatchApiBundle, ExternalMatchRequest,
-    ExternalMatchResponse, ExternalOrder, ExternalQuoteRequest, ExternalQuoteResponse,
-    SignedExternalQuote, ASSEMBLE_EXTERNAL_MATCH_ROUTE, REQUEST_EXTERNAL_MATCH_ROUTE,
-    REQUEST_EXTERNAL_QUOTE_ROUTE,
+use renegade_api::http::{
+    external_match::{
+        AssembleExternalMatchRequest, AtomicMatchApiBundle, ExternalMatchRequest,
+        ExternalMatchResponse, ExternalOrder, ExternalQuoteRequest, ExternalQuoteResponse,
+        SignedExternalQuote, ASSEMBLE_EXTERNAL_MATCH_ROUTE, REQUEST_EXTERNAL_MATCH_ROUTE,
+        REQUEST_EXTERNAL_QUOTE_ROUTE,
+    },
+    GetSupportedTokensResponse, GET_SUPPORTED_TOKENS_ROUTE,
 };
 use renegade_auth_api::RENEGADE_API_KEY_HEADER;
 use renegade_common::types::hmac::HmacKey;
@@ -20,10 +23,22 @@ use super::{
     error::ExternalMatchClientError, GAS_REFUND_ADDRESS_QUERY_PARAM, GAS_SPONSORSHIP_QUERY_PARAM,
 };
 
-/// The sepolia base URL
-const SEPOLIA_BASE_URL: &str = "https://testnet.auth-server.renegade.fi";
-/// The mainnet base URL
-const MAINNET_BASE_URL: &str = "https://mainnet.auth-server.renegade.fi";
+// -------------
+// | Constants |
+// -------------
+
+/// The sepolia auth server base URL
+const SEPOLIA_AUTH_BASE_URL: &str = "https://testnet.auth-server.renegade.fi";
+/// The mainnet auth server base URL
+const MAINNET_AUTH_BASE_URL: &str = "https://mainnet.auth-server.renegade.fi";
+/// The sepolia relayer base URL
+const SEPOLIA_RELAYER_BASE_URL: &str = "https://testnet.cluster0.renegade.fi";
+/// The mainnet relayer base URL
+const MAINNET_RELAYER_BASE_URL: &str = "https://mainnet.cluster0.renegade.fi";
+
+// -------------------
+// | Request Options |
+// -------------------
 
 /// The options for requesting an external match
 #[deprecated(
@@ -166,13 +181,21 @@ impl AssembleQuoteOptions {
     }
 }
 
+// ----------
+// | Client |
+// ----------
+
 /// A client for requesting external matches from the relayer
 #[derive(Clone)]
 pub struct ExternalMatchClient {
     /// The api key for the external match client
     api_key: String,
     /// The HTTP client
-    http_client: RelayerHttpClient,
+    auth_http_client: RelayerHttpClient,
+    /// The relayer HTTP client
+    ///
+    /// Separate from the auth client as they request different base URLs
+    relayer_http_client: RelayerHttpClient,
 }
 
 impl ExternalMatchClient {
@@ -180,14 +203,16 @@ impl ExternalMatchClient {
     pub fn new(
         api_key: &str,
         api_secret: &str,
-        base_url: &str,
+        auth_base_url: &str,
+        relayer_base_url: &str,
     ) -> Result<Self, ExternalMatchClientError> {
         let api_secret = HmacKey::from_base64_string(api_secret)
             .map_err(|_| ExternalMatchClientError::InvalidApiSecret)?;
 
         Ok(Self {
             api_key: api_key.to_string(),
-            http_client: RelayerHttpClient::new(base_url.to_string(), api_secret),
+            auth_http_client: RelayerHttpClient::new(auth_base_url.to_string(), api_secret),
+            relayer_http_client: RelayerHttpClient::new(relayer_base_url.to_string(), api_secret),
         })
     }
 
@@ -196,7 +221,7 @@ impl ExternalMatchClient {
         api_key: &str,
         api_secret: &str,
     ) -> Result<Self, ExternalMatchClientError> {
-        Self::new(api_key, api_secret, SEPOLIA_BASE_URL)
+        Self::new(api_key, api_secret, SEPOLIA_AUTH_BASE_URL, SEPOLIA_RELAYER_BASE_URL)
     }
 
     /// Create a new client for the mainnet
@@ -204,7 +229,17 @@ impl ExternalMatchClient {
         api_key: &str,
         api_secret: &str,
     ) -> Result<Self, ExternalMatchClientError> {
-        Self::new(api_key, api_secret, MAINNET_BASE_URL)
+        Self::new(api_key, api_secret, MAINNET_AUTH_BASE_URL, MAINNET_RELAYER_BASE_URL)
+    }
+
+    /// Get a list of supported tokens for external matches    
+    pub async fn get_supported_tokens(
+        &self,
+    ) -> Result<GetSupportedTokensResponse, ExternalMatchClientError> {
+        let path = GET_SUPPORTED_TOKENS_ROUTE;
+        let resp = self.relayer_http_client.get(path).await?;
+
+        Ok(resp)
     }
 
     /// Request a quote for an external match
@@ -216,7 +251,7 @@ impl ExternalMatchClient {
         let path = REQUEST_EXTERNAL_QUOTE_ROUTE;
         let headers = self.get_headers()?;
 
-        let resp = self.http_client.post_with_headers_raw(path, request, headers).await?;
+        let resp = self.auth_http_client.post_with_headers_raw(path, request, headers).await?;
         let quote_resp = Self::handle_optional_response::<ExternalQuoteResponse>(resp).await?;
         Ok(quote_resp.map(|r| r.signed_quote))
     }
@@ -244,7 +279,8 @@ impl ExternalMatchClient {
         };
         let headers = self.get_headers()?;
 
-        let resp = self.http_client.post_with_headers_raw(path.as_str(), request, headers).await?;
+        let resp =
+            self.auth_http_client.post_with_headers_raw(path.as_str(), request, headers).await?;
         let match_resp = Self::handle_optional_response::<ExternalMatchResponse>(resp).await?;
         Ok(match_resp.map(|r| r.match_bundle))
     }
@@ -282,7 +318,8 @@ impl ExternalMatchClient {
         };
         let headers = self.get_headers()?;
 
-        let resp = self.http_client.post_with_headers_raw(path.as_str(), request, headers).await?;
+        let resp =
+            self.auth_http_client.post_with_headers_raw(path.as_str(), request, headers).await?;
         let match_resp = Self::handle_optional_response::<ExternalMatchResponse>(resp).await?;
         Ok(match_resp.map(|r| r.match_bundle))
     }
