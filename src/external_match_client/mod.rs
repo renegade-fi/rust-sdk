@@ -5,6 +5,7 @@
 //! state committed into the Renegade darkpool.
 
 mod client;
+#[allow(deprecated)]
 pub use client::{AssembleQuoteOptions, ExternalMatchClient, ExternalMatchOptions};
 
 mod error;
@@ -13,6 +14,11 @@ use num_bigint::BigUint;
 use renegade_api::http::external_match::ExternalOrder;
 use renegade_circuit_types::{order::OrderSide, Amount};
 use renegade_util::hex::biguint_from_hex_string;
+
+/// The auth server query param for requesting gas sponsorship
+pub const GAS_SPONSORSHIP_QUERY_PARAM: &str = "use_gas_sponsorship";
+/// The auth server query param for the gas refund address
+pub const GAS_REFUND_ADDRESS_QUERY_PARAM: &str = "refund_address";
 
 /// A builder for an [`ExternalOrder`]
 #[derive(Debug, Clone, Default)]
