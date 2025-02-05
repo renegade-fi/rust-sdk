@@ -19,6 +19,10 @@ path = "examples/external_match/non_sender_receiver.rs"
 name = "modify_order_after_quote"
 path = "examples/external_match/modify_order_after_quote.rs"
 
+[[example]]
+name = "gas_sponsorship"
+path = "examples/external_match/gas_sponsorship.rs"
+
 [features]
 default = ["external-match-client", "darkpool-client"]
 external-match-client = []
