@@ -9,7 +9,7 @@ path = "examples/external_match/external_match.rs"
 
 [[example]]
 name = "quote_validation"
-path = "examples/quote_validation/quote_validation.rs"
+path = "examples/external_match/quote_validation.rs"
 
 [[example]]
 name = "non_sender_receiver"

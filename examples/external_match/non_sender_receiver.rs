@@ -7,7 +7,7 @@ use ethers::middleware::Middleware;
 use ethers::prelude::*;
 use renegade_sdk::{
     types::{AtomicMatchApiBundle, ExternalOrder, OrderSide},
-    ExternalMatchClient, ExternalMatchOptions, ExternalOrderBuilder,
+    AssembleQuoteOptions, ExternalMatchClient, ExternalOrderBuilder,
 };
 
 /// The RPC URL to use
@@ -62,7 +62,7 @@ async fn fetch_quote_and_execute(
 
     // Assemble the quote into a bundle
     println!("Assembling quote...");
-    let options = ExternalMatchOptions::new().with_receiver_address(RECEIVER_ADDRESS.to_string());
+    let options = AssembleQuoteOptions::new().with_receiver_address(RECEIVER_ADDRESS.to_string());
     let bundle = match client.assemble_quote_with_options(quote, options).await? {
         Some(bundle) => bundle,
         None => eyre::bail!("No bundle found"),
