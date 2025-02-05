@@ -51,6 +51,7 @@ ethers = "2.0.0"
 eyre = "0.6.10"
 num-bigint = "0.4.3"
 thiserror = "1.0.31"
+url = "2.5.0"
 
 # === Example Dependencies === #
 [dev-dependencies]
