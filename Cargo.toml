@@ -23,6 +23,10 @@ path = "examples/external_match/modify_order_after_quote.rs"
 name = "gas_sponsorship"
 path = "examples/external_match/gas_sponsorship.rs"
 
+[[example]]
+name = "supported_tokens"
+path = "examples/external_match/supported_tokens.rs"
+
 [features]
 default = ["external-match-client", "darkpool-client"]
 external-match-client = []
@@ -33,15 +37,15 @@ darkpool-client = []
 renegade-api = { package = "external-api", git = "https://github.com/renegade-fi/renegade.git", default-features = false, features = [
     "auth",
     "external-match-api",
-], rev = "2e62168a" }
+], rev = "428b64d9" }
 renegade-auth-api = { package = "auth-server-api", git = "https://github.com/renegade-fi/relayer-extensions.git", rev = "d3aa518" }
-renegade-circuit-types = { package = "circuit-types", git = "https://github.com/renegade-fi/renegade.git", rev = "2e62168a", default-features = false }
-renegade-common = { package = "common", git = "https://github.com/renegade-fi/renegade.git", rev = "2e62168a", default-features = false, feature = [
+renegade-circuit-types = { package = "circuit-types", git = "https://github.com/renegade-fi/renegade.git", rev = "428b64d9", default-features = false }
+renegade-common = { package = "common", git = "https://github.com/renegade-fi/renegade.git", rev = "428b64d9", default-features = false, feature = [
     "hmac",
 ] }
-renegade-constants = { package = "constants", git = "https://github.com/renegade-fi/renegade.git", rev = "2e62168a", default-features = false }
-renegade-crypto = { git = "https://github.com/renegade-fi/renegade.git", rev = "2e62168a" }
-renegade-util = { package = "util", git = "https://github.com/renegade-fi/renegade.git", rev = "2e62168a" }
+renegade-constants = { package = "constants", git = "https://github.com/renegade-fi/renegade.git", rev = "428b64d9", default-features = false }
+renegade-crypto = { git = "https://github.com/renegade-fi/renegade.git", rev = "428b64d9" }
+renegade-util = { package = "util", git = "https://github.com/renegade-fi/renegade.git", rev = "428b64d9" }
 
 # === Http === #
 reqwest = { version = "0.11", features = ["json"] }
