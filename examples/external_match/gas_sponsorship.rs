@@ -65,11 +65,15 @@ async fn fetch_quote_and_execute(
         .request_gas_sponsorship() // Enable gas sponsorship
         .with_gas_refund_address(GAS_REFUND_ADDRESS.to_string()); // Set the refund address
 
-    let bundle = match client.assemble_quote_with_options(quote, options).await? {
+    let resp = match client.assemble_quote_with_options(quote, options).await? {
         Some(bundle) => bundle,
         None => eyre::bail!("No bundle found"),
     };
-    execute_bundle(wallet, bundle).await
+
+    if !resp.gas_sponsored {
+        eyre::bail!("Bundle was not sponsored");
+    }
+    execute_bundle(wallet, resp.match_bundle).await
 }
 
 /// Execute a bundle directly

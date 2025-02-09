@@ -4,6 +4,8 @@
 //! committed into the Renegade darkpool, and an external party -- one with no
 //! state committed into the Renegade darkpool.
 
+pub mod api_types;
+
 mod client;
 #[allow(deprecated)]
 pub use client::{AssembleQuoteOptions, ExternalMatchClient, ExternalMatchOptions};
