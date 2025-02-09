@@ -59,11 +59,11 @@ async fn fetch_quote_and_execute(
 
     // Assemble the quote into a bundle
     println!("Assembling quote...");
-    let bundle = match client.assemble_quote(signed_quote).await? {
-        Some(bundle) => bundle,
+    let resp = match client.assemble_quote(signed_quote).await? {
+        Some(resp) => resp,
         None => eyre::bail!("No bundle found"),
     };
-    execute_bundle(wallet, bundle).await
+    execute_bundle(wallet, resp.match_bundle).await
 }
 
 /// Validate a quote

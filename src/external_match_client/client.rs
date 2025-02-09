@@ -2,10 +2,9 @@
 
 use renegade_api::http::{
     external_match::{
-        AssembleExternalMatchRequest, AtomicMatchApiBundle, ExternalMatchRequest,
-        ExternalMatchResponse, ExternalOrder, ExternalQuoteRequest, ExternalQuoteResponse,
-        SignedExternalQuote, ASSEMBLE_EXTERNAL_MATCH_ROUTE, REQUEST_EXTERNAL_MATCH_ROUTE,
-        REQUEST_EXTERNAL_QUOTE_ROUTE,
+        AssembleExternalMatchRequest, ExternalMatchRequest, ExternalOrder, ExternalQuoteRequest,
+        ExternalQuoteResponse, SignedExternalQuote, ASSEMBLE_EXTERNAL_MATCH_ROUTE,
+        REQUEST_EXTERNAL_MATCH_ROUTE, REQUEST_EXTERNAL_QUOTE_ROUTE,
     },
     GetSupportedTokensResponse, GET_SUPPORTED_TOKENS_ROUTE,
 };
@@ -20,7 +19,8 @@ use url::form_urlencoded;
 use crate::http::RelayerHttpClient;
 
 use super::{
-    error::ExternalMatchClientError, GAS_REFUND_ADDRESS_QUERY_PARAM, GAS_SPONSORSHIP_QUERY_PARAM,
+    api_types::ExternalMatchResponse, error::ExternalMatchClientError,
+    GAS_REFUND_ADDRESS_QUERY_PARAM, GAS_SPONSORSHIP_QUERY_PARAM,
 };
 
 // -------------
@@ -260,7 +260,7 @@ impl ExternalMatchClient {
     pub async fn assemble_quote(
         &self,
         quote: SignedExternalQuote,
-    ) -> Result<Option<AtomicMatchApiBundle>, ExternalMatchClientError> {
+    ) -> Result<Option<ExternalMatchResponse>, ExternalMatchClientError> {
         self.assemble_quote_with_options(quote, AssembleQuoteOptions::default()).await
     }
 
@@ -269,7 +269,7 @@ impl ExternalMatchClient {
         &self,
         quote: SignedExternalQuote,
         options: AssembleQuoteOptions,
-    ) -> Result<Option<AtomicMatchApiBundle>, ExternalMatchClientError> {
+    ) -> Result<Option<ExternalMatchResponse>, ExternalMatchClientError> {
         let path = options.build_request_path();
         let request = AssembleExternalMatchRequest {
             signed_quote: quote,
@@ -282,7 +282,7 @@ impl ExternalMatchClient {
         let resp =
             self.auth_http_client.post_with_headers_raw(path.as_str(), request, headers).await?;
         let match_resp = Self::handle_optional_response::<ExternalMatchResponse>(resp).await?;
-        Ok(match_resp.map(|r| r.match_bundle))
+        Ok(match_resp)
     }
 
     /// Request an external match
@@ -294,7 +294,7 @@ impl ExternalMatchClient {
     pub async fn request_external_match(
         &self,
         order: ExternalOrder,
-    ) -> Result<Option<AtomicMatchApiBundle>, ExternalMatchClientError> {
+    ) -> Result<Option<ExternalMatchResponse>, ExternalMatchClientError> {
         self.request_external_match_with_options(order, Default::default()).await
     }
 
@@ -308,7 +308,7 @@ impl ExternalMatchClient {
         &self,
         order: ExternalOrder,
         options: ExternalMatchOptions,
-    ) -> Result<Option<AtomicMatchApiBundle>, ExternalMatchClientError> {
+    ) -> Result<Option<ExternalMatchResponse>, ExternalMatchClientError> {
         let path = options.build_request_path();
         let do_gas_estimation = options.do_gas_estimation;
         let request = ExternalMatchRequest {
@@ -321,7 +321,7 @@ impl ExternalMatchClient {
         let resp =
             self.auth_http_client.post_with_headers_raw(path.as_str(), request, headers).await?;
         let match_resp = Self::handle_optional_response::<ExternalMatchResponse>(resp).await?;
-        Ok(match_resp.map(|r| r.match_bundle))
+        Ok(match_resp)
     }
 
     /// Helper function to handle response that might be NO_CONTENT, OK with
