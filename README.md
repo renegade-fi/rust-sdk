@@ -97,21 +97,43 @@ async fn execute_bundle(
 ```
 </details>
 
+## Gas Sponsorship
+
+The Renegade relayer will cover the gas cost of external match transactions, up to a daily limit. When requested, the relayer will re-route the settlement transaction through a gas rebate contract. This contract refunds the cost of the transaction (in ether) to the configured address. If no address is given, the rebate is sent to `tx.origin`. 
+
+To request gas sponsorship, simply add `request_gas_sponsorship` to the `AssembleQuoteOptions` type:
+```rust
+let options = AssembleQuoteOptions::new()
+    .request_gas_sponsorship()
+    .with_gas_refund_address("0xdeadbeef..."); // tx.origin if not set
+let bundle = client.assemble_quote_with_options(quote, options).await?;
+// ... Submit bundle ... //
+```
+
+For a full example, see [`examples/external_match/gas_sponsorship.rs`](examples/external_match/gas_sponsorship.rs).
+
+### Gas Sponsorship Notes
+
+- There is some overhead to the gas rebate contract, so the gas cost paid by the user is non-zero. This value is consistently around **17k gas**, or around **$0.0004** with current gas prices.
+- The gas estimate returned by `eth_estimateGas` will not reflect the rebate, as the rebate does not _reduce_ the gas cost, it merely refunds the ether paid for the gas. If you wish to understand the true gas cost ahead of time, the transaction can be simulated (e.g. with `alchemy_simulateExecution` or similar).
+- The rate limits currently sponsor up to **~500 matches/day** ($100 in gas). 
+
 ## Gas Estimation
 
 You can also request that the relayer estimate gas for the settlement transaction by using `request_external_match_with_options` as below:
 ```rust
 async fn request_match() -> Result<> {
     // ... Build client and order ... // 
-    let options = ExternalMatchOptions::new().with_gas_estimation(true);
+    let options = AssembleQuoteOptions::new().with_gas_estimation();
     let bundle = client
-        .request_external_match_with_options(order, options)
+        .assemble_quote_with_options(quote, options)
         .await?;
     println!("Gas estimate: {:?}", bundle.settlement_tx.gas());
 
     // ... Submit Settlement Transaction ... //
 }
 ```
+
 
 ## Bundle Details
 The *quote* returned by the relayer for an external match has the following structure:
