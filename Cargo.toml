@@ -6,46 +6,43 @@ edition = "2021"
 [[example]]
 name = "external_match"
 path = "examples/external_match/external_match.rs"
+required-features = ["examples"]
 
 [[example]]
 name = "quote_validation"
 path = "examples/external_match/quote_validation.rs"
+required-features = ["examples"]
 
 [[example]]
 name = "non_sender_receiver"
 path = "examples/external_match/non_sender_receiver.rs"
+required-features = ["examples"]
 
 [[example]]
 name = "modify_order_after_quote"
 path = "examples/external_match/modify_order_after_quote.rs"
+required-features = ["examples"]
 
 [[example]]
 name = "gas_sponsorship"
 path = "examples/external_match/gas_sponsorship.rs"
+required-features = ["examples"]
 
 [[example]]
 name = "supported_tokens"
 path = "examples/external_match/supported_tokens.rs"
+required-features = ["examples"]
 
 [features]
 default = ["external-match-client", "darkpool-client"]
 external-match-client = []
 darkpool-client = []
+examples = ["dep:alloy"]
 
 [dependencies]
-# === Renegade Dependencies === #
-renegade-api = { package = "external-api", git = "https://github.com/renegade-fi/renegade.git", default-features = false, features = [
-    "auth",
-    "external-match-api",
-], rev = "428b64d9" }
-renegade-auth-api = { package = "auth-server-api", git = "https://github.com/renegade-fi/relayer-extensions.git", rev = "d3aa518" }
-renegade-circuit-types = { package = "circuit-types", git = "https://github.com/renegade-fi/renegade.git", rev = "428b64d9", default-features = false }
-renegade-common = { package = "common", git = "https://github.com/renegade-fi/renegade.git", rev = "428b64d9", default-features = false, feature = [
-    "hmac",
-] }
-renegade-constants = { package = "constants", git = "https://github.com/renegade-fi/renegade.git", rev = "428b64d9", default-features = false }
-renegade-crypto = { git = "https://github.com/renegade-fi/renegade.git", rev = "428b64d9" }
-renegade-util = { package = "util", git = "https://github.com/renegade-fi/renegade.git", rev = "428b64d9" }
+# === Auth === #
+hmac = "0.12"
+sha2 = { version = "0.10", features = ["asm"] }
 
 # === Http === #
 reqwest = { version = "0.11", features = ["json"] }
@@ -53,9 +50,11 @@ serde = { version = "^1.0.197" }
 serde_json = "1.0.64"
 
 # === Ethereum === #
-ethers = "2.0.0"
+alloy = { version = "0.12", features = ["essentials"], optional = true }
+alloy-rpc-types-eth = "0.12"
 
 # === Misc === #
+base64 = "0.22"
 eyre = "0.6.10"
 num-bigint = "0.4.3"
 thiserror = "1.0.31"

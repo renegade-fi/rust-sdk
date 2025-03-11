@@ -7,15 +7,12 @@
 pub mod api_types;
 
 mod client;
+use api_types::{Amount, ExternalOrder, OrderSide};
 #[allow(deprecated)]
 pub use client::{AssembleQuoteOptions, ExternalMatchClient, ExternalMatchOptions};
 
 mod error;
 pub use error::ExternalMatchClientError;
-use num_bigint::BigUint;
-use renegade_api::http::external_match::ExternalOrder;
-use renegade_circuit_types::{order::OrderSide, Amount};
-use renegade_util::hex::biguint_from_hex_string;
 
 /// The auth server query param for requesting gas sponsorship
 pub const GAS_SPONSORSHIP_QUERY_PARAM: &str = "use_gas_sponsorship";
@@ -26,9 +23,9 @@ pub const GAS_REFUND_ADDRESS_QUERY_PARAM: &str = "refund_address";
 #[derive(Debug, Clone, Default)]
 pub struct ExternalOrderBuilder {
     /// The mint (erc20 address) of the quote token
-    quote_mint: Option<BigUint>,
+    quote_mint: Option<String>,
     /// The mint (erc20 address) of the base token
-    base_mint: Option<BigUint>,
+    base_mint: Option<String>,
     /// The amount of the order
     base_amount: Option<Amount>,
     /// The amount of the order
@@ -49,27 +46,13 @@ impl ExternalOrderBuilder {
     ///
     /// Expects the quote mint as a hex encoded string
     pub fn quote_mint(mut self, quote_mint: &str) -> Self {
-        // Don't unwrap here, we will fail in validation
-        if let Ok(mint) = biguint_from_hex_string(quote_mint) {
-            self.quote_mint = Some(mint);
-        }
-
-        self
-    }
-
-    /// Set the quote mint as a `BigUint`
-    pub fn quote_mint_biguint(mut self, quote_mint: BigUint) -> Self {
-        self.quote_mint = Some(quote_mint);
+        self.quote_mint = Some(quote_mint.to_string());
         self
     }
 
     /// Set the base mint
     pub fn base_mint(mut self, base_mint: &str) -> Self {
-        // Don't unwrap here, we will fail in validation
-        if let Ok(mint) = biguint_from_hex_string(base_mint) {
-            self.base_mint = Some(mint);
-        }
-
+        self.base_mint = Some(base_mint.to_string());
         self
     }
 

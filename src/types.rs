@@ -1,7 +1,8 @@
 //! Types for the Renegade SDK
 
-// Re-exports from other Renegade crates
-pub use renegade_api::http::external_match::{
-    ApiExternalQuote, AtomicMatchApiBundle, ExternalOrder, SignedExternalQuote,
+// We re-export these types here because they were previously re-exported here
+// from `renegade` dependencies, and we don't want to break existing code that
+// uses them.
+pub use crate::external_match_client::api_types::{
+    ApiExternalQuote, AtomicMatchApiBundle, ExternalOrder, OrderSide, SignedExternalQuote,
 };
-pub use renegade_circuit_types::order::OrderSide;

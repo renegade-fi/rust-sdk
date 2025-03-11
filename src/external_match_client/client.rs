@@ -1,31 +1,33 @@
 //! The client for requesting external matches
 
-use renegade_api::http::{
-    external_match::{
-        AssembleExternalMatchRequest, ExternalMatchRequest, ExternalOrder, ExternalQuoteRequest,
-        ExternalQuoteResponse, SignedExternalQuote, ASSEMBLE_EXTERNAL_MATCH_ROUTE,
-        REQUEST_EXTERNAL_MATCH_ROUTE, REQUEST_EXTERNAL_QUOTE_ROUTE,
-    },
-    GetSupportedTokensResponse, GET_SUPPORTED_TOKENS_ROUTE,
-};
-use renegade_auth_api::RENEGADE_API_KEY_HEADER;
-use renegade_common::types::hmac::HmacKey;
 use reqwest::{
     header::{HeaderMap, HeaderValue},
     StatusCode,
 };
 use url::form_urlencoded;
 
-use crate::http::RelayerHttpClient;
+use crate::{
+    api_types::{ASSEMBLE_EXTERNAL_MATCH_ROUTE, REQUEST_EXTERNAL_MATCH_ROUTE},
+    http::RelayerHttpClient,
+    util::HmacKey,
+};
 
 use super::{
-    api_types::ExternalMatchResponse, error::ExternalMatchClientError,
+    api_types::{
+        AssembleExternalMatchRequest, ExternalMatchRequest, ExternalMatchResponse, ExternalOrder,
+        ExternalQuoteRequest, ExternalQuoteResponse, GetSupportedTokensResponse,
+        SignedExternalQuote, GET_SUPPORTED_TOKENS_ROUTE, REQUEST_EXTERNAL_QUOTE_ROUTE,
+    },
+    error::ExternalMatchClientError,
     GAS_REFUND_ADDRESS_QUERY_PARAM, GAS_SPONSORSHIP_QUERY_PARAM,
 };
 
 // -------------
 // | Constants |
 // -------------
+
+/// The Renegade API key header
+pub const RENEGADE_API_KEY_HEADER: &str = "X-Renegade-Api-Key";
 
 /// The sepolia auth server base URL
 const SEPOLIA_AUTH_BASE_URL: &str = "https://testnet.auth-server.renegade.fi";
