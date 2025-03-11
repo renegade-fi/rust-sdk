@@ -4,9 +4,11 @@
 #![deny(unsafe_code)]
 #![deny(clippy::needless_pass_by_ref_mut)]
 
-mod external_match_client;
+pub(crate) mod external_match_client;
 mod http;
 pub mod types;
 mod util;
 
 pub use external_match_client::*;
+#[cfg(feature = "examples")]
+pub mod example_utils;
