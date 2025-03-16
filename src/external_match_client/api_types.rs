@@ -60,6 +60,8 @@ pub struct ExternalMatchResponse {
     /// refunds the gas used by the match to the configured address
     #[serde(rename = "is_sponsored", default)]
     pub gas_sponsored: bool,
+    /// The gas sponsorship info, if the match was sponsored
+    pub gas_sponsorship_info: Option<GasSponsorshipInfo>,
 }
 
 /// The request type for a quote on an external order
@@ -73,7 +75,9 @@ pub struct ExternalQuoteRequest {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ExternalQuoteResponse {
     /// The signed quote
-    pub signed_quote: SignedExternalQuote,
+    pub signed_quote: ApiSignedQuote,
+    /// The signed gas sponsorship info, if sponsorship was requested
+    pub gas_sponsorship_info: Option<SignedGasSponsorshipInfo>,
 }
 
 /// The request type for assembling an external match quote into a settlement
@@ -90,7 +94,10 @@ pub struct AssembleExternalMatchRequest {
     #[serde(default)]
     pub updated_order: Option<ExternalOrder>,
     /// The signed quote
-    pub signed_quote: SignedExternalQuote,
+    pub signed_quote: ApiSignedQuote,
+    /// The signed gas sponsorship info associated with the quote,
+    /// if sponsorship was requested
+    pub gas_sponsorship_info: Option<SignedGasSponsorshipInfo>,
 }
 
 // -------------
@@ -197,13 +204,24 @@ pub struct ApiExternalMatchResult {
     pub direction: OrderSide,
 }
 
-/// A signed quote for an external order
+/// A signed quote directly returned by the auth server
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ApiSignedQuote {
+    /// The quote
+    pub quote: ApiExternalQuote,
+    /// The signature
+    pub signature: String,
+}
+
+/// A signed quote for an external order, including gas sponsorship info, if any
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SignedExternalQuote {
     /// The quote
     pub quote: ApiExternalQuote,
     /// The signature
     pub signature: String,
+    /// The signed gas sponsorship info, if sponsorship was requested
+    pub gas_sponsorship_info: Option<SignedGasSponsorshipInfo>,
 }
 
 impl SignedExternalQuote {
@@ -255,4 +273,29 @@ pub struct ApiTimestampedPrice {
     pub price: String,
     /// The timestamp, in milliseconds since the epoch
     pub timestamp: u64,
+}
+
+// -----------------------------
+// | Gas Sponsorship API Types |
+// -----------------------------
+
+/// Signed metadata regarding gas sponsorship for a quote
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SignedGasSponsorshipInfo {
+    /// The signed gas sponsorship info
+    pub gas_sponsorship_info: GasSponsorshipInfo,
+    /// The auth server's signature over the gas sponsorship info
+    pub signature: String,
+}
+
+/// Metadata regarding gas sponsorship for a quote
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct GasSponsorshipInfo {
+    /// The amount to be refunded as a result of gas sponsorship.
+    /// This amount is firm, it will not change when the quote is assembled.
+    pub refund_amount: u128,
+    /// Whether the refund is in terms of native ETH.
+    pub refund_native_eth: bool,
+    /// The address to which the refund will be sent, if set explicitly.
+    pub refund_address: Option<String>,
 }
