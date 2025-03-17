@@ -151,7 +151,7 @@ impl ExternalMatchOptions {
         let mut query = form_urlencoded::Serializer::new(String::new());
 
         // Add query params for gas sponsorship
-        query.append_pair(GAS_SPONSORSHIP_QUERY_PARAM, &self.sponsor_gas.to_string());
+        query.append_pair(GAS_SPONSORSHIP_QUERY_PARAM, &(!self.sponsor_gas).to_string());
         if let Some(addr) = &self.gas_refund_address {
             query.append_pair(GAS_REFUND_ADDRESS_QUERY_PARAM, addr);
         }

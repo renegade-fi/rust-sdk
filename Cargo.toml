@@ -24,8 +24,13 @@ path = "examples/external_match/modify_order_after_quote.rs"
 required-features = ["examples"]
 
 [[example]]
-name = "gas_sponsorship"
-path = "examples/external_match/gas_sponsorship.rs"
+name = "native_eth_gas_sponsorship"
+path = "examples/external_match/native_eth_gas_sponsorship.rs"
+required-features = ["examples"]
+
+[[example]]
+name = "in_kind_gas_sponsorship"
+path = "examples/external_match/in_kind_gas_sponsorship.rs"
 required-features = ["examples"]
 
 [[example]]
