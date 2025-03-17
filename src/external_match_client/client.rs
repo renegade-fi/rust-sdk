@@ -10,12 +10,13 @@ use crate::{
     api_types::{ASSEMBLE_EXTERNAL_MATCH_ROUTE, REQUEST_EXTERNAL_MATCH_ROUTE},
     http::RelayerHttpClient,
     util::HmacKey,
+    GAS_REFUND_NATIVE_ETH_QUERY_PARAM,
 };
 
 use super::{
     api_types::{
-        AssembleExternalMatchRequest, ExternalMatchRequest, ExternalMatchResponse, ExternalOrder,
-        ExternalQuoteRequest, ExternalQuoteResponse, GetSupportedTokensResponse,
+        ApiSignedQuote, AssembleExternalMatchRequest, ExternalMatchRequest, ExternalMatchResponse,
+        ExternalOrder, ExternalQuoteRequest, ExternalQuoteResponse, GetSupportedTokensResponse,
         SignedExternalQuote, GET_SUPPORTED_TOKENS_ROUTE, REQUEST_EXTERNAL_QUOTE_ROUTE,
     },
     error::ExternalMatchClientError,
@@ -41,6 +42,55 @@ const MAINNET_RELAYER_BASE_URL: &str = "https://mainnet.cluster0.renegade.fi";
 // -------------------
 // | Request Options |
 // -------------------
+
+/// The options for requesting a quote
+#[derive(Clone, Default)]
+pub struct RequestQuoteOptions {
+    /// Whether to disable gas sponsorship
+    pub disable_gas_sponsorship: bool,
+    /// The address to refund gas to if `sponsor_gas` is true
+    pub gas_refund_address: Option<String>,
+    /// Whether to refund gas in terms of native ETH, as opposed to in-kind
+    pub refund_native_eth: bool,
+}
+
+impl RequestQuoteOptions {
+    /// Create a new options with default values
+    pub fn new() -> Self {
+        Default::default()
+    }
+
+    /// Disable gas sponsorship
+    pub fn disable_gas_sponsorship(mut self) -> Self {
+        self.disable_gas_sponsorship = true;
+        self
+    }
+
+    /// Set the gas refund address
+    pub fn with_gas_refund_address(mut self, gas_refund_address: String) -> Self {
+        self.gas_refund_address = Some(gas_refund_address);
+        self
+    }
+
+    /// Set whether to refund gas in terms of native ETH
+    pub fn with_refund_native_eth(mut self) -> Self {
+        self.refund_native_eth = true;
+        self
+    }
+
+    /// Get the request path given the options
+    pub(crate) fn build_request_path(&self) -> String {
+        let mut query = form_urlencoded::Serializer::new(String::new());
+        query.append_pair(GAS_SPONSORSHIP_QUERY_PARAM, &self.disable_gas_sponsorship.to_string());
+        query.append_pair(GAS_REFUND_NATIVE_ETH_QUERY_PARAM, &self.refund_native_eth.to_string());
+
+        if let Some(addr) = &self.gas_refund_address {
+            query.append_pair(GAS_REFUND_ADDRESS_QUERY_PARAM, addr);
+        }
+
+        format!("{}?{}", REQUEST_EXTERNAL_QUOTE_ROUTE, query.finish())
+    }
+}
 
 /// The options for requesting an external match
 #[deprecated(
@@ -173,13 +223,24 @@ impl AssembleQuoteOptions {
     /// Get the request path given the options
     pub(crate) fn build_request_path(&self) -> String {
         let mut query = form_urlencoded::Serializer::new(String::new());
-        query.append_pair(GAS_SPONSORSHIP_QUERY_PARAM, &self.sponsor_gas.to_string());
+        if self.sponsor_gas {
+            // We only write this query parameter if it was explicitly set. The
+            // expectation of the auth server is that when gas sponsorship is
+            // requested at the quote stage, there should be no query parameters
+            // at all in the assemble request.
+            query.append_pair(GAS_SPONSORSHIP_QUERY_PARAM, &(!self.sponsor_gas).to_string());
+        }
 
         if let Some(addr) = &self.gas_refund_address {
             query.append_pair(GAS_REFUND_ADDRESS_QUERY_PARAM, addr);
         }
 
-        format!("{}?{}", ASSEMBLE_EXTERNAL_MATCH_ROUTE, query.finish())
+        let query_str = query.finish();
+        if query_str.is_empty() {
+            return ASSEMBLE_EXTERNAL_MATCH_ROUTE.to_string();
+        }
+
+        format!("{}?{}", ASSEMBLE_EXTERNAL_MATCH_ROUTE, query_str)
     }
 }
 
@@ -249,13 +310,25 @@ impl ExternalMatchClient {
         &self,
         order: ExternalOrder,
     ) -> Result<Option<SignedExternalQuote>, ExternalMatchClientError> {
+        self.request_quote_with_options(order, RequestQuoteOptions::default()).await
+    }
+
+    /// Request a quote for an external match, with options
+    pub async fn request_quote_with_options(
+        &self,
+        order: ExternalOrder,
+        options: RequestQuoteOptions,
+    ) -> Result<Option<SignedExternalQuote>, ExternalMatchClientError> {
         let request = ExternalQuoteRequest { external_order: order };
-        let path = REQUEST_EXTERNAL_QUOTE_ROUTE;
+        let path = options.build_request_path();
         let headers = self.get_headers()?;
 
-        let resp = self.auth_http_client.post_with_headers_raw(path, request, headers).await?;
+        let resp = self.auth_http_client.post_with_headers_raw(&path, request, headers).await?;
         let quote_resp = Self::handle_optional_response::<ExternalQuoteResponse>(resp).await?;
-        Ok(quote_resp.map(|r| r.signed_quote))
+        Ok(quote_resp.map(|r| {
+            let ApiSignedQuote { quote, signature } = r.signed_quote;
+            SignedExternalQuote { quote, signature, gas_sponsorship_info: r.gas_sponsorship_info }
+        }))
     }
 
     /// Assemble a quote into a match bundle, ready for settlement
@@ -273,11 +346,13 @@ impl ExternalMatchClient {
         options: AssembleQuoteOptions,
     ) -> Result<Option<ExternalMatchResponse>, ExternalMatchClientError> {
         let path = options.build_request_path();
+        let signed_quote = ApiSignedQuote { quote: quote.quote, signature: quote.signature };
         let request = AssembleExternalMatchRequest {
-            signed_quote: quote,
+            signed_quote,
             receiver_address: options.receiver_address,
             do_gas_estimation: options.do_gas_estimation,
             updated_order: options.updated_order,
+            gas_sponsorship_info: quote.gas_sponsorship_info,
         };
         let headers = self.get_headers()?;
 
