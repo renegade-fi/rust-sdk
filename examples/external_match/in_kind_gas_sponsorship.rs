@@ -3,15 +3,13 @@
 use renegade_sdk::{
     example_utils::{build_renegade_client, execute_bundle, get_signer, Wallet},
     types::{ExternalOrder, OrderSide},
-    AssembleQuoteOptions, ExternalMatchClient, ExternalOrderBuilder,
+    AssembleQuoteOptions, ExternalMatchClient, ExternalOrderBuilder, RequestQuoteOptions,
 };
 
 /// Testnet wETH
 const BASE_MINT: &str = "0xc3414a7ef14aaaa9c4522dfc00a4e66e74e9c25a";
 /// Testnet USDC
 const QUOTE_MINT: &str = "0xdf8d259c04020562717557f2b5a3cf28e92707d1";
-/// The gas refund address: the address that will receive the gas refund
-const GAS_REFUND_ADDRESS: &str = "0x99D9133afE1B9eC1726C077cA2b79Dcbb5969707";
 
 #[tokio::main]
 async fn main() -> Result<(), eyre::Error> {
@@ -40,20 +38,30 @@ async fn fetch_quote_and_execute(
     wallet: &Wallet,
 ) -> Result<(), eyre::Error> {
     // Fetch a quote from the relayer
-    println!("Fetching quote...");
+    println!("Fetching quote with in-kind gas sponsorship...");
+    // Note that by default, quotes are requested with in-kind gas sponsorship,
+    // so we don't need to specify any options here.
+    // Also note: When you leave the `refund_address` unset, the in-kind refund is
+    // directed to the receiver address. This is equivalent to the trade itself
+    // having a better price, so the price in the quote will be updated to
+    // reflect this
     let res = client.request_quote(order).await?;
     let quote = match res {
         Some(quote) => quote,
         None => eyre::bail!("No quote found"),
     };
 
-    // Assemble the quote into a bundle with gas sponsorship
-    println!("Assembling quote with gas sponsorship...");
-    let options = AssembleQuoteOptions::new()
-        .request_gas_sponsorship() // Enable gas sponsorship
-        .with_gas_refund_address(GAS_REFUND_ADDRESS.to_string()); // Set the refund address
+    if quote.gas_sponsorship_info.is_none() {
+        eyre::bail!("Quote was not sponsored");
+    }
 
-    let resp = match client.assemble_quote_with_options(quote, options).await? {
+    if quote.gas_sponsorship_info.as_ref().unwrap().gas_sponsorship_info.refund_native_eth {
+        eyre::bail!("Quote was not sponsored in-kind");
+    }
+
+    // Assemble the quote into a bundle with gas sponsorship
+    println!("Assembling quote...");
+    let resp = match client.assemble_quote(quote).await? {
         Some(bundle) => bundle,
         None => eyre::bail!("No bundle found"),
     };
