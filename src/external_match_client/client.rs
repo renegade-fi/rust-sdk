@@ -170,8 +170,16 @@ pub struct AssembleQuoteOptions {
     /// If granted, the auth server will sign the bundle to indicate that the
     /// gas paid to settle the match should be refunded to the given address
     /// (`tx.origin` if not specified). This is subject to a rate limit.
+    #[deprecated(
+        since = "0.1.0",
+        note = "This option will soon be removed, request gas sponsorship when requesting a quote instead"
+    )]
     pub sponsor_gas: bool,
     /// The address to refund gas to if `sponsor_gas` is true
+    #[deprecated(
+        since = "0.1.0",
+        note = "This option will soon be removed, request gas sponsorship when requesting a quote instead"
+    )]
     pub gas_refund_address: Option<String>,
     /// The receiver address that the darkpool will send funds to
     ///
@@ -197,12 +205,22 @@ impl AssembleQuoteOptions {
     }
 
     /// Request gas sponsorship
+    #[deprecated(
+        since = "0.1.0",
+        note = "This option will soon be removed, request gas sponsorship when requesting a quote instead"
+    )]
+    #[allow(deprecated)]
     pub fn request_gas_sponsorship(mut self) -> Self {
         self.sponsor_gas = true;
         self
     }
 
     /// Set the gas refund address
+    #[deprecated(
+        since = "0.1.0",
+        note = "This option will soon be removed, request gas sponsorship when requesting a quote instead"
+    )]
+    #[allow(deprecated)]
     pub fn with_gas_refund_address(mut self, gas_refund_address: String) -> Self {
         self.gas_refund_address = Some(gas_refund_address);
         self
@@ -221,6 +239,7 @@ impl AssembleQuoteOptions {
     }
 
     /// Get the request path given the options
+    #[allow(deprecated)]
     pub(crate) fn build_request_path(&self) -> String {
         let mut query = form_urlencoded::Serializer::new(String::new());
         if self.sponsor_gas {
