@@ -371,7 +371,6 @@ impl ExternalMatchClient {
             receiver_address: options.receiver_address,
             do_gas_estimation: options.do_gas_estimation,
             updated_order: options.updated_order,
-            gas_sponsorship_info: quote.gas_sponsorship_info,
         };
         let headers = self.get_headers()?;
 
