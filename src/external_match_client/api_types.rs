@@ -95,9 +95,6 @@ pub struct AssembleExternalMatchRequest {
     pub updated_order: Option<ExternalOrder>,
     /// The signed quote
     pub signed_quote: ApiSignedQuote,
-    /// The signed gas sponsorship info associated with the quote,
-    /// if sponsorship was requested
-    pub gas_sponsorship_info: Option<SignedGasSponsorshipInfo>,
 }
 
 // -------------
@@ -285,6 +282,7 @@ pub struct SignedGasSponsorshipInfo {
     /// The signed gas sponsorship info
     pub gas_sponsorship_info: GasSponsorshipInfo,
     /// The auth server's signature over the gas sponsorship info
+    #[deprecated(since = "0.1.2", note = "Gas sponsorship info is no longer signed")]
     pub signature: String,
 }
 
