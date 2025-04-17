@@ -165,6 +165,11 @@ impl ExternalMatchOptions {
 pub struct AssembleQuoteOptions {
     /// Whether to do gas estimation
     pub do_gas_estimation: bool,
+    /// Whether or not to allow shared access to the resulting bundle
+    ///
+    /// If true, the bundle may be sent to other clients requesting an external
+    /// match. If false, the bundle will be exclusively held for some time
+    pub allow_shared: bool,
     /// Whether or not to request gas sponsorship for the match
     ///
     /// If granted, the auth server will sign the bundle to indicate that the
@@ -201,6 +206,12 @@ impl AssembleQuoteOptions {
     /// Set the gas estimation flag
     pub fn with_gas_estimation(mut self, do_gas_estimation: bool) -> Self {
         self.do_gas_estimation = do_gas_estimation;
+        self
+    }
+
+    /// Set the allow shared flag
+    pub fn with_allow_shared(mut self, allow_shared: bool) -> Self {
+        self.allow_shared = allow_shared;
         self
     }
 
@@ -370,6 +381,7 @@ impl ExternalMatchClient {
             signed_quote,
             receiver_address: options.receiver_address,
             do_gas_estimation: options.do_gas_estimation,
+            allow_shared: options.allow_shared,
             updated_order: options.updated_order,
         };
         let headers = self.get_headers()?;
