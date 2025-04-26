@@ -1,3 +1,4 @@
+use rand::Rng;
 use renegade_sdk::example_utils::{build_renegade_client, execute_bundle, get_signer, Wallet};
 use renegade_sdk::{
     types::{ExternalOrder, OrderSide},
@@ -21,7 +22,7 @@ async fn main() -> Result<(), eyre::Error> {
         .quote_mint(QUOTE_MINT)
         .quote_amount(30_000_000) // $30 USDC
         .min_fill_size(1_000_000) // $1 USDC
-        .side(OrderSide::Sell)
+        .side(OrderSide::Buy)
         .build()
         .unwrap();
 
@@ -49,26 +50,41 @@ async fn fetch_quote_and_execute_malleable(
 
     // Assemble the quote into a malleable bundle
     println!("Assembling malleable quote...");
-    let resp = match client.assemble_malleable_quote(quote).await? {
+    let mut bundle = match client.assemble_malleable_quote(quote).await? {
         Some(resp) => resp,
         None => eyre::bail!("No malleable bundle found"),
     };
 
-    // Print information about the malleable match
-    let bundle = &resp.match_bundle;
-    let result = &bundle.match_result;
+    // Print bundle info
+    println!("\nBundle info:");
+    let (min_base, max_base) = bundle.base_bounds();
+    println!("\tBase bounds: {} - {}", min_base, max_base);
 
-    println!("Malleable match details:");
-    println!("  Direction: {:?}", result.direction);
-    println!("  Price: {}", result.price);
-    println!("  Min base amount: {}", result.min_base_amount);
-    println!("  Max base amount: {}", result.max_base_amount);
+    // Pick a random base amount and see the send and receive amounts at that base
+    // amount
+    let mut rng = rand::thread_rng();
+    let dummy_base_amount = rng.gen_range(min_base..=max_base);
+    let send = bundle.send_amount_at_base(dummy_base_amount);
+    let recv = bundle.receive_amount_at_base(dummy_base_amount);
+    println!("\tHypothetical base amount: {}", dummy_base_amount);
+    println!("\tHypothetical send amount: {}", send);
+    println!("\tHypothetical received amount: {}", recv);
 
-    println!("Fee rates:");
-    println!("  Relayer fee rate: {}", bundle.fee_rates.relayer_fee_rate);
-    println!("  Protocol fee rate: {}", bundle.fee_rates.protocol_fee_rate);
+    // Pick an actual base amount to swap with
+    let swapped_base_amt = rng.gen_range(min_base..=max_base);
+
+    // Setting the base amount will return the receive amount at the new base
+    // You can also call send_amount and receive_amount to get the amounts at the
+    // currently set base amount
+    let _recv = bundle.set_base_amount(swapped_base_amt).unwrap();
+    let send = bundle.send_amount();
+    let recv = bundle.receive_amount();
+    println!("\tSwapped base amount: {}", swapped_base_amt);
+    println!("\tSend amount: {}", send);
+    println!("\tReceived amount: {}\n\n", recv);
 
     // Execute the bundle
     println!("Executing malleable match bundle...");
-    execute_bundle(wallet, bundle.settlement_tx.clone()).await
+    let tx = bundle.settlement_tx();
+    execute_bundle(wallet, tx).await
 }

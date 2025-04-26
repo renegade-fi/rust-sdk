@@ -122,6 +122,11 @@ For examples on how to configure gas sponsorship, see [`examples/external_match/
 - The gas estimate returned by `eth_estimateGas` will not reflect the rebate, as the rebate does not _reduce_ the gas cost, it merely refunds the ether paid for the gas. If you wish to understand the true gas cost ahead of time, the transaction can be simulated (e.g. with `alchemy_simulateExecution` or similar).
 - The rate limits currently sponsor up to **~500 matches/day** ($100 in gas). 
 
+## Malleable Matches
+The external match API allows for a quote to be assembled into a _malleable_ match. A malleable match is a match that specifies a range of allowable base amounts, rather than an exact amount. This can be used, for example, to fit a Renegade match into a larger route with variable output amounts. 
+
+To assemble a malleable match, use the `assemble_malleable_quote` function. This function is identical to `assemble_quote`, but returns a `MalleableExternalMatchResponse` instead of an `ExternalMatchResponse`. The [`malleable_match.rs`](src/external_match_client/api_types/malleable_match.rs) example shows how to use the helper methods on the `MalleableExternalMatchResponse` to set the base amount and compute information about the bundle at a given base amount.
+
 ## Gas Estimation
 
 You can also request that the relayer estimate gas for the settlement transaction by using `request_external_match_with_options` as below:

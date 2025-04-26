@@ -85,4 +85,5 @@ url = "2.5.0"
 
 # === Example Dependencies === #
 [dev-dependencies]
+rand = "0.8"
 tokio = { version = "1.30.0", features = ["full"] }

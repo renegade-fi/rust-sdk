@@ -3,7 +3,10 @@
 //! This implementation internalizes a subset of the functionality available to
 //! the fixed point type, to avoid depending on the relayer crates
 
-use std::fmt::{self, Display};
+use std::{
+    fmt::{self, Display},
+    ops::Add,
+};
 
 use bigdecimal::{BigDecimal, ToPrimitive};
 use num_bigint::BigUint;
@@ -46,6 +49,15 @@ impl FixedPoint {
         let value_bigdec = BigDecimal::from_biguint(self.value.clone(), 0);
         let result = &value_bigdec / FIXED_POINT_PRECISION_SHIFT;
         result.to_f64().expect("fixed point overflow")
+    }
+}
+
+impl<'a> Add<&'a FixedPoint> for &'a FixedPoint {
+    type Output = FixedPoint;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        let new_value = &self.value + &rhs.value;
+        FixedPoint::new(new_value)
     }
 }
 
