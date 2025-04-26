@@ -7,7 +7,10 @@ use reqwest::{
 use url::form_urlencoded;
 
 use crate::{
-    api_types::{ASSEMBLE_EXTERNAL_MATCH_ROUTE, REQUEST_EXTERNAL_MATCH_ROUTE},
+    api_types::{
+        ASSEMBLE_EXTERNAL_MATCH_MALLEABLE_ROUTE, ASSEMBLE_EXTERNAL_MATCH_ROUTE,
+        REQUEST_EXTERNAL_MATCH_ROUTE,
+    },
     http::RelayerHttpClient,
     util::HmacKey,
     GAS_REFUND_NATIVE_ETH_QUERY_PARAM,
@@ -17,7 +20,8 @@ use super::{
     api_types::{
         ApiSignedQuote, AssembleExternalMatchRequest, ExternalMatchRequest, ExternalMatchResponse,
         ExternalOrder, ExternalQuoteRequest, ExternalQuoteResponse, GetSupportedTokensResponse,
-        SignedExternalQuote, GET_SUPPORTED_TOKENS_ROUTE, REQUEST_EXTERNAL_QUOTE_ROUTE,
+        MalleableExternalMatchResponse, SignedExternalQuote, GET_SUPPORTED_TOKENS_ROUTE,
+        REQUEST_EXTERNAL_QUOTE_ROUTE,
     },
     error::ExternalMatchClientError,
     GAS_REFUND_ADDRESS_QUERY_PARAM, GAS_SPONSORSHIP_QUERY_PARAM,
@@ -389,6 +393,38 @@ impl ExternalMatchClient {
         let resp =
             self.auth_http_client.post_with_headers_raw(path.as_str(), request, headers).await?;
         let match_resp = Self::handle_optional_response::<ExternalMatchResponse>(resp).await?;
+        Ok(match_resp)
+    }
+
+    /// Assemble a quote into a malleable match bundle, ready for settlement
+    pub async fn assemble_malleable_quote(
+        &self,
+        quote: SignedExternalQuote,
+    ) -> Result<Option<MalleableExternalMatchResponse>, ExternalMatchClientError> {
+        self.assemble_malleable_quote_with_options(quote, AssembleQuoteOptions::default()).await
+    }
+
+    /// Assemble a quote into a malleable match bundle, ready for settlement,
+    /// with options
+    pub async fn assemble_malleable_quote_with_options(
+        &self,
+        quote: SignedExternalQuote,
+        options: AssembleQuoteOptions,
+    ) -> Result<Option<MalleableExternalMatchResponse>, ExternalMatchClientError> {
+        let path = ASSEMBLE_EXTERNAL_MATCH_MALLEABLE_ROUTE;
+        let signed_quote = ApiSignedQuote { quote: quote.quote, signature: quote.signature };
+        let request = AssembleExternalMatchRequest {
+            signed_quote,
+            receiver_address: options.receiver_address.clone(),
+            do_gas_estimation: options.do_gas_estimation,
+            allow_shared: options.allow_shared,
+            updated_order: options.updated_order.clone(),
+        };
+        let headers = self.get_headers()?;
+
+        let resp = self.auth_http_client.post_with_headers_raw(path, request, headers).await?;
+        let match_resp =
+            Self::handle_optional_response::<MalleableExternalMatchResponse>(resp).await?;
         Ok(match_resp)
     }
 

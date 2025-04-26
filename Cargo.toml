@@ -49,6 +49,11 @@ name = "shared_bundle"
 path = "examples/external_match/shared_bundle.rs"
 required-features = ["examples"]
 
+[[example]]
+name = "malleable_match"
+path = "examples/external_match/malleable_match.rs"
+required-features = ["examples"]
+
 [features]
 default = ["external-match-client", "darkpool-client"]
 external-match-client = []
@@ -71,8 +76,10 @@ alloy-rpc-types-eth = "0.12"
 
 # === Misc === #
 base64 = "0.22"
+bigdecimal = "0.4.0"
 eyre = "0.6.10"
-num-bigint = "0.4.3"
+num-bigint = { version = "0.4.3", features = ["serde"] }
+num-traits = "0.2.19"
 thiserror = "1.0.31"
 url = "2.5.0"
 

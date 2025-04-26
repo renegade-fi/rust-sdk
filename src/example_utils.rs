@@ -2,11 +2,11 @@
 
 use alloy::providers::{Provider, ProviderBuilder};
 use alloy::signers::local::PrivateKeySigner;
+use alloy_rpc_types_eth::TransactionRequest;
 use std::str::FromStr;
 use std::sync::Arc;
 use url::Url;
 
-use crate::types::AtomicMatchApiBundle;
 use crate::ExternalMatchClient;
 
 /// The RPC URL to use
@@ -34,12 +34,8 @@ pub async fn get_signer() -> Result<Wallet, eyre::Error> {
 }
 
 /// Execute a bundle directly
-pub async fn execute_bundle(
-    wallet: &Wallet,
-    bundle: AtomicMatchApiBundle,
-) -> Result<(), eyre::Error> {
+pub async fn execute_bundle(wallet: &Wallet, tx: TransactionRequest) -> Result<(), eyre::Error> {
     println!("Submitting bundle...\n");
-    let tx = bundle.settlement_tx.clone();
     let hash = wallet.send_transaction(tx).await?.watch().await?;
     println!("Successfully submitted transaction: {:#x}", hash);
     Ok(())
