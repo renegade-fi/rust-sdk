@@ -1,5 +1,6 @@
 //! Types for the external match client
 mod fixed_point;
+mod malleable_match;
 mod order_types;
 mod request_response;
 

@@ -90,4 +90,16 @@ pub struct AssembleExternalMatchRequest {
 pub struct MalleableExternalMatchResponse {
     /// The match bundle
     pub match_bundle: MalleableAtomicMatchApiBundle,
+    /// The base amount chosen for the match
+    ///
+    /// If `None`, the base amount has not been selected and will default to the
+    /// `max_base_amount`
+    ///
+    /// This field is not meant for client use directly, rather it is set by
+    /// operating on the type and allows the response type to stay internally
+    /// consistent
+    #[serde(default)]
+    pub(crate) base_amount: Option<u128>,
+    /// The gas sponsorship info, if the match was sponsored
+    pub gas_sponsorship_info: Option<GasSponsorshipInfo>,
 }

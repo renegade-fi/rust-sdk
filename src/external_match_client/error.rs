@@ -17,6 +17,9 @@ pub enum ExternalMatchClientError {
     /// An error indicating that the api secret is invalid
     #[error("the api secret is invalid")]
     InvalidApiSecret,
+    /// An invalid modification to a malleable match
+    #[error("invalid modification to a malleable match: {0}")]
+    InvalidModification(String),
     /// An error indicating that an order is invalid
     #[error("invalid order: {0}")]
     InvalidOrder(String),
@@ -29,6 +32,12 @@ impl ExternalMatchClientError {
     /// Construct a new http error
     pub(crate) fn http<T: ToString>(status: StatusCode, msg: T) -> Self {
         Self::Http(Some(status), msg.to_string())
+    }
+
+    /// Construct a new invalid modification error
+    #[allow(clippy::needless_pass_by_value)]
+    pub(crate) fn invalid_modification<T: ToString>(msg: T) -> Self {
+        Self::InvalidModification(msg.to_string())
     }
 
     /// Construct a new invalid order error

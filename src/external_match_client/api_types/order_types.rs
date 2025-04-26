@@ -78,6 +78,13 @@ pub struct FeeTakeRate {
     pub protocol_fee_rate: FixedPoint,
 }
 
+impl FeeTakeRate {
+    /// Get the total fee rate
+    pub fn total(&self) -> FixedPoint {
+        &self.relayer_fee_rate + &self.protocol_fee_rate
+    }
+}
+
 /// An API server bounded match result
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ApiBoundedMatchResult {
@@ -86,7 +93,7 @@ pub struct ApiBoundedMatchResult {
     /// The mint of the base token in the matched asset pair
     pub base_mint: String,
     /// The price at which the match executes
-    pub price: String,
+    pub price_fp: FixedPoint,
     /// The minimum base amount of the match
     pub min_base_amount: Amount,
     /// The maximum base amount of the match
