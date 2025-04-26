@@ -49,5 +49,5 @@ async fn fetch_quote_and_execute(
         Some(resp) => resp,
         None => eyre::bail!("No bundle found"),
     };
-    execute_bundle(wallet, resp.match_bundle).await
+    execute_bundle(wallet, resp.match_bundle.settlement_tx).await
 }

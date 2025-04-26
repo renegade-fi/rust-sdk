@@ -69,5 +69,5 @@ async fn fetch_quote_and_execute(
     if !resp.gas_sponsored {
         eyre::bail!("Bundle was not sponsored");
     }
-    execute_bundle(wallet, resp.match_bundle).await
+    execute_bundle(wallet, resp.match_bundle.settlement_tx).await
 }
