@@ -72,7 +72,7 @@ alloy-rpc-types-eth = "0.12"
 # === Misc === #
 base64 = "0.22"
 eyre = "0.6.10"
-num-bigint = "0.4.3"
+num-bigint = { version = "0.4.3", features = ["serde"] }
 thiserror = "1.0.31"
 url = "2.5.0"
 
