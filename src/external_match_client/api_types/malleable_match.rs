@@ -1,7 +1,7 @@
 //! Type for operating on a malleable match result
 
 use alloy::{primitives::U256, sol_types::SolValue};
-use alloy_rpc_types_eth::TransactionRequest;
+use alloy_rpc_types_eth::{TransactionInput, TransactionRequest};
 
 use crate::ExternalMatchClientError;
 
@@ -42,7 +42,9 @@ impl MalleableExternalMatchResponse {
         let base_amount_u256 = U256::from(base_amount);
         let base_bytes = base_amount_u256.abi_encode();
         base_amt_slice.copy_from_slice(&base_bytes);
-        self.match_bundle.settlement_tx.input.data = Some(modified_data.into());
+
+        let new_input = TransactionInput::new(modified_data.into());
+        self.match_bundle.settlement_tx.input = new_input;
     }
 
     /// Get the bounds on the base amount
@@ -134,7 +136,7 @@ impl MalleableExternalMatchResponse {
 
     /// Get the tx data
     fn tx_data(&self) -> Vec<u8> {
-        let data = self.match_bundle.settlement_tx.input.data.clone();
+        let data = self.match_bundle.settlement_tx.input.input();
         data.unwrap_or_default().to_vec()
     }
 }
