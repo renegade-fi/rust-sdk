@@ -34,14 +34,14 @@ use super::{
 /// The Renegade API key header
 pub const RENEGADE_API_KEY_HEADER: &str = "X-Renegade-Api-Key";
 
-/// The sepolia auth server base URL
-const SEPOLIA_AUTH_BASE_URL: &str = "https://testnet.auth-server.renegade.fi";
-/// The mainnet auth server base URL
-const MAINNET_AUTH_BASE_URL: &str = "https://mainnet.auth-server.renegade.fi";
-/// The sepolia relayer base URL
-const SEPOLIA_RELAYER_BASE_URL: &str = "https://testnet.cluster0.renegade.fi";
-/// The mainnet relayer base URL
-const MAINNET_RELAYER_BASE_URL: &str = "https://mainnet.cluster0.renegade.fi";
+/// The Arbitrum Sepolia auth server base URL
+const ARBITRUM_SEPOLIA_AUTH_BASE_URL: &str = "https://arbitrum-sepolia.auth-server.renegade.fi";
+/// The Arbitrum One auth server base URL
+const ARBITRUM_ONE_AUTH_BASE_URL: &str = "https://arbitrum-one.auth-server.renegade.fi";
+/// The Arbitrum Sepolia relayer base URL
+const ARBITRUM_SEPOLIA_RELAYER_BASE_URL: &str = "https://arbitrum-sepolia.relayer.renegade.fi";
+/// The Arbitrum One relayer base URL
+const ARBITRUM_ONE_RELAYER_BASE_URL: &str = "https://arbitrum-one.relayer.renegade.fi";
 
 // -------------------
 // | Request Options |
@@ -313,20 +313,43 @@ impl ExternalMatchClient {
         })
     }
 
-    /// Create a new client for the sepolia network
+    /// Create a new client for the Arbitrum Sepolia network
+    pub fn new_arbitrum_sepolia_client(
+        api_key: &str,
+        api_secret: &str,
+    ) -> Result<Self, ExternalMatchClientError> {
+        Self::new(
+            api_key,
+            api_secret,
+            ARBITRUM_SEPOLIA_AUTH_BASE_URL,
+            ARBITRUM_SEPOLIA_RELAYER_BASE_URL,
+        )
+    }
+
+    /// Create a new client for the Arbitrum Sepolia network
+    #[deprecated(since = "0.1.6", note = "Use new_arbitrum_sepolia_client instead")]
     pub fn new_sepolia_client(
         api_key: &str,
         api_secret: &str,
     ) -> Result<Self, ExternalMatchClientError> {
-        Self::new(api_key, api_secret, SEPOLIA_AUTH_BASE_URL, SEPOLIA_RELAYER_BASE_URL)
+        Self::new_arbitrum_sepolia_client(api_key, api_secret)
     }
 
-    /// Create a new client for the mainnet
+    /// Create a new client for the Arbitrum One network
+    pub fn new_arbitrum_one_client(
+        api_key: &str,
+        api_secret: &str,
+    ) -> Result<Self, ExternalMatchClientError> {
+        Self::new(api_key, api_secret, ARBITRUM_ONE_AUTH_BASE_URL, ARBITRUM_ONE_RELAYER_BASE_URL)
+    }
+
+    /// Create a new client for the Arbitrum One network
+    #[deprecated(since = "0.1.6", note = "Use new_arbitrum_one_client instead")]
     pub fn new_mainnet_client(
         api_key: &str,
         api_secret: &str,
     ) -> Result<Self, ExternalMatchClientError> {
-        Self::new(api_key, api_secret, MAINNET_AUTH_BASE_URL, MAINNET_RELAYER_BASE_URL)
+        Self::new_arbitrum_one_client(api_key, api_secret)
     }
 
     /// Get a list of supported tokens for external matches    

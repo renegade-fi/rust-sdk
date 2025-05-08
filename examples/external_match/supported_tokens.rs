@@ -8,7 +8,7 @@ async fn main() -> Result<(), eyre::Error> {
     // Get the external match client
     let api_key = std::env::var("EXTERNAL_MATCH_KEY").unwrap();
     let api_secret = std::env::var("EXTERNAL_MATCH_SECRET").unwrap();
-    let client = ExternalMatchClient::new_sepolia_client(&api_key, &api_secret).unwrap();
+    let client = ExternalMatchClient::new_arbitrum_sepolia_client(&api_key, &api_secret).unwrap();
 
     // Fetch supported tokens
     println!("Fetching supported tokens...");
