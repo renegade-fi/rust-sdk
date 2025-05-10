@@ -6,3 +6,6 @@
 pub use crate::external_match_client::api_types::{
     ApiExternalQuote, AtomicMatchApiBundle, ExternalOrder, OrderSide, SignedExternalQuote,
 };
+
+/// The address used to represent the native asset
+pub const NATIVE_ASSET_ADDR: &str = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";

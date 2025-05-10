@@ -3,7 +3,7 @@
 use alloy::{primitives::U256, sol_types::SolValue};
 use alloy_rpc_types_eth::{TransactionInput, TransactionRequest};
 
-use crate::ExternalMatchClientError;
+use crate::{types::NATIVE_ASSET_ADDR, ExternalMatchClientError};
 
 use super::{MalleableExternalMatchResponse, OrderSide};
 
@@ -45,6 +45,11 @@ impl MalleableExternalMatchResponse {
 
         let new_input = TransactionInput::new(modified_data.into());
         self.match_bundle.settlement_tx.input = new_input;
+
+        // If the trade is a native ETH sell, we need to set the `value` of the tx
+        if self.is_native_eth_sell() {
+            self.match_bundle.settlement_tx.value = Some(U256::from(base_amount));
+        }
     }
 
     /// Get the bounds on the base amount
@@ -78,6 +83,15 @@ impl MalleableExternalMatchResponse {
     }
 
     // --- Private Helpers --- //
+
+    /// Whether the trade is a native ETH sell
+    fn is_native_eth_sell(&self) -> bool {
+        let match_res = &self.match_bundle.match_result;
+        let is_sell = match_res.direction == OrderSide::Sell;
+        let is_base_eth = match_res.base_mint.to_lowercase() == NATIVE_ASSET_ADDR.to_lowercase();
+
+        is_base_eth && is_sell
+    }
 
     /// Check a base amount is in the valid range
     fn check_base_amount(&self, base_amount: u128) -> Result<(), ExternalMatchClientError> {
