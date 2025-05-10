@@ -22,7 +22,7 @@ pub struct ApiToken {
 pub type Amount = u128;
 
 /// The side of the market this order is on
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum OrderSide {
     /// Buy side, requesting party buys the base token
     Buy,
