@@ -28,7 +28,7 @@ pub async fn get_signer() -> Result<Wallet, eyre::Error> {
     let url = Url::parse(RPC_URL).unwrap();
     let pkey = std::env::var("PKEY").unwrap();
     let wallet = PrivateKeySigner::from_str(&pkey).unwrap();
-    let provider = ProviderBuilder::new().wallet(wallet).on_http(url);
+    let provider = ProviderBuilder::new().wallet(wallet).connect_http(url);
 
     Ok(Arc::new(provider))
 }

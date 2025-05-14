@@ -1,6 +1,6 @@
 [package]
 name = "renegade-sdk"
-version = "0.1.7"
+version = "0.1.8"
 edition = "2021"
 description = "A Rust SDK for the Renegade protocol"
 homepage = "https://renegade.fi/"
@@ -71,8 +71,8 @@ serde = { version = "^1.0.197" }
 serde_json = "1.0.64"
 
 # === Ethereum === #
-alloy = { version = "0.12", features = ["essentials"] }
-alloy-rpc-types-eth = "0.12"
+alloy = { version = "1.0.1", features = ["essentials"] }
+alloy-rpc-types-eth = "1.0.1"
 
 # === Misc === #
 base64 = "0.22"
