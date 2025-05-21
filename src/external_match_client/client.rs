@@ -274,7 +274,7 @@ impl AssembleQuoteOptions {
             return ASSEMBLE_EXTERNAL_MATCH_ROUTE.to_string();
         }
 
-        format!("{}?{}", ASSEMBLE_EXTERNAL_MATCH_ROUTE, query_str)
+        format!("{ASSEMBLE_EXTERNAL_MATCH_ROUTE}?{query_str}")
     }
 }
 
