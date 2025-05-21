@@ -1,4 +1,5 @@
 use rand::Rng;
+use renegade_sdk::api_types::MalleableExternalMatchResponse;
 use renegade_sdk::example_utils::{build_renegade_client, execute_bundle, get_signer, Wallet};
 use renegade_sdk::{
     types::{ExternalOrder, OrderSide},
@@ -55,10 +56,24 @@ async fn fetch_quote_and_execute_malleable(
         None => eyre::bail!("No malleable bundle found"),
     };
 
+    // Set a base amount on the bundle
+    // Alternatively, you can set a quote amount on the bundle - see
+    // `set_random_quote_amount` below
+    set_random_base_amount(&mut bundle);
+
+    // Execute the bundle
+    println!("Executing malleable match bundle...");
+    let tx = bundle.settlement_tx();
+    execute_bundle(wallet, tx).await
+}
+
+/// Set a random base amount on the bundle, and print the results
+#[allow(dead_code)]
+fn set_random_base_amount(bundle: &mut MalleableExternalMatchResponse) {
     // Print bundle info
     println!("\nBundle info:");
     let (min_base, max_base) = bundle.base_bounds();
-    println!("\tBase bounds: {} - {}", min_base, max_base);
+    println!("\tBase bounds: {min_base} - {max_base}");
 
     // Pick a random base amount and see the send and receive amounts at that base
     // amount
@@ -66,9 +81,9 @@ async fn fetch_quote_and_execute_malleable(
     let dummy_base_amount = rng.gen_range(min_base..=max_base);
     let send = bundle.send_amount_at_base(dummy_base_amount);
     let recv = bundle.receive_amount_at_base(dummy_base_amount);
-    println!("\tHypothetical base amount: {}", dummy_base_amount);
-    println!("\tHypothetical send amount: {}", send);
-    println!("\tHypothetical received amount: {}", recv);
+    println!("\tHypothetical base amount: {dummy_base_amount}");
+    println!("\tHypothetical send amount: {send}");
+    println!("\tHypothetical received amount: {recv}");
 
     // Pick an actual base amount to swap with
     let swapped_base_amt = rng.gen_range(min_base..=max_base);
@@ -79,12 +94,39 @@ async fn fetch_quote_and_execute_malleable(
     let _recv = bundle.set_base_amount(swapped_base_amt).unwrap();
     let send = bundle.send_amount();
     let recv = bundle.receive_amount();
-    println!("\tSwapped base amount: {}", swapped_base_amt);
-    println!("\tSend amount: {}", send);
-    println!("\tReceived amount: {}\n\n", recv);
+    println!("\tSwapped base amount: {swapped_base_amt}");
+    println!("\tSend amount: {send}");
+    println!("\tReceived amount: {recv}\n\n");
+}
 
-    // Execute the bundle
-    println!("Executing malleable match bundle...");
-    let tx = bundle.settlement_tx();
-    execute_bundle(wallet, tx).await
+/// Set a random quote amount on the bundle, and print the results
+#[allow(dead_code)]
+fn set_random_quote_amount(bundle: &mut MalleableExternalMatchResponse) {
+    // Print bundle info
+    println!("\nBundle info:");
+    let (min_quote, max_quote) = bundle.quote_bounds();
+    println!("\tQuote bounds: {min_quote} - {max_quote}");
+
+    // Pick a random quote amount and see the send and receive amounts at that quote
+    // amount
+    let mut rng = rand::thread_rng();
+    let dummy_quote_amount = rng.gen_range(min_quote..=max_quote);
+    let send = bundle.send_amount_at_quote(dummy_quote_amount);
+    let recv = bundle.receive_amount_at_quote(dummy_quote_amount);
+    println!("\tHypothetical quote amount: {dummy_quote_amount}");
+    println!("\tHypothetical send amount: {send}");
+    println!("\tHypothetical received amount: {recv}");
+
+    // Pick an actual quote amount to swap with
+    let swapped_quote_amt = rng.gen_range(min_quote..=max_quote);
+
+    // Setting the quote amount will return the receive amount at the new quote
+    // You can also call send_amount and receive_amount to get the amounts at the
+    // currently set quote amount
+    let _recv = bundle.set_quote_amount(swapped_quote_amt).unwrap();
+    let send = bundle.send_amount();
+    let recv = bundle.receive_amount();
+    println!("\tSwapped quote amount: {swapped_quote_amt}");
+    println!("\tSend amount: {send}");
+    println!("\tReceived amount: {recv}\n\n");
 }

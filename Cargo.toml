@@ -1,6 +1,6 @@
 [package]
 name = "renegade-sdk"
-version = "0.1.8"
+version = "0.1.9"
 edition = "2021"
 description = "A Rust SDK for the Renegade protocol"
 homepage = "https://renegade.fi/"
@@ -80,6 +80,7 @@ bigdecimal = "0.4.0"
 eyre = "0.6.10"
 num-bigint = { version = "0.4.3", features = ["serde"] }
 num-traits = "0.2.19"
+num-integer = "0.1"
 thiserror = "1.0.31"
 url = "2.5.0"
 

@@ -37,6 +37,6 @@ pub async fn get_signer() -> Result<Wallet, eyre::Error> {
 pub async fn execute_bundle(wallet: &Wallet, tx: TransactionRequest) -> Result<(), eyre::Error> {
     println!("Submitting bundle...\n");
     let hash = wallet.send_transaction(tx).await?.watch().await?;
-    println!("Successfully submitted transaction: {:#x}", hash);
+    println!("Successfully submitted transaction: {hash:#x}");
     Ok(())
 }

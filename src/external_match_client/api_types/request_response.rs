@@ -100,6 +100,17 @@ pub struct MalleableExternalMatchResponse {
     /// consistent
     #[serde(default)]
     pub(crate) base_amount: Option<u128>,
+    /// The quote amount chosen for the match
+    ///
+    /// If `None`, the quote amount has not been selected and will default to
+    /// the quote amount implied by the `max_base_amount` and the price in
+    /// the match result.
+    ///
+    /// This field is not meant for client use directly, rather it is set by
+    /// operating on the type and allows the response type to stay internally
+    /// consistent
+    #[serde(default)]
+    pub(crate) quote_amount: Option<u128>,
     /// The gas sponsorship info, if the match was sponsored
     pub gas_sponsorship_info: Option<GasSponsorshipInfo>,
 }

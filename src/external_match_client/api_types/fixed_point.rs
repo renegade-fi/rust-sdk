@@ -10,7 +10,8 @@ use std::{
 
 use bigdecimal::{BigDecimal, ToPrimitive};
 use num_bigint::BigUint;
-use num_traits::Num;
+use num_integer::Integer;
+use num_traits::{Num, One, Zero};
 use serde::{Deserialize, Serialize};
 
 use super::order_types::Amount;
@@ -42,6 +43,16 @@ impl FixedPoint {
         let product = self.value.clone() * amount;
         let floor = product / fixed_point_precision_shift();
         floor.try_into().expect("fixed point overflow")
+    }
+
+    /// Divide an `Amount` by a fixed point number and return the ceiling
+    pub fn ceil_div_int(amount: Amount, fp: &Self) -> Amount {
+        let numerator = amount * fixed_point_precision_shift();
+        let (quotient, remainder) = numerator.div_rem(&fp.value);
+
+        let result = if remainder.is_zero() { quotient } else { quotient + BigUint::one() };
+
+        result.try_into().expect("fixed point overflow")
     }
 
     /// Convert a fixed point number to an `f64`
