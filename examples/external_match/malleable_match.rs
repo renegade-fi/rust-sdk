@@ -7,9 +7,9 @@ use renegade_sdk::{
 };
 
 /// Testnet wETH
-const BASE_MINT: &str = "0xc3414a7ef14aaaa9c4522dfc00a4e66e74e9c25a";
+const BASE_MINT: &str = "0xb51a558c8E55DE1EE5391BDFe2aFA49968FC3B25";
 /// Testnet USDC
-const QUOTE_MINT: &str = "0xdf8d259c04020562717557f2b5a3cf28e92707d1";
+const QUOTE_MINT: &str = "0xD9961Bb4Cb27192f8dAd20a662be081f546b0E74";
 
 #[tokio::main]
 async fn main() -> Result<(), eyre::Error> {
@@ -17,7 +17,7 @@ async fn main() -> Result<(), eyre::Error> {
     let signer = get_signer().await?;
 
     // Get the external match client
-    let client = build_renegade_client()?;
+    let client = build_renegade_client(false /* use_base */)?;
     let order = ExternalOrderBuilder::new()
         .base_mint(BASE_MINT)
         .quote_mint(QUOTE_MINT)

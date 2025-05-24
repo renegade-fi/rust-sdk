@@ -1,6 +1,6 @@
 [package]
 name = "renegade-sdk"
-version = "0.1.9"
+version = "0.1.10"
 edition = "2021"
 description = "A Rust SDK for the Renegade protocol"
 homepage = "https://renegade.fi/"
@@ -12,6 +12,11 @@ license = "MIT"
 [[example]]
 name = "external_match"
 path = "examples/external_match/external_match.rs"
+required-features = ["examples"]
+
+[[example]]
+name = "base_sepolia_match"
+path = "examples/external_match/base_sepolia_match.rs"
 required-features = ["examples"]
 
 [[example]]

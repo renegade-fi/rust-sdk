@@ -16,7 +16,7 @@ async fn main() -> Result<(), eyre::Error> {
     let signer = get_signer().await?;
 
     // Get the external match client
-    let client = build_renegade_client()?;
+    let client = build_renegade_client(false /* use_base */)?;
     let order = ExternalOrderBuilder::new()
         .base_mint(BASE_MINT)
         .quote_mint(QUOTE_MINT)
