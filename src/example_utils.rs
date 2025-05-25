@@ -16,10 +16,16 @@ const RPC_URL: &str = env!("RPC_URL");
 pub type Wallet = Arc<dyn Provider>;
 
 /// Build a Renegade client from environment variables
-pub fn build_renegade_client() -> Result<ExternalMatchClient, eyre::Error> {
+pub fn build_renegade_client(use_base: bool) -> Result<ExternalMatchClient, eyre::Error> {
     let api_key = std::env::var("EXTERNAL_MATCH_KEY").unwrap();
     let api_secret = std::env::var("EXTERNAL_MATCH_SECRET").unwrap();
-    let client = ExternalMatchClient::new_arbitrum_sepolia_client(&api_key, &api_secret).unwrap();
+
+    let client = if use_base {
+        ExternalMatchClient::new_base_sepolia_client(&api_key, &api_secret).unwrap()
+    } else {
+        ExternalMatchClient::new_arbitrum_sepolia_client(&api_key, &api_secret).unwrap()
+    };
+
     Ok(client)
 }
 

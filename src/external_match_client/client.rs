@@ -38,10 +38,18 @@ pub const RENEGADE_API_KEY_HEADER: &str = "X-Renegade-Api-Key";
 const ARBITRUM_SEPOLIA_AUTH_BASE_URL: &str = "https://arbitrum-sepolia.auth-server.renegade.fi";
 /// The Arbitrum One auth server base URL
 const ARBITRUM_ONE_AUTH_BASE_URL: &str = "https://arbitrum-one.auth-server.renegade.fi";
+/// The Base Sepolia auth server base URL
+const BASE_SEPOLIA_AUTH_BASE_URL: &str = "https://base-sepolia.auth-server.renegade.fi";
+/// The Base mainnet auth server base URL
+const BASE_MAINNET_AUTH_BASE_URL: &str = "https://base-mainnet.auth-server.renegade.fi";
 /// The Arbitrum Sepolia relayer base URL
 const ARBITRUM_SEPOLIA_RELAYER_BASE_URL: &str = "https://arbitrum-sepolia.relayer.renegade.fi";
 /// The Arbitrum One relayer base URL
 const ARBITRUM_ONE_RELAYER_BASE_URL: &str = "https://arbitrum-one.relayer.renegade.fi";
+/// The Base Sepolia relayer base URL
+const BASE_SEPOLIA_RELAYER_BASE_URL: &str = "https://base-sepolia.relayer.renegade.fi";
+/// The Base mainnet relayer base URL
+const BASE_MAINNET_RELAYER_BASE_URL: &str = "https://base-mainnet.relayer.renegade.fi";
 
 // -------------------
 // | Request Options |
@@ -326,6 +334,14 @@ impl ExternalMatchClient {
         )
     }
 
+    /// Create a new client for the Base Sepolia network
+    pub fn new_base_sepolia_client(
+        api_key: &str,
+        api_secret: &str,
+    ) -> Result<Self, ExternalMatchClientError> {
+        Self::new(api_key, api_secret, BASE_SEPOLIA_AUTH_BASE_URL, BASE_SEPOLIA_RELAYER_BASE_URL)
+    }
+
     /// Create a new client for the Arbitrum Sepolia network
     #[deprecated(since = "0.1.6", note = "Use new_arbitrum_sepolia_client instead")]
     pub fn new_sepolia_client(
@@ -341,6 +357,14 @@ impl ExternalMatchClient {
         api_secret: &str,
     ) -> Result<Self, ExternalMatchClientError> {
         Self::new(api_key, api_secret, ARBITRUM_ONE_AUTH_BASE_URL, ARBITRUM_ONE_RELAYER_BASE_URL)
+    }
+
+    /// Create a new client for the Base mainnet network
+    pub fn new_base_mainnet_client(
+        api_key: &str,
+        api_secret: &str,
+    ) -> Result<Self, ExternalMatchClientError> {
+        Self::new(api_key, api_secret, BASE_MAINNET_AUTH_BASE_URL, BASE_MAINNET_RELAYER_BASE_URL)
     }
 
     /// Create a new client for the Arbitrum One network

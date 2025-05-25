@@ -1,18 +1,13 @@
-//! An example requesting an external match where the message sender is not the
-//! receiver
-
+use renegade_sdk::example_utils::{build_renegade_client, execute_bundle, get_signer, Wallet};
 use renegade_sdk::{
-    example_utils::{build_renegade_client, execute_bundle, get_signer, Wallet},
     types::{ExternalOrder, OrderSide},
-    AssembleQuoteOptions, ExternalMatchClient, ExternalOrderBuilder,
+    ExternalMatchClient, ExternalOrderBuilder,
 };
 
-/// Testnet wETH
-const BASE_MINT: &str = "0xc3414a7ef14aaaa9c4522dfc00a4e66e74e9c25a";
+/// Testnet cbBTC
+const BASE_MINT: &str = "0xb51a558c8E55DE1EE5391BDFe2aFA49968FC3B25";
 /// Testnet USDC
-const QUOTE_MINT: &str = "0xdf8d259c04020562717557f2b5a3cf28e92707d1";
-/// The receiver address: the address that the darkpool will send funds to
-const RECEIVER_ADDRESS: &str = "0xC5fE800A3D92112473e4E811296F194DA7b26BA7";
+const QUOTE_MINT: &str = "0xD9961Bb4Cb27192f8dAd20a662be081f546b0E74";
 
 #[tokio::main]
 async fn main() -> Result<(), eyre::Error> {
@@ -20,13 +15,13 @@ async fn main() -> Result<(), eyre::Error> {
     let signer = get_signer().await?;
 
     // Get the external match client
-    let client = build_renegade_client(false /* use_base */)?;
+    let client = build_renegade_client(true /* use_base */)?;
     let order = ExternalOrderBuilder::new()
         .base_mint(BASE_MINT)
         .quote_mint(QUOTE_MINT)
         .quote_amount(30_000_000) // $30 USDC
         .min_fill_size(30_000_000) // $30 USDC
-        .side(OrderSide::Buy)
+        .side(OrderSide::Sell)
         .build()
         .unwrap();
 
@@ -50,8 +45,7 @@ async fn fetch_quote_and_execute(
 
     // Assemble the quote into a bundle
     println!("Assembling quote...");
-    let options = AssembleQuoteOptions::new().with_receiver_address(RECEIVER_ADDRESS.to_string());
-    let resp = match client.assemble_quote_with_options(quote, options).await? {
+    let resp = match client.assemble_quote(quote).await? {
         Some(resp) => resp,
         None => eyre::bail!("No bundle found"),
     };
