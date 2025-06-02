@@ -8,8 +8,8 @@ use url::form_urlencoded;
 
 use crate::{
     api_types::{
-        ASSEMBLE_EXTERNAL_MATCH_MALLEABLE_ROUTE, ASSEMBLE_EXTERNAL_MATCH_ROUTE,
-        REQUEST_EXTERNAL_MATCH_ROUTE,
+        GetTokenPricesResponse, ASSEMBLE_EXTERNAL_MATCH_MALLEABLE_ROUTE,
+        ASSEMBLE_EXTERNAL_MATCH_ROUTE, GET_TOKEN_PRICES_ROUTE, REQUEST_EXTERNAL_MATCH_ROUTE,
     },
     http::RelayerHttpClient,
     util::HmacKey,
@@ -432,6 +432,16 @@ impl ExternalMatchClient {
         &self,
     ) -> Result<GetSupportedTokensResponse, ExternalMatchClientError> {
         let path = GET_SUPPORTED_TOKENS_ROUTE;
+        let resp = self.relayer_http_client.get(path).await?;
+
+        Ok(resp)
+    }
+
+    /// Get token prices for all supported tokens
+    pub async fn get_token_prices(
+        &self,
+    ) -> Result<GetTokenPricesResponse, ExternalMatchClientError> {
+        let path = GET_TOKEN_PRICES_ROUTE;
         let resp = self.relayer_http_client.get(path).await?;
 
         Ok(resp)

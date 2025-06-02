@@ -50,6 +50,11 @@ path = "examples/external_match/supported_tokens.rs"
 required-features = ["examples"]
 
 [[example]]
+name = "token_prices"
+path = "examples/external_match/token_prices.rs"
+required-features = ["examples"]
+
+[[example]]
 name = "shared_bundle"
 path = "examples/external_match/shared_bundle.rs"
 required-features = ["examples"]
