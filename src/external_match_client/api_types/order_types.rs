@@ -9,15 +9,6 @@ use super::FixedPoint;
 // | Api Types |
 // -------------
 
-/// A token in the the supported token list
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct ApiToken {
-    /// The token address
-    pub address: String,
-    /// The token symbol
-    pub symbol: String,
-}
-
 /// A type alias for an amount used in the Renegade system
 pub type Amount = u128;
 

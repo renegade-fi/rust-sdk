@@ -2,8 +2,10 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::api_types::token::TokenPrice;
+
 use super::{
-    ApiSignedQuote, ApiToken, AtomicMatchApiBundle, ExternalOrder, GasSponsorshipInfo,
+    token::ApiToken, ApiSignedQuote, AtomicMatchApiBundle, ExternalOrder, GasSponsorshipInfo,
     MalleableAtomicMatchApiBundle, SignedGasSponsorshipInfo,
 };
 
@@ -16,6 +18,13 @@ use super::{
 pub struct GetSupportedTokensResponse {
     /// The supported tokens
     pub tokens: Vec<ApiToken>,
+}
+
+/// The response type to fetch the token prices
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct GetTokenPricesResponse {
+    /// The token prices
+    pub token_prices: Vec<TokenPrice>,
 }
 
 /// The request type for requesting an external match
