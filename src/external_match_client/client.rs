@@ -320,6 +320,7 @@ impl ExternalMatchClient {
             relayer_http_client: RelayerHttpClient::new(relayer_base_url.to_string(), api_secret),
         })
     }
+
     /// Create a new client with a custom HTTP client
     pub fn new_with_client(
         api_key: &str,
@@ -330,12 +331,15 @@ impl ExternalMatchClient {
     ) -> Result<Self, ExternalMatchClientError> {
         let api_secret = HmacKey::from_base64_string(api_secret)
             .map_err(|_| ExternalMatchClientError::InvalidApiSecret)?;
+        let auth_http_client = RelayerHttpClient::new_with_client(
+            auth_base_url.to_string(),
+            api_secret,
+            client.clone(),
+        );
+        let relayer_http_client =
+            RelayerHttpClient::new_with_client(relayer_base_url.to_string(), api_secret, client);
 
-        Ok(Self {
-            api_key: api_key.to_string(),
-            auth_http_client: RelayerHttpClient::new_with_client(auth_base_url.to_string(), api_secret, client.clone()),
-            relayer_http_client: RelayerHttpClient::new_with_client(relayer_base_url.to_string(), api_secret, client),
-        })
+        Ok(Self { api_key: api_key.to_string(), auth_http_client, relayer_http_client })
     }
 
     /// Create a new client for the Arbitrum Sepolia network
@@ -380,9 +384,15 @@ impl ExternalMatchClient {
     pub fn new_arbitrum_one_with_client(
         api_key: &str,
         api_secret: &str,
-        client: reqwest::Client
+        client: reqwest::Client,
     ) -> Result<Self, ExternalMatchClientError> {
-        Self::new_with_client(api_key, api_secret, ARBITRUM_ONE_AUTH_BASE_URL, ARBITRUM_ONE_RELAYER_BASE_URL, client)
+        Self::new_with_client(
+            api_key,
+            api_secret,
+            ARBITRUM_ONE_AUTH_BASE_URL,
+            ARBITRUM_ONE_RELAYER_BASE_URL,
+            client,
+        )
     }
 
     /// Create a new client for the Base mainnet network
@@ -397,9 +407,15 @@ impl ExternalMatchClient {
     pub fn new_base_mainnet_with_client(
         api_key: &str,
         api_secret: &str,
-        client: reqwest::Client
+        client: reqwest::Client,
     ) -> Result<Self, ExternalMatchClientError> {
-        Self::new_with_client(api_key, api_secret, BASE_MAINNET_AUTH_BASE_URL, BASE_MAINNET_RELAYER_BASE_URL, client)
+        Self::new_with_client(
+            api_key,
+            api_secret,
+            BASE_MAINNET_AUTH_BASE_URL,
+            BASE_MAINNET_RELAYER_BASE_URL,
+            client,
+        )
     }
 
     /// Create a new client for the Arbitrum One network

@@ -31,7 +31,7 @@ impl RelayerHttpClient {
     }
     /// Create a new HTTP client
     pub fn new_with_client(base_url: String, auth_key: HmacKey, client: reqwest::Client) -> Self {
-        Self { client: client, base_url, auth_key }
+        Self { client, base_url, auth_key }
     }
 
     /// Send a POST request to the relayer
