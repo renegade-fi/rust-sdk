@@ -29,6 +29,10 @@ impl RelayerHttpClient {
     pub fn new(base_url: String, auth_key: HmacKey) -> Self {
         Self { client: Client::new(), base_url, auth_key }
     }
+    /// Create a new HTTP client
+    pub fn new_with_client(base_url: String, auth_key: HmacKey, client: reqwest::Client) -> Self {
+        Self { client: client, base_url, auth_key }
+    }
 
     /// Send a POST request to the relayer
     pub async fn post<Req: Serialize, Resp: DeserializeOwned>(
