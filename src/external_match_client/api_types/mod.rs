@@ -1,6 +1,7 @@
 //! Types for the external match client
 mod fixed_point;
 mod malleable_match;
+pub mod order_book;
 mod order_types;
 mod request_response;
 pub mod token;
@@ -17,6 +18,8 @@ pub use request_response::*;
 pub const GET_SUPPORTED_TOKENS_ROUTE: &str = "/v0/supported-tokens";
 /// Get token prices for all supported tokens
 pub const GET_TOKEN_PRICES_ROUTE: &str = "/v0/token-prices";
+/// The order book depth format string
+pub const ORDER_BOOK_DEPTH_ROUTE: &str = "/v0/order_book/depth";
 /// The route for requesting a quote on an external match
 pub const REQUEST_EXTERNAL_QUOTE_ROUTE: &str = "/v0/matching-engine/quote";
 /// The route used to assemble an external match quote into a settlement bundle

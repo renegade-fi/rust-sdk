@@ -7,11 +7,11 @@
 pub mod api_types;
 
 mod client;
+mod options;
 use api_types::{Amount, ExternalOrder, OrderSide};
+pub use client::ExternalMatchClient;
 #[allow(deprecated)]
-pub use client::{
-    AssembleQuoteOptions, ExternalMatchClient, ExternalMatchOptions, RequestQuoteOptions,
-};
+pub use options::{AssembleQuoteOptions, ExternalMatchOptions, RequestQuoteOptions};
 
 mod error;
 pub use error::ExternalMatchClientError;
