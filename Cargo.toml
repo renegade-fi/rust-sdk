@@ -1,6 +1,6 @@
 [package]
 name = "renegade-sdk"
-version = "0.1.12"
+version = "0.1.13"
 edition = "2021"
 description = "A Rust SDK for the Renegade protocol"
 homepage = "https://renegade.fi/"
@@ -46,12 +46,17 @@ required-features = ["examples"]
 
 [[example]]
 name = "supported_tokens"
-path = "examples/external_match/supported_tokens.rs"
+path = "examples/order_book/supported_tokens.rs"
 required-features = ["examples"]
 
 [[example]]
 name = "token_prices"
-path = "examples/external_match/token_prices.rs"
+path = "examples/order_book/token_prices.rs"
+required-features = ["examples"]
+
+[[example]]
+name = "order_book_depth"
+path = "examples/order_book/order_book_depth.rs"
 required-features = ["examples"]
 
 [[example]]
