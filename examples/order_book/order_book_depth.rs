@@ -1,11 +1,9 @@
 //! Example of getting the order book depth for a token
-use renegade_sdk::{example_utils::build_renegade_client, ExternalMatchClient};
+use renegade_sdk::example_utils::build_renegade_client;
 
 #[tokio::main]
 async fn main() -> Result<(), eyre::Error> {
     // Get the external match client
-    let api_key = std::env::var("EXTERNAL_MATCH_KEY").unwrap();
-    let api_secret = std::env::var("EXTERNAL_MATCH_SECRET").unwrap();
     let client = build_renegade_client(false /* use_base */).unwrap();
 
     // Fetch supported tokens
