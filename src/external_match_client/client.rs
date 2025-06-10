@@ -5,7 +5,10 @@ use reqwest::{
     StatusCode,
 };
 
-use crate::api_types::{order_book::GetDepthByMintResponse, ORDER_BOOK_DEPTH_ROUTE};
+use crate::api_types::{
+    order_book::{GetDepthByMintResponse, GetDepthForAllPairsResponse},
+    ORDER_BOOK_DEPTH_ROUTE,
+};
 #[allow(deprecated)]
 use crate::{
     api_types::{
@@ -224,6 +227,17 @@ impl ExternalMatchClient {
         let path = format!("{ORDER_BOOK_DEPTH_ROUTE}/{address}");
         let headers = self.get_headers()?;
         let resp = self.auth_http_client.get_with_headers(path.as_str(), headers).await?;
+
+        Ok(resp)
+    }
+
+    /// Get the order book depth for all supported tokens
+    pub async fn get_order_book_depth_all_pairs(
+        &self,
+    ) -> Result<GetDepthForAllPairsResponse, ExternalMatchClientError> {
+        let path = ORDER_BOOK_DEPTH_ROUTE;
+        let headers = self.get_headers()?;
+        let resp = self.auth_http_client.get_with_headers(path, headers).await?;
 
         Ok(resp)
     }
