@@ -74,6 +74,11 @@ name = "malleable_match"
 path = "examples/external_match/malleable_match.rs"
 required-features = ["examples"]
 
+[[example]]
+name = "generate_wallet"
+path = "examples/wallet/generate_wallet.rs"
+required-features = ["examples", "darkpool-client"]
+
 [features]
 default = ["external-match-client", "darkpool-client"]
 external-match-client = []

@@ -85,7 +85,7 @@ impl RenegadeClient {
 /// Derive a new wallet from a private key
 ///
 /// Returns the wallet, the blinder seed, and the share seed
-pub fn derive_wallet_from_key(
+fn derive_wallet_from_key(
     root_key: &PrivateKeySigner,
     chain_id: u64,
 ) -> Result<WalletSecrets, String> {
