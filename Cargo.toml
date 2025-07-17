@@ -10,6 +10,9 @@ keywords = ["renegade", "darkpool", "zk", "sdk"]
 license = "MIT"
 
 [[example]]
+
+# === External Match Examples === #
+
 name = "external_match"
 path = "examples/external_match/external_match.rs"
 required-features = ["examples"]
@@ -74,9 +77,16 @@ name = "malleable_match"
 path = "examples/external_match/malleable_match.rs"
 required-features = ["examples"]
 
+# === Wallet Examples === #
+
 [[example]]
 name = "generate_wallet"
 path = "examples/wallet/generate_wallet.rs"
+required-features = ["examples", "darkpool-client"]
+
+[[example]]
+name = "create_wallet"
+path = "examples/wallet/create_wallet.rs"
 required-features = ["examples", "darkpool-client"]
 
 [features]

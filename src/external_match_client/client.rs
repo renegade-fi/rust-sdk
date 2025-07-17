@@ -5,9 +5,13 @@ use reqwest::{
     StatusCode,
 };
 
-use crate::api_types::{
-    order_book::{GetDepthByMintResponse, GetDepthForAllPairsResponse},
-    ORDER_BOOK_DEPTH_ROUTE,
+use crate::{
+    api_types::{
+        order_book::{GetDepthByMintResponse, GetDepthForAllPairsResponse},
+        ORDER_BOOK_DEPTH_ROUTE,
+    },
+    ARBITRUM_ONE_RELAYER_BASE_URL, ARBITRUM_SEPOLIA_RELAYER_BASE_URL,
+    BASE_MAINNET_RELAYER_BASE_URL, BASE_SEPOLIA_RELAYER_BASE_URL,
 };
 #[allow(deprecated)]
 use crate::{
@@ -43,14 +47,6 @@ const ARBITRUM_ONE_AUTH_BASE_URL: &str = "https://arbitrum-one.auth-server.reneg
 const BASE_SEPOLIA_AUTH_BASE_URL: &str = "https://base-sepolia.auth-server.renegade.fi";
 /// The Base mainnet auth server base URL
 const BASE_MAINNET_AUTH_BASE_URL: &str = "https://base-mainnet.auth-server.renegade.fi";
-/// The Arbitrum Sepolia relayer base URL
-const ARBITRUM_SEPOLIA_RELAYER_BASE_URL: &str = "https://arbitrum-sepolia.relayer.renegade.fi";
-/// The Arbitrum One relayer base URL
-const ARBITRUM_ONE_RELAYER_BASE_URL: &str = "https://arbitrum-one.relayer.renegade.fi";
-/// The Base Sepolia relayer base URL
-const BASE_SEPOLIA_RELAYER_BASE_URL: &str = "https://base-sepolia.relayer.renegade.fi";
-/// The Base mainnet relayer base URL
-const BASE_MAINNET_RELAYER_BASE_URL: &str = "https://base-mainnet.relayer.renegade.fi";
 
 // ----------
 // | Client |
