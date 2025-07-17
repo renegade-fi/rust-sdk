@@ -94,6 +94,11 @@ name = "get_wallet"
 path = "examples/wallet/get_wallet.rs"
 required-features = ["examples", "darkpool-client"]
 
+[[example]]
+name = "place_order"
+path = "examples/wallet/place_order.rs"
+required-features = ["examples", "darkpool-client"]
+
 [features]
 default = ["external-match-client", "darkpool-client"]
 external-match-client = []
