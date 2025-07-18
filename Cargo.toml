@@ -74,10 +74,23 @@ name = "malleable_match"
 path = "examples/external_match/malleable_match.rs"
 required-features = ["examples"]
 
+[[example]]
+name = "generate_wallet"
+path = "examples/wallet/generate_wallet.rs"
+required-features = ["examples", "darkpool-client"]
+
 [features]
 default = ["external-match-client", "darkpool-client"]
 external-match-client = []
-darkpool-client = []
+darkpool-client = [
+    "dep:darkpool-client",
+    "dep:renegade-circuit-types",
+    "dep:renegade-api",
+    "dep:renegade-common",
+    "dep:renegade-constants",
+    "dep:renegade-crypto",
+    "dep:renegade-utils",
+]
 examples = []
 
 [dependencies]
@@ -94,6 +107,20 @@ serde_json = "1.0.64"
 alloy = { version = ">=0.12, <2.0", features = ["essentials"] }
 alloy-rpc-types-eth = { version = ">=0.12, <2.0" }
 
+# === Renegade Dependencies === #
+darkpool-client = { git = "https://github.com/renegade-fi/renegade.git", features = [
+    "all-chains",
+    "transfer-auth",
+], optional = true }
+renegade-circuit-types = { package = "circuit-types", git = "https://github.com/renegade-fi/renegade.git", optional = true }
+renegade-api = { package = "external-api", git = "https://github.com/renegade-fi/renegade.git", features = [
+    "auth",
+], optional = true }
+renegade-common = { package = "common", git = "https://github.com/renegade-fi/renegade.git", optional = true }
+renegade-constants = { package = "constants", git = "https://github.com/renegade-fi/renegade.git", optional = true }
+renegade-crypto = { package = "renegade-crypto", git = "https://github.com/renegade-fi/renegade.git", optional = true }
+renegade-utils = { package = "util", git = "https://github.com/renegade-fi/renegade.git", optional = true }
+
 # === Misc === #
 base64 = "0.22"
 bigdecimal = "0.4.0"
@@ -103,6 +130,7 @@ num-traits = "0.2.19"
 num-integer = "0.1"
 thiserror = "1.0.31"
 url = "2.5.0"
+uuid = "1.13.0"
 
 # === Example Dependencies === #
 [dev-dependencies]
