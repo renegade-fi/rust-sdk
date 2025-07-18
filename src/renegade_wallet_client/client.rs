@@ -32,6 +32,9 @@ const BASE_MAINNET_CHAIN_ID: u64 = 8453;
 /// The Base Sepolia chain ID
 const BASE_SEPOLIA_CHAIN_ID: u64 = 84532;
 
+/// The error message when a response body cannot be decoded
+const RESPONSE_BODY_DECODE_ERROR: &str = "<failed to decode response body>";
+
 // -----------
 // | Secrets |
 // -----------
@@ -140,6 +143,32 @@ impl RenegadeClient {
         Self::new(cfg)
     }
 
+    // --------------
+    // | HTTP Utils |
+    // --------------
+
+    /// Send a get request to the relayer
+    pub async fn get_relayer<Resp: DeserializeOwned>(
+        &self,
+        path: &str,
+    ) -> Result<Resp, RenegadeClientError> {
+        let headers = HeaderMap::new();
+        let resp = self
+            .relayer_client
+            .get_with_headers_raw(path, headers)
+            .await
+            .map_err(RenegadeClientError::request)?;
+        let body = resp.text().await.unwrap_or_else(|_| RESPONSE_BODY_DECODE_ERROR.to_string());
+
+        // Try decoding the response body as the expected type
+        let decoded: Result<Resp, _> = serde_json::from_str(&body);
+        if let Ok(decoded) = decoded {
+            Ok(decoded)
+        } else {
+            Err(RenegadeClientError::relayer(body))
+        }
+    }
+
     /// Send a post request to the relayer
     pub async fn post_relayer<Req: Serialize, Resp: DeserializeOwned>(
         &self,
@@ -147,13 +176,13 @@ impl RenegadeClient {
         body: Req,
     ) -> Result<Resp, RenegadeClientError> {
         // Send an HTTP request to the relayer
+        let headers = HeaderMap::new();
         let resp = self
             .relayer_client
-            .post_with_headers_raw(path, body, HeaderMap::new())
+            .post_with_headers_raw(path, body, headers)
             .await
             .map_err(RenegadeClientError::request)?;
-        let body =
-            resp.text().await.unwrap_or_else(|_| "<failed to decode response body>".to_string());
+        let body = resp.text().await.unwrap_or_else(|_| RESPONSE_BODY_DECODE_ERROR.to_string());
 
         // Attempt to decode the response body as the expected type
         // Otherwise, emit the body as an error
