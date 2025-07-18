@@ -101,7 +101,7 @@ cargo run --features darkpool-client,examples --example withdraw
 
 A typical workflow for using these examples might be:
 
-1. **Generate or use existing keys**: Use `generate_wallet.rs` or set your `PKEY`
+1. **Generate or use existing keys**: Use `generate_wallet.rs` as an example of how a wallet's keychain is generated.
 2. **Create wallet**: Run `create_wallet.rs` to register in the darkpool
 3. **Fund wallet**: Use `deposit.rs` to add tokens to your wallet
 4. **Check status**: Use `get_wallet.rs` to verify your balance
