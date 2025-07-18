@@ -19,6 +19,7 @@ use crate::{
         RenegadeClientConfig, BASE_MAINNET_CHAIN_ID, BASE_SEPOLIA_CHAIN_ID,
     },
     util::HmacKey as HttpHmacKey,
+    websocket::RenegadeWebsocketClient,
     RenegadeClientError,
 };
 
@@ -71,6 +72,8 @@ pub struct RenegadeClient {
     pub secrets: WalletSecrets,
     /// The relayer HTTP client
     pub relayer_client: RelayerHttpClient,
+    /// The websocket client
+    pub websocket_client: RenegadeWebsocketClient,
 }
 
 impl RenegadeClient {
@@ -81,8 +84,9 @@ impl RenegadeClient {
         let hmac_key = secrets.keychain.secret_keys.symmetric_key;
         let client =
             RelayerHttpClient::new(config.relayer_base_url.clone(), HttpHmacKey(hmac_key.0));
+        let websocket_client = RenegadeWebsocketClient::new(&config);
 
-        Ok(Self { config, secrets, relayer_client: client })
+        Ok(Self { config, secrets, relayer_client: client, websocket_client })
     }
 
     /// Create a new wallet on Arbitrum Sepolia
