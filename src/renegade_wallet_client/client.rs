@@ -14,23 +14,17 @@ use serde::{de::DeserializeOwned, Serialize};
 use uuid::Uuid;
 
 use crate::{
-    http::RelayerHttpClient, util::HmacKey as HttpHmacKey, RenegadeClientError,
-    ARBITRUM_ONE_RELAYER_BASE_URL, ARBITRUM_SEPOLIA_RELAYER_BASE_URL,
-    BASE_MAINNET_RELAYER_BASE_URL, BASE_SEPOLIA_RELAYER_BASE_URL,
+    http::RelayerHttpClient,
+    renegade_wallet_client::config::{
+        RenegadeClientConfig, BASE_MAINNET_CHAIN_ID, BASE_SEPOLIA_CHAIN_ID,
+    },
+    util::HmacKey as HttpHmacKey,
+    RenegadeClientError,
 };
 
 // -------------
 // | Constants |
 // -------------
-
-/// The Arbitrum one chain ID
-const ARBITRUM_ONE_CHAIN_ID: u64 = 42161;
-/// The Arbitrum Sepolia chain ID
-const ARBITRUM_SEPOLIA_CHAIN_ID: u64 = 421614;
-/// The Base mainnet chain ID
-const BASE_MAINNET_CHAIN_ID: u64 = 8453;
-/// The Base Sepolia chain ID
-const BASE_SEPOLIA_CHAIN_ID: u64 = 84532;
 
 /// The error message when a response body cannot be decoded
 const RESPONSE_BODY_DECODE_ERROR: &str = "<failed to decode response body>";
@@ -71,21 +65,12 @@ impl WalletSecrets {
 /// The Renegade wallet client
 #[derive(Clone)]
 pub struct RenegadeClient {
+    /// The client config
+    pub config: RenegadeClientConfig,
     /// The wallet secrets
     pub secrets: WalletSecrets,
     /// The relayer HTTP client
     pub relayer_client: RelayerHttpClient,
-}
-
-/// The client config
-#[derive(Debug, Clone)]
-pub struct RenegadeClientConfig {
-    /// The relayer base URL
-    pub relayer_base_url: String,
-    /// The chain ID
-    pub chain_id: u64,
-    /// The private key from which to derive the wallet
-    pub key: PrivateKeySigner,
 }
 
 impl RenegadeClient {
@@ -94,53 +79,37 @@ impl RenegadeClient {
         let secrets = derive_wallet_from_key(&config.key, config.chain_id)
             .map_err(RenegadeClientError::setup)?;
         let hmac_key = secrets.keychain.secret_keys.symmetric_key;
-        let client = RelayerHttpClient::new(config.relayer_base_url, HttpHmacKey(hmac_key.0));
+        let client =
+            RelayerHttpClient::new(config.relayer_base_url.clone(), HttpHmacKey(hmac_key.0));
 
-        Ok(Self { secrets, relayer_client: client })
+        Ok(Self { config, secrets, relayer_client: client })
     }
 
     /// Create a new wallet on Arbitrum Sepolia
     pub fn new_arbitrum_sepolia(key: &PrivateKeySigner) -> Result<Self, RenegadeClientError> {
-        let cfg = RenegadeClientConfig {
-            relayer_base_url: ARBITRUM_SEPOLIA_RELAYER_BASE_URL.to_string(),
-            chain_id: ARBITRUM_SEPOLIA_CHAIN_ID,
-            key: key.clone(),
-        };
-
-        Self::new(cfg)
+        Self::new(RenegadeClientConfig::new_arbitrum_sepolia(key))
     }
 
     /// Create a new wallet on Arbitrum One
     pub fn new_arbitrum_one(key: &PrivateKeySigner) -> Result<Self, RenegadeClientError> {
-        let cfg = RenegadeClientConfig {
-            relayer_base_url: ARBITRUM_ONE_RELAYER_BASE_URL.to_string(),
-            chain_id: ARBITRUM_ONE_CHAIN_ID,
-            key: key.clone(),
-        };
-
-        Self::new(cfg)
+        Self::new(RenegadeClientConfig::new_arbitrum_one(key))
     }
 
     /// Create a new wallet on Base Sepolia
     pub fn new_base_sepolia(key: &PrivateKeySigner) -> Result<Self, RenegadeClientError> {
-        let cfg = RenegadeClientConfig {
-            relayer_base_url: BASE_SEPOLIA_RELAYER_BASE_URL.to_string(),
-            chain_id: BASE_SEPOLIA_CHAIN_ID,
-            key: key.clone(),
-        };
-
-        Self::new(cfg)
+        Self::new(RenegadeClientConfig::new_base_sepolia(key))
     }
 
     /// Create a new wallet on Base Mainnet
     pub fn new_base_mainnet(key: &PrivateKeySigner) -> Result<Self, RenegadeClientError> {
-        let cfg = RenegadeClientConfig {
-            relayer_base_url: BASE_MAINNET_RELAYER_BASE_URL.to_string(),
-            chain_id: BASE_MAINNET_CHAIN_ID,
-            key: key.clone(),
-        };
+        Self::new(RenegadeClientConfig::new_base_mainnet(key))
+    }
 
-        Self::new(cfg)
+    /// Whether the client is on a chain in which Renegade is deployed as a
+    /// solidity contract
+    pub fn is_solidity_chain(&self) -> bool {
+        self.config.chain_id == BASE_MAINNET_CHAIN_ID
+            || self.config.chain_id == BASE_SEPOLIA_CHAIN_ID
     }
 
     // --------------

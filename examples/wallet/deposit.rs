@@ -1,15 +1,8 @@
-//! Example of placing an order in the wallet
+//! Example of depositing funds into the wallet
 
 use alloy::signers::local::PrivateKeySigner;
-use num_bigint::BigUint;
-use renegade_api::types::{ApiOrder, ApiOrderType};
-use renegade_circuit_types::order::OrderSide;
-use renegade_sdk::{
-    actions::place_order::OrderBuilder, api_types::FixedPoint, client::RenegadeClient,
-};
-use renegade_utils::hex::biguint_from_hex_string;
+use renegade_sdk::client::RenegadeClient;
 use std::str::FromStr;
-use uuid::Uuid;
 
 /// WETH address on arbitrum sepolia
 const WETH_ADDRESS: &str = "0xc3414a7ef14aaaa9c4522dfc00a4e66e74e9c25a";
@@ -29,19 +22,16 @@ async fn main() -> Result<(), eyre::Error> {
     // Create the Renegade client for Arbitrum Sepolia
     let renegade_client = RenegadeClient::new_arbitrum_sepolia(&private_key)?;
 
-    // Create a sample order (selling WETH for USDC)
+    // Deposit 1 WETH into the wallet
+    let token_mint = WETH_ADDRESS;
     let amount = 10_u128.pow(18); // 1 WETH
-    let order = OrderBuilder::new()
-        .with_base_mint(WETH_ADDRESS)?
-        .with_quote_mint(USDC_ADDRESS)?
-        .with_side(OrderSide::Sell)
-        .with_amount(amount)
-        .build()?;
 
-    // Place the order in the wallet
-    match renegade_client.place_order(order).await {
-        Ok(()) => println!("Successfully placed order in wallet!"),
-        Err(e) => println!("Failed to place order: {e}"),
+    // Deposit the funds into the wallet
+    match renegade_client.deposit(token_mint, amount, &private_key).await {
+        Ok(()) => {
+            println!("Successfully deposited {amount} units of token {token_mint} into wallet!")
+        },
+        Err(e) => println!("Failed to deposit: {e}"),
     }
 
     Ok(())
