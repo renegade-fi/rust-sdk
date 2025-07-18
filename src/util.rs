@@ -22,7 +22,7 @@ pub const RENEGADE_SIG_EXPIRATION_HEADER_NAME: &str = "x-renegade-auth-expiratio
 type HmacSha256 = hmac::Hmac<sha2::Sha256>;
 /// A 32 byte HMAC key
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub struct HmacKey([u8; 32]);
+pub struct HmacKey(pub(crate) [u8; 32]);
 impl HmacKey {
     /// Create a new HMAC key from a base64 encoded string
     pub fn from_base64_string(s: &str) -> Result<Self, ExternalMatchClientError> {
