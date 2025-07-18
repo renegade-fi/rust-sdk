@@ -2,6 +2,7 @@
 
 pub mod cancel_order;
 pub mod create_wallet;
+pub mod deposit;
 pub mod get_wallet;
 pub mod place_order;
 

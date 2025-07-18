@@ -2,6 +2,7 @@
 
 pub mod actions;
 pub mod client;
+mod config;
 
 /// The error type for the renegade wallet client
 #[derive(Debug, thiserror::Error)]

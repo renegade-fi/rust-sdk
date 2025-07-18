@@ -24,13 +24,13 @@ async fn main() -> Result<()> {
     let wallet = renegade_client.get_wallet().await?;
     println!("Wallet ID: {}", renegade_client.secrets.wallet_id);
     println!("Wallet Orders:");
-    for order in wallet.orders {
+    for order in wallet.orders.iter().filter(|o| o.amount > 0) {
         let base_mint_hex = biguint_to_hex_string(&order.base_mint);
-        println!("\t - {}: {} {}", order.id, order.side, base_mint_hex)
+        println!("\t - {}: {} {} {}", order.id, order.side, order.amount, base_mint_hex)
     }
 
     println!("Wallet Balances:");
-    for balance in wallet.balances {
+    for balance in wallet.balances.iter().filter(|b| b.amount > 0) {
         let balance_mint = biguint_to_hex_string(&balance.mint);
         println!("\t - {}: {}", balance_mint, balance.amount)
     }
