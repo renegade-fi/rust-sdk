@@ -11,7 +11,7 @@ use renegade_utils::hex::biguint_from_hex_string;
 use uuid::Uuid;
 
 use crate::{
-    actions::{construct_http_path, get_wallet_update_auth},
+    actions::{construct_http_path, prepare_wallet_update},
     client::RenegadeClient,
     RenegadeClientError,
 };
@@ -27,7 +27,7 @@ impl RenegadeClient {
 
         // Update the wallet auth
         let wallet_id = self.secrets.wallet_id;
-        let update_auth = get_wallet_update_auth(&mut wallet)?;
+        let update_auth = prepare_wallet_update(&mut wallet)?;
         let request = CreateOrderRequest { update_auth, order };
 
         let route = construct_http_path!(WALLET_ORDERS_ROUTE, "wallet_id" => wallet_id);

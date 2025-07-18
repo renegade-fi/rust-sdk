@@ -1,5 +1,6 @@
 //! Actions to update a Renegade wallet
 
+pub mod cancel_order;
 pub mod create_wallet;
 pub mod get_wallet;
 pub mod place_order;
@@ -17,7 +18,7 @@ use crate::RenegadeClientError;
 ///
 /// Update auth is the signature of a commitment to the wallet's new state after
 /// it is reblinded.
-pub(crate) fn get_wallet_update_auth(
+pub(crate) fn prepare_wallet_update(
     wallet: &mut Wallet,
 ) -> Result<WalletUpdateAuthorization, RenegadeClientError> {
     // First reblind the wallet
