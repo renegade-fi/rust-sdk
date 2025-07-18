@@ -5,6 +5,7 @@ pub mod create_wallet;
 pub mod deposit;
 pub mod get_wallet;
 pub mod place_order;
+pub mod withdraw;
 
 use renegade_api::http::wallet::WalletUpdateAuthorization;
 use renegade_common::types::wallet::Wallet;

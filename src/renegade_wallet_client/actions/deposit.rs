@@ -60,7 +60,7 @@ impl RenegadeClient {
         Ok(())
     }
 
-    /// Build transfer auth for the connected chain
+    /// Build a deposit permit for the connected chain
     async fn build_deposit_auth(
         &self,
         signer: &PrivateKeySigner,
