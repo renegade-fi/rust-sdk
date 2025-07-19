@@ -6,7 +6,7 @@ use std::sync::Arc;
 use futures_util::{Sink, SinkExt, StreamExt};
 use renegade_api::{
     bus_message::{SystemBusMessage, SystemBusMessageWithTopic as ServerMessage},
-    websocket::WebsocketMessage,
+    websocket::{ClientWebsocketMessage, WebsocketMessage},
 };
 use renegade_common::types::tasks::TaskIdentifier;
 use tokio::sync::{
@@ -25,6 +25,9 @@ use crate::{
 // ---------
 // | Types |
 // ---------
+
+/// The default port on which relayers run websocket servers
+const DEFAULT_WS_PORT: u16 = 4000;
 
 /// A notification channel
 ///
@@ -86,6 +89,8 @@ impl RenegadeWebsocketClient {
     /// Create a new websocket client
     pub fn new(config: &RenegadeClientConfig) -> Self {
         let base_url = config.relayer_base_url.replace("http", "ws");
+        let base_url = format!("{base_url}:{DEFAULT_WS_PORT}");
+
         Self {
             base_url,
             notifications: create_notification_map(),
@@ -156,7 +161,6 @@ impl RenegadeWebsocketClient {
 
         // Split the websocket stream into sink and stream
         let (mut ws_tx, mut ws_rx) = ws_stream.split();
-
         loop {
             tokio::select! {
                 Some(task_id) = subscribe_rx.recv() => {
@@ -191,7 +195,9 @@ impl RenegadeWebsocketClient {
         ws_tx: &mut W,
     ) -> Result<(), RenegadeClientError> {
         let topic = construct_websocket_topic(task_id);
-        let subscribe = WebsocketMessage::Subscribe { topic };
+        let headers = HashMap::new();
+        let subscribe =
+            ClientWebsocketMessage { headers, body: WebsocketMessage::Subscribe { topic } };
         let msg_txt = serde_json::to_string(&subscribe).map_err(RenegadeClientError::serde)?;
         let msg = Message::Text(msg_txt);
 
@@ -216,17 +222,16 @@ impl RenegadeWebsocketClient {
         match msg.event {
             SystemBusMessage::TaskStatusUpdate { status } => {
                 let id = status.id;
-                let state = status.state;
-                let committed = status.committed;
-                if committed {
+                let state = status.state.to_lowercase();
+                if state.contains("completed") {
                     Self::handle_completed_task(id, notifications).await?;
-                } else if state.to_lowercase().contains("failed") {
+                } else if state.contains("failed") {
                     Self::handle_failed_task(id, state, notifications).await?;
                 }
             },
             _ => return Ok(()),
         }
-        todo!()
+        Ok(())
     }
 
     /// Handle a completed task

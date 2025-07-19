@@ -22,7 +22,7 @@ async fn main() -> Result<(), eyre::Error> {
 
     // Create the wallet in the darkpool
     match renegade_client.create_wallet().await {
-        Ok(()) => println!("Successfully created wallet in darkpool!"),
+        Ok(_) => println!("Successfully created wallet in darkpool!"),
         Err(e) => println!("Failed to create wallet: {e}"),
     }
 

@@ -3,3 +3,4 @@ mod client;
 mod task_waiter;
 
 pub use client::*;
+pub use task_waiter::*;

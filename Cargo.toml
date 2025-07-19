@@ -100,6 +100,11 @@ path = "examples/wallet/place_order.rs"
 required-features = ["examples", "darkpool-client"]
 
 [[example]]
+name = "place_order_await"
+path = "examples/wallet/place_order_await.rs"
+required-features = ["examples", "darkpool-client"]
+
+[[example]]
 name = "cancel_order"
 path = "examples/wallet/cancel_order.rs"
 required-features = ["examples", "darkpool-client"]
@@ -143,7 +148,9 @@ reqwest = { version = ">=0.12, <1.0", features = ["json"] }
 serde = { version = "^1.0.197" }
 serde_json = "1.0.64"
 tokio = { version = "1.30.0", features = ["full"], optional = true }
-tokio-tungstenite = { version = "0.20.0", optional = true }
+tokio-tungstenite = { version = "0.20.0", features = [
+    "native-tls",
+], optional = true }
 
 # === Ethereum === #
 alloy = { version = ">=0.12, <2.0", features = ["essentials"] }

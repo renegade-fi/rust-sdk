@@ -5,12 +5,13 @@ use std::{
     future::Future,
     pin::Pin,
     task::{Context, Poll},
+    time::{Duration, Sleep as SleepFuture},
 };
 
-use futures_util::ready;
-use renegade_common::types::tasks::TaskIdentifier;
-
 use crate::{websocket::TaskNotificationRx, RenegadeClientError};
+
+/// The timeout for a task to complete
+const TASK_TIMEOUT: Duration = Duration::from_secs(30);
 
 /// A task status notification
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -39,21 +40,38 @@ impl TaskStatusNotification {
 pub struct TaskWaiter {
     /// The notification channel
     notification_rx: TaskNotificationRx,
+    /// The timeout future
+    timeout: Pin<Box<SleepFuture>>,
 }
 
 impl TaskWaiter {
     /// Create a new task waiter
     pub fn new(notification_rx: TaskNotificationRx) -> Self {
-        Self { notification_rx }
+        Self { notification_rx, timeout: Box::pin(tokio::time::sleep(TASK_TIMEOUT)) }
     }
 }
 
 impl Future for TaskWaiter {
     type Output = Result<(), RenegadeClientError>;
 
-    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        let status = ready!(self.get_mut().notification_rx.poll_recv(cx));
-        let res = status.ok_or(RenegadeClientError::custom("Task waiter closed"))?.into_result();
-        Poll::Ready(res)
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        // First, try to poll the notification receiver
+        match self.notification_rx.poll_recv(cx) {
+            Poll::Ready(Some(notification)) => {
+                return Poll::Ready(notification.into_result());
+            },
+            Poll::Ready(None) => {
+                return Poll::Ready(Err(RenegadeClientError::task("Task waiter closed")));
+            },
+            Poll::Pending => {
+                // Continue to check timeout
+            },
+        }
+
+        // Check if the timeout has elapsed
+        match self.timeout.as_mut().poll(cx) {
+            Poll::Ready(()) => Poll::Ready(Err(RenegadeClientError::task("Task timed out"))),
+            Poll::Pending => Poll::Pending,
+        }
     }
 }

@@ -13,12 +13,13 @@ use uuid::Uuid;
 use crate::{
     actions::{construct_http_path, prepare_wallet_update},
     client::RenegadeClient,
+    websocket::TaskWaiter,
     RenegadeClientError,
 };
 
 impl RenegadeClient {
     /// Place an order in the wallet
-    pub async fn place_order(&self, order: ApiOrder) -> Result<(), RenegadeClientError> {
+    pub async fn place_order(&self, order: ApiOrder) -> Result<TaskWaiter, RenegadeClientError> {
         // Add the order to the wallet
         let mut wallet = self.get_internal_wallet().await?;
         let internal_order =
@@ -31,8 +32,12 @@ impl RenegadeClient {
         let request = CreateOrderRequest { update_auth, order };
 
         let route = construct_http_path!(WALLET_ORDERS_ROUTE, "wallet_id" => wallet_id);
-        let _response: CreateOrderResponse = self.post_relayer(&route, request).await?;
-        Ok(())
+        let response: CreateOrderResponse = self.post_relayer(&route, request).await?;
+
+        // Extract task_id from response and create task waiter
+        // Note: Assuming the response contains a task_id field
+        let task_id = response.task_id;
+        self.websocket_client.watch_task(task_id).await
     }
 }
 
