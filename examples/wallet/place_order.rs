@@ -38,10 +38,10 @@ async fn main() -> Result<(), eyre::Error> {
         .with_amount(amount)
         .build()?;
 
-    // Place the order in the wallet
+    // Place the order in the wallet (fire-and-forget)
     match renegade_client.place_order(order).await {
-        Ok(()) => println!("Successfully placed order in wallet!"),
-        Err(e) => println!("Failed to place order: {e}"),
+        Ok(_task_waiter) => println!("Successfully submitted order (fire-and-forget)."),
+        Err(e) => println!("Failed to submit order: {e}"),
     }
 
     Ok(())
