@@ -17,7 +17,8 @@ use tokio_tungstenite::{connect_async, tungstenite::Message};
 use tracing::error;
 
 use crate::{
-    renegade_wallet_client::config::RenegadeClientConfig, websocket::TaskStatusNotification,
+    renegade_wallet_client::config::RenegadeClientConfig,
+    websocket::task_waiter::{TaskStatusNotification, TaskWaiter},
     RenegadeClientError,
 };
 
@@ -90,6 +91,29 @@ impl RenegadeWebsocketClient {
             notifications: create_notification_map(),
             subscribe_tx: Arc::new(OnceCell::new()),
         }
+    }
+
+    // -----------------
+    // | Subscriptions |
+    // -----------------
+
+    /// Subscribe to a new task's status
+    pub async fn watch_task(
+        &self,
+        task_id: TaskIdentifier,
+    ) -> Result<TaskWaiter, RenegadeClientError> {
+        self.ensure_connected().await?;
+        // Send a subscription message to the websocket client
+        let subscribe_tx = self
+            .subscribe_tx
+            .get()
+            .ok_or(RenegadeClientError::custom("Websocket client not connected"))?;
+        subscribe_tx.send(task_id).map_err(RenegadeClientError::custom)?;
+
+        // Add a notification channel to the map and create a task waiter
+        let (tx, rx) = create_notification_channel();
+        self.notifications.write().await.insert(task_id, tx);
+        Ok(TaskWaiter::new(rx))
     }
 
     /// Connect to the websocket server
@@ -217,7 +241,7 @@ impl RenegadeWebsocketClient {
         };
 
         // We explicitly ignore errors here in case the receiver is dropped
-        let _ = tx.send(TaskStatusNotification::Completed);
+        let _ = tx.send(TaskStatusNotification::Success);
         Ok(())
     }
 

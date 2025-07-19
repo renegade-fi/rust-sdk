@@ -29,6 +29,9 @@ pub enum RenegadeClientError {
     /// An error setting up the wallet
     #[error("failed to setup wallet: {0}")]
     Setup(String),
+    /// A task error
+    #[error("task error: {0}")]
+    Task(String),
     /// A wallet error
     #[error("wallet error: {0}")]
     Wallet(String),
@@ -66,6 +69,12 @@ impl RenegadeClientError {
     #[allow(clippy::needless_pass_by_value)]
     pub fn serde<T: ToString>(msg: T) -> Self {
         Self::Serde(msg.to_string())
+    }
+
+    /// Create a new task error
+    #[allow(clippy::needless_pass_by_value)]
+    pub fn task<T: ToString>(msg: T) -> Self {
+        Self::Task(msg.to_string())
     }
 
     /// Create a new relayer error
