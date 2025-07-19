@@ -3,7 +3,6 @@
 use alloy::signers::local::PrivateKeySigner;
 use renegade_sdk::client::RenegadeClient;
 use std::str::FromStr;
-use uuid::Uuid;
 
 /// The private key to use for the wallet
 const PKEY: &str = env!("PKEY");
@@ -29,10 +28,7 @@ async fn main() -> Result<(), eyre::Error> {
     let order_id = wallet.orders[0].id;
     println!("Canceling order with ID: {}", order_id);
     match renegade_client.cancel_order(order_id).await {
-        Ok(waiter) => {
-            waiter.await?;
-            println!("Successfully canceled order!");
-        },
+        Ok(_) => println!("Successfully canceled order!"),
         Err(e) => println!("Failed to cancel order: {e}"),
     }
 

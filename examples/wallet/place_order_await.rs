@@ -36,10 +36,10 @@ async fn main() -> Result<(), eyre::Error> {
 
     // Place the order in the wallet and get a task waiter
     println!("Placing order and waiting for task completion...");
-    let task_waiter = renegade_client.place_order(order).await?;
+    let mut task_waiter = renegade_client.place_order(order.clone()).await?;
 
-    // Await the task completion
-    match task_waiter.await {
+    // Await the task completion using the watch_task method
+    match task_waiter.watch_task().await {
         Ok(()) => println!("Order placement task completed successfully!"),
         Err(e) => println!("Order placement task failed: {e}"),
     }

@@ -34,10 +34,9 @@ impl RenegadeClient {
         let route = construct_http_path!(WALLET_ORDERS_ROUTE, "wallet_id" => wallet_id);
         let response: CreateOrderResponse = self.post_relayer(&route, request).await?;
 
-        // Extract task_id from response and create task waiter
-        // Note: Assuming the response contains a task_id field
+        // Create a task waiter for the task
         let task_id = response.task_id;
-        self.websocket_client.watch_task(task_id).await
+        Ok(self.get_task_waiter(task_id))
     }
 }
 

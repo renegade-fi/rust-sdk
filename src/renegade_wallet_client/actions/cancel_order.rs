@@ -28,8 +28,8 @@ impl RenegadeClient {
         let request = CancelOrderRequest { update_auth };
         let response: CancelOrderResponse = self.post_relayer(&route, request).await?;
 
-        // Extract task_id from response and create task waiter
+        // Create a task waiter for the task
         let task_id = response.task_id;
-        self.websocket_client.watch_task(task_id).await
+        Ok(self.get_task_waiter(task_id))
     }
 }

@@ -1,14 +1,11 @@
 //! A task waiter is a structure that waits for a task to complete then
 //! transforms the status into a result
 
-use std::{
-    future::Future,
-    pin::Pin,
-    task::{Context, Poll},
-    time::{Duration, Sleep as SleepFuture},
-};
+use std::time::Duration;
 
-use crate::{websocket::TaskNotificationRx, RenegadeClientError};
+use renegade_common::types::tasks::TaskIdentifier;
+
+use crate::{websocket::RenegadeWebsocketClient, RenegadeClientError};
 
 /// The timeout for a task to complete
 const TASK_TIMEOUT: Duration = Duration::from_secs(30);
@@ -38,40 +35,28 @@ impl TaskStatusNotification {
 /// A thin wrapper around a notification channel that waits for a task to
 /// complete then transforms the status into a result
 pub struct TaskWaiter {
-    /// The notification channel
-    notification_rx: TaskNotificationRx,
-    /// The timeout future
-    timeout: Pin<Box<SleepFuture>>,
+    /// The task ID
+    task_id: TaskIdentifier,
+    /// The websocket client
+    ws_client: RenegadeWebsocketClient,
 }
 
 impl TaskWaiter {
     /// Create a new task waiter
-    pub fn new(notification_rx: TaskNotificationRx) -> Self {
-        Self { notification_rx, timeout: Box::pin(tokio::time::sleep(TASK_TIMEOUT)) }
+    pub fn new(task_id: TaskIdentifier, ws_client: RenegadeWebsocketClient) -> Self {
+        Self { task_id, ws_client }
     }
-}
 
-impl Future for TaskWaiter {
-    type Output = Result<(), RenegadeClientError>;
+    /// Watch a task until it terminates as a success or failure
+    pub async fn watch_task(&mut self) -> Result<(), RenegadeClientError> {
+        // Register a notification channel for the task and await
+        let mut notification_rx = self.ws_client.watch_task(self.task_id).await?;
+        let timeout = tokio::time::timeout(TASK_TIMEOUT, notification_rx.recv());
+        let notification = timeout
+            .await
+            .map_err(|_| RenegadeClientError::task("Task timed out"))?
+            .ok_or_else(|| RenegadeClientError::task("Task waiter closed"))?;
 
-    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        // First, try to poll the notification receiver
-        match self.notification_rx.poll_recv(cx) {
-            Poll::Ready(Some(notification)) => {
-                return Poll::Ready(notification.into_result());
-            },
-            Poll::Ready(None) => {
-                return Poll::Ready(Err(RenegadeClientError::task("Task waiter closed")));
-            },
-            Poll::Pending => {
-                // Continue to check timeout
-            },
-        }
-
-        // Check if the timeout has elapsed
-        match self.timeout.as_mut().poll(cx) {
-            Poll::Ready(()) => Poll::Ready(Err(RenegadeClientError::task("Task timed out"))),
-            Poll::Pending => Poll::Pending,
-        }
+        notification.into_result()
     }
 }

@@ -18,8 +18,7 @@ use tracing::error;
 
 use crate::{
     renegade_wallet_client::config::RenegadeClientConfig,
-    websocket::task_waiter::{TaskStatusNotification, TaskWaiter},
-    RenegadeClientError,
+    websocket::task_waiter::TaskStatusNotification, RenegadeClientError,
 };
 
 // ---------
@@ -81,7 +80,7 @@ pub struct RenegadeWebsocketClient {
     notifications: NotificationMap,
     /// The channel to subscribe to task status updates
     ///
-    /// This is used
+    /// This is used to send subscription messages to the websocket server.
     subscribe_tx: Arc<OnceCell<SubscribeTx>>,
 }
 
@@ -106,7 +105,7 @@ impl RenegadeWebsocketClient {
     pub async fn watch_task(
         &self,
         task_id: TaskIdentifier,
-    ) -> Result<TaskWaiter, RenegadeClientError> {
+    ) -> Result<TaskNotificationRx, RenegadeClientError> {
         self.ensure_connected().await?;
         // Send a subscription message to the websocket client
         let subscribe_tx = self
@@ -118,7 +117,7 @@ impl RenegadeWebsocketClient {
         // Add a notification channel to the map and create a task waiter
         let (tx, rx) = create_notification_channel();
         self.notifications.write().await.insert(task_id, tx);
-        Ok(TaskWaiter::new(rx))
+        Ok(rx)
     }
 
     /// Connect to the websocket server
@@ -199,11 +198,10 @@ impl RenegadeWebsocketClient {
         let subscribe =
             ClientWebsocketMessage { headers, body: WebsocketMessage::Subscribe { topic } };
         let msg_txt = serde_json::to_string(&subscribe).map_err(RenegadeClientError::serde)?;
-        let msg = Message::Text(msg_txt);
 
         // Send the message onto the websocket
         ws_tx
-            .send(msg)
+            .send(Message::Text(msg_txt))
             .await
             .map_err(|_| RenegadeClientError::websocket("failed to send websocket message"))
     }

@@ -1,6 +1,7 @@
 //! The client for interacting with the Renegade darkpool API
 
 use alloy::signers::local::PrivateKeySigner;
+use renegade_common::types::tasks::TaskIdentifier;
 use renegade_common::types::wallet::{
     derivation::{
         derive_blinder_seed, derive_share_seed, derive_wallet_id, derive_wallet_keychain,
@@ -13,6 +14,7 @@ use reqwest::header::HeaderMap;
 use serde::{de::DeserializeOwned, Serialize};
 use uuid::Uuid;
 
+use crate::websocket::TaskWaiter;
 use crate::{
     http::RelayerHttpClient,
     renegade_wallet_client::config::{
@@ -114,6 +116,15 @@ impl RenegadeClient {
     pub fn is_solidity_chain(&self) -> bool {
         self.config.chain_id == BASE_MAINNET_CHAIN_ID
             || self.config.chain_id == BASE_SEPOLIA_CHAIN_ID
+    }
+
+    // --------------
+    // | Task Utils |
+    // --------------
+
+    /// Get a task waiter for a task
+    pub fn get_task_waiter(&self, task_id: TaskIdentifier) -> TaskWaiter {
+        TaskWaiter::new(task_id, self.websocket_client.clone())
     }
 
     // --------------
