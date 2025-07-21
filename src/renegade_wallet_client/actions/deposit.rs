@@ -15,6 +15,7 @@ use renegade_utils::hex::biguint_from_hex_string;
 use crate::{
     actions::{construct_http_path, prepare_wallet_update},
     client::RenegadeClient,
+    websocket::TaskWaiter,
     RenegadeClientError,
 };
 
@@ -25,7 +26,7 @@ impl RenegadeClient {
         token_mint: &str,
         amount: u128,
         pkey: &PrivateKeySigner,
-    ) -> Result<(), RenegadeClientError> {
+    ) -> Result<TaskWaiter, RenegadeClientError> {
         // Add the balance to the wallet
         let mint = biguint_from_hex_string(token_mint).map_err(RenegadeClientError::conversion)?;
         let mut wallet = self.get_internal_wallet().await?;
@@ -56,8 +57,11 @@ impl RenegadeClient {
             permit_deadline: transfer_auth.permit_deadline,
             permit_signature: transfer_auth.permit_signature,
         };
-        let _response: DepositBalanceResponse = self.post_relayer(&route, request).await?;
-        Ok(())
+        let response: DepositBalanceResponse = self.post_relayer(&route, request).await?;
+
+        // Create a task waiter for the task
+        let task_id = response.task_id;
+        Ok(self.get_task_waiter(task_id))
     }
 
     /// Build a deposit permit for the connected chain

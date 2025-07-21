@@ -21,6 +21,7 @@ use renegade_utils::hex::biguint_from_hex_string;
 use crate::{
     actions::{construct_http_path, prepare_wallet_update},
     client::RenegadeClient,
+    websocket::TaskWaiter,
     RenegadeClientError,
 };
 
@@ -31,7 +32,7 @@ impl RenegadeClient {
         token_mint: &str,
         amount: u128,
         pkey: &PrivateKeySigner,
-    ) -> Result<(), RenegadeClientError> {
+    ) -> Result<TaskWaiter, RenegadeClientError> {
         // First, pay all fees on the wallet
         self.enqueue_pay_fees().await?;
 
@@ -61,8 +62,11 @@ impl RenegadeClient {
             update_auth,
             external_transfer_sig: transfer_auth.external_transfer_signature,
         };
-        let _response: WithdrawBalanceResponse = self.post_relayer(&route, request).await?;
-        Ok(())
+        let response: WithdrawBalanceResponse = self.post_relayer(&route, request).await?;
+
+        // Create a task waiter for the task
+        let task_id = response.task_id;
+        Ok(self.get_task_waiter(task_id))
     }
 
     /// Enqueue a task to pay fees on the wallet

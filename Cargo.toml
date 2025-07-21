@@ -100,6 +100,11 @@ path = "examples/wallet/place_order.rs"
 required-features = ["examples", "darkpool-client"]
 
 [[example]]
+name = "place_order_await"
+path = "examples/wallet/place_order_await.rs"
+required-features = ["examples", "darkpool-client"]
+
+[[example]]
 name = "cancel_order"
 path = "examples/wallet/cancel_order.rs"
 required-features = ["examples", "darkpool-client"]
@@ -119,12 +124,16 @@ default = ["external-match-client", "darkpool-client"]
 external-match-client = []
 darkpool-client = [
     "dep:darkpool-client",
+    "dep:futures-util",
     "dep:renegade-circuit-types",
     "dep:renegade-api",
     "dep:renegade-common",
     "dep:renegade-constants",
     "dep:renegade-crypto",
     "dep:renegade-utils",
+    "dep:tokio",
+    "dep:tokio-tungstenite",
+    "dep:tracing",
 ]
 examples = []
 
@@ -133,10 +142,15 @@ examples = []
 hmac = "0.12"
 sha2 = { version = "0.10", features = ["asm"] }
 
-# === Http === #
+# === Http + Websocket === #
+futures-util = { version = "0.3", optional = true }
 reqwest = { version = ">=0.12, <1.0", features = ["json"] }
 serde = { version = "^1.0.197" }
 serde_json = "1.0.64"
+tokio = { version = "1.30.0", features = ["full"], optional = true }
+tokio-tungstenite = { version = "0.20.0", features = [
+    "native-tls",
+], optional = true }
 
 # === Ethereum === #
 alloy = { version = ">=0.12, <2.0", features = ["essentials"] }
@@ -165,6 +179,7 @@ num-bigint = { version = "0.4.3", features = ["serde"] }
 num-traits = "0.2.19"
 num-integer = "0.1"
 thiserror = "1.0.31"
+tracing = { version = "0.1.39", optional = true }
 url = "2.5.0"
 uuid = "1.13.0"
 

@@ -28,7 +28,7 @@ async fn main() -> Result<(), eyre::Error> {
 
     // Deposit the funds into the wallet
     match renegade_client.deposit(token_mint, amount, &private_key).await {
-        Ok(()) => {
+        Ok(_) => {
             println!("Successfully deposited {amount} units of token {token_mint} into wallet!")
         },
         Err(e) => println!("Failed to deposit: {e}"),

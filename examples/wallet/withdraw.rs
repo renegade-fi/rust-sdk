@@ -28,7 +28,7 @@ async fn main() -> Result<(), eyre::Error> {
 
     // Withdraw the funds from the wallet
     match renegade_client.withdraw(token_mint, amount, &private_key).await {
-        Ok(()) => {
+        Ok(_) => {
             println!("Successfully withdrew {amount} units of token {token_mint} from wallet!")
         },
         Err(e) => println!("Failed to withdraw: {e}"),
