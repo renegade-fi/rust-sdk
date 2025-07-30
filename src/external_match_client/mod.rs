@@ -34,6 +34,10 @@ pub struct ExternalOrderBuilder {
     base_amount: Option<Amount>,
     /// The amount of the order
     quote_amount: Option<Amount>,
+    /// The exact base amount to output from the order
+    exact_base_output: Option<Amount>,
+    /// The exact quote amount to output from the order
+    exact_quote_output: Option<Amount>,
     /// The side of the order
     side: Option<OrderSide>,
     /// The minimum fill size
@@ -84,6 +88,18 @@ impl ExternalOrderBuilder {
         self
     }
 
+    /// Set the exact base output amount
+    pub fn exact_base_output(mut self, exact_base_output: Amount) -> Self {
+        self.exact_base_output = Some(exact_base_output);
+        self
+    }
+
+    /// Set the exact quote output amount
+    pub fn exact_quote_output(mut self, exact_quote_output: Amount) -> Self {
+        self.exact_quote_output = Some(exact_quote_output);
+        self
+    }
+
     /// Set the minimum fill size
     pub fn min_fill_size(mut self, min_fill_size: Amount) -> Self {
         self.min_fill_size = Some(min_fill_size);
@@ -97,25 +113,43 @@ impl ExternalOrderBuilder {
         let base_mint =
             self.base_mint.ok_or(ExternalMatchClientError::invalid_order("invalid base mint"))?;
 
-        // Ensure exactly one of `base_amount` or `quote_amount` is set
-        let (base_amount, quote_amount) = match (self.base_amount, self.quote_amount) {
-            (Some(base), None) => (base, 0),
-            (None, Some(quote)) => (0, quote),
-            (None, None) => {
-                return Err(ExternalMatchClientError::invalid_order(
-                    "must set either `base_amount` or `quote_amount`",
-                ))
-            },
-            (Some(_), Some(_)) => {
-                return Err(ExternalMatchClientError::invalid_order(
-                    "cannot set both `base_amount` and `quote_amount`",
-                ))
-            },
-        };
+        // Ensure exactly one of the four amount fields is set
+        let amount_fields_set = [
+            self.base_amount.is_some(),
+            self.quote_amount.is_some(),
+            self.exact_base_output.is_some(),
+            self.exact_quote_output.is_some(),
+        ];
+        let fields_set_count = amount_fields_set.iter().filter(|&&x| x).count();
+
+        if fields_set_count == 0 {
+            return Err(ExternalMatchClientError::invalid_order(
+                "must set one of: `base_amount`, `quote_amount`, `exact_base_output`, or `exact_quote_output`",
+            ));
+        }
+        if fields_set_count > 1 {
+            return Err(ExternalMatchClientError::invalid_order(
+                "can only set one of: `base_amount`, `quote_amount`, `exact_base_output`, or `exact_quote_output`",
+            ));
+        }
+
+        let base_amount = self.base_amount.unwrap_or_default();
+        let quote_amount = self.quote_amount.unwrap_or_default();
+        let exact_base_output = self.exact_base_output.unwrap_or_default();
+        let exact_quote_output = self.exact_quote_output.unwrap_or_default();
 
         let side = self.side.ok_or(ExternalMatchClientError::invalid_order("invalid side"))?;
         let min_fill_size = self.min_fill_size.unwrap_or_default();
 
-        Ok(ExternalOrder { quote_mint, base_mint, base_amount, quote_amount, side, min_fill_size })
+        Ok(ExternalOrder {
+            quote_mint,
+            base_mint,
+            base_amount,
+            quote_amount,
+            exact_base_output,
+            exact_quote_output,
+            side,
+            min_fill_size,
+        })
     }
 }

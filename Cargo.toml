@@ -48,6 +48,11 @@ path = "examples/external_match/in_kind_gas_sponsorship.rs"
 required-features = ["examples"]
 
 [[example]]
+name = "exact_quote_output"
+path = "examples/external_match/exact_quote_output.rs"
+required-features = ["examples"]
+
+[[example]]
 name = "supported_tokens"
 path = "examples/order_book/supported_tokens.rs"
 required-features = ["examples"]
