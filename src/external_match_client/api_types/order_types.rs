@@ -36,6 +36,12 @@ pub struct ExternalOrder {
     /// The quote amount of the order
     #[serde(default)]
     pub quote_amount: Amount,
+    /// The exact base amount to output from the order
+    #[serde(default)]
+    pub exact_base_output: Amount,
+    /// The exact quote amount to output from the order
+    #[serde(default)]
+    pub exact_quote_output: Amount,
     /// The minimum fill size for the order
     #[serde(default)]
     pub min_fill_size: Amount,
