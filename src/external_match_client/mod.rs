@@ -114,22 +114,20 @@ impl ExternalOrderBuilder {
             self.base_mint.ok_or(ExternalMatchClientError::invalid_order("invalid base mint"))?;
 
         // Ensure exactly one of the four amount fields is set
-        let amount_fields_set = [
-            self.base_amount.is_some(),
-            self.quote_amount.is_some(),
-            self.exact_base_output.is_some(),
-            self.exact_quote_output.is_some(),
-        ];
-        let fields_set_count = amount_fields_set.iter().filter(|&&x| x).count();
+        let base_zero = self.base_amount.map_or(true, |amt| amt == 0);
+        let quote_zero = self.quote_amount.map_or(true, |amt| amt == 0);
+        let exact_base_output = self.exact_base_output.map_or(false, |amt| amt != 0);
+        let exact_quote_output = self.exact_quote_output.map_or(false, |amt| amt != 0);
 
-        if fields_set_count == 0 {
+        // Check that exactly one of the sizing constraints is set
+        let n_sizes_set = (!base_zero as u8)
+            + (!quote_zero as u8)
+            + (exact_base_output as u8)
+            + (exact_quote_output as u8);
+
+        if n_sizes_set != 1 {
             return Err(ExternalMatchClientError::invalid_order(
-                "must set one of: `base_amount`, `quote_amount`, `exact_base_output`, or `exact_quote_output`",
-            ));
-        }
-        if fields_set_count > 1 {
-            return Err(ExternalMatchClientError::invalid_order(
-                "can only set one of: `base_amount`, `quote_amount`, `exact_base_output`, or `exact_quote_output`",
+                "exactly one of base_amount, quote_amount, exact_base_output, or exact_quote_output must be set",
             ));
         }
 
