@@ -3,6 +3,8 @@
 pub mod cancel_order;
 pub mod create_wallet;
 pub mod deposit;
+pub mod get_balance_by_mint;
+pub mod get_order;
 pub mod get_wallet;
 pub mod place_order;
 pub mod withdraw;

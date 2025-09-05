@@ -17,13 +17,13 @@ use crate::{
 // --- Chain IDs --- //
 
 /// The Arbitrum one chain ID
-pub(crate) const ARBITRUM_ONE_CHAIN_ID: u64 = 42161;
+pub const ARBITRUM_ONE_CHAIN_ID: u64 = 42161;
 /// The Arbitrum Sepolia chain ID
-pub(crate) const ARBITRUM_SEPOLIA_CHAIN_ID: u64 = 421614;
+pub const ARBITRUM_SEPOLIA_CHAIN_ID: u64 = 421614;
 /// The Base mainnet chain ID
-pub(crate) const BASE_MAINNET_CHAIN_ID: u64 = 8453;
+pub const BASE_MAINNET_CHAIN_ID: u64 = 8453;
 /// The Base Sepolia chain ID
-pub(crate) const BASE_SEPOLIA_CHAIN_ID: u64 = 84532;
+pub const BASE_SEPOLIA_CHAIN_ID: u64 = 84532;
 
 // --- Darkpool Addresses --- //
 

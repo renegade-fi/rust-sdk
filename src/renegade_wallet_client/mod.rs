@@ -2,7 +2,7 @@
 
 pub mod actions;
 pub mod client;
-mod config;
+pub mod config;
 pub mod websocket;
 
 /// The error type for the renegade wallet client

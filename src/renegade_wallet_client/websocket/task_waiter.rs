@@ -1,8 +1,14 @@
 //! A task waiter is a structure that waits for a task to complete then
 //! transforms the status into a result
 
-use std::time::Duration;
+use std::{
+    future::Future,
+    pin::Pin,
+    task::{Context, Poll},
+    time::Duration,
+};
 
+use futures_util::FutureExt;
 use renegade_common::types::tasks::TaskIdentifier;
 
 use crate::{websocket::RenegadeWebsocketClient, RenegadeClientError};
@@ -48,7 +54,7 @@ impl TaskWaiter {
     }
 
     /// Watch a task until it terminates as a success or failure
-    pub async fn watch_task(&mut self) -> Result<(), RenegadeClientError> {
+    pub async fn watch_task(&self) -> Result<(), RenegadeClientError> {
         // Register a notification channel for the task and await
         let mut notification_rx = self.ws_client.watch_task(self.task_id).await?;
         let timeout = tokio::time::timeout(TASK_TIMEOUT, notification_rx.recv());
@@ -58,5 +64,14 @@ impl TaskWaiter {
             .ok_or_else(|| RenegadeClientError::task("Task waiter closed"))?;
 
         notification.into_result()
+    }
+}
+
+impl Future for TaskWaiter {
+    type Output = Result<(), RenegadeClientError>;
+
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        let mut fut = self.watch_task().boxed();
+        fut.as_mut().poll(cx)
     }
 }
