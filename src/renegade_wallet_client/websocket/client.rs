@@ -6,7 +6,7 @@ use std::sync::Arc;
 use futures_util::{Sink, SinkExt, StreamExt};
 use renegade_api::{
     bus_message::{SystemBusMessage, SystemBusMessageWithTopic as ServerMessage},
-    websocket::{ClientWebsocketMessage, WebsocketMessage},
+    websocket::{ClientWebsocketMessage, SubscriptionResponse, WebsocketMessage},
 };
 use renegade_common::types::tasks::TaskIdentifier;
 use tokio::sync::{
@@ -212,7 +212,20 @@ impl RenegadeWebsocketClient {
         notifications: NotificationMap,
     ) -> Result<(), RenegadeClientError> {
         let msg: ServerMessage = match msg {
-            Message::Text(txt) => serde_json::from_str(&txt).map_err(RenegadeClientError::serde)?,
+            Message::Text(txt) => {
+                match serde_json::from_str(&txt).map_err(RenegadeClientError::serde) {
+                    Ok(msg) => msg,
+                    Err(e) => {
+                        // It's likely the message was a subscription response, attempt to parse it
+                        // as such so that we can gracefully handle it
+                        if let Ok(_) = serde_json::from_str::<SubscriptionResponse>(&txt) {
+                            return Ok(());
+                        }
+
+                        return Err(e);
+                    },
+                }
+            },
             _ => return Ok(()),
         };
 
