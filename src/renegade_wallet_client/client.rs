@@ -1,5 +1,6 @@
 //! The client for interacting with the Renegade darkpool API
 
+use alloy::primitives::Address;
 use alloy::signers::local::PrivateKeySigner;
 use renegade_common::types::tasks::TaskIdentifier;
 use renegade_common::types::wallet::{
@@ -176,6 +177,16 @@ impl RenegadeClient {
         } else {
             Err(RenegadeClientError::relayer(body))
         }
+    }
+
+    // --------------
+    // | Misc Utils |
+    // --------------
+
+    /// Get the address of the account associated with the private key the
+    /// client is configured with
+    pub fn get_account_address(&self) -> Address {
+        self.config.key.address()
     }
 }
 

@@ -39,7 +39,7 @@ async fn main() -> Result<(), eyre::Error> {
     let mut task_waiter = renegade_client.place_order(order.clone()).await?;
 
     // Await the task completion using the watch_task method
-    match task_waiter.watch_task().await {
+    match task_waiter.await {
         Ok(()) => println!("Order placement task completed successfully!"),
         Err(e) => println!("Order placement task failed: {e}"),
     }
