@@ -1,6 +1,6 @@
 [package]
 name = "renegade-sdk"
-version = "0.1.17"
+version = "0.1.18"
 edition = "2021"
 description = "A Rust SDK for the Renegade protocol"
 homepage = "https://renegade.fi/"
