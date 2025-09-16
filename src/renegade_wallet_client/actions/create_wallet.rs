@@ -19,7 +19,7 @@ impl RenegadeClient {
         let request = CreateWalletRequest { wallet: api_wallet, blinder_seed };
 
         let response: CreateWalletResponse =
-            self.post_relayer(CREATE_WALLET_ROUTE, request).await?;
+            self.relayer_client.post(CREATE_WALLET_ROUTE, request).await?;
 
         // Create a task waiter for the task
         let task_id = response.task_id;

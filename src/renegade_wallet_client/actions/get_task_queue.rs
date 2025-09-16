@@ -12,7 +12,7 @@ impl RenegadeClient {
     pub async fn get_task_queue(&self) -> Result<Vec<ApiTaskStatus>, RenegadeClientError> {
         let wallet_id = self.secrets.wallet_id;
         let path = construct_http_path!(GET_TASK_QUEUE_ROUTE, "wallet_id" => wallet_id);
-        let response: TaskQueueListResponse = self.get_relayer(&path).await?;
+        let response: TaskQueueListResponse = self.relayer_client.get(&path).await?;
         Ok(response.tasks)
     }
 }

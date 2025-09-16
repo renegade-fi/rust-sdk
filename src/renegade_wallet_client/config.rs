@@ -9,10 +9,26 @@ use alloy::{
     signers::local::PrivateKeySigner,
 };
 
-use crate::{
-    ARBITRUM_ONE_RELAYER_BASE_URL, ARBITRUM_SEPOLIA_RELAYER_BASE_URL,
-    BASE_MAINNET_RELAYER_BASE_URL, BASE_SEPOLIA_RELAYER_BASE_URL,
-};
+// --- Relayer URLs --- //
+
+/// The Arbitrum Sepolia relayer base URL
+pub(crate) const ARBITRUM_SEPOLIA_RELAYER_BASE_URL: &str =
+    "https://arbitrum-sepolia.relayer.renegade.fi";
+/// The Arbitrum One relayer base URL
+pub(crate) const ARBITRUM_ONE_RELAYER_BASE_URL: &str = "https://arbitrum-one.relayer.renegade.fi";
+/// The Base Sepolia relayer base URL
+pub(crate) const BASE_SEPOLIA_RELAYER_BASE_URL: &str = "https://base-sepolia.relayer.renegade.fi";
+/// The Base mainnet relayer base URL
+pub(crate) const BASE_MAINNET_RELAYER_BASE_URL: &str = "https://base-mainnet.relayer.renegade.fi";
+
+// --- Historical State URLs --- //
+
+/// The mainnet historical state base URL
+pub(crate) const MAINNET_HISTORICAL_STATE_BASE_URL: &str =
+    "https://mainnet.historical-state.renegade.fi";
+/// The testnet historical state base URL
+pub(crate) const TESTNET_HISTORICAL_STATE_BASE_URL: &str =
+    "https://testnet.historical-state.renegade.fi";
 
 // --- Chain IDs --- //
 
@@ -60,6 +76,8 @@ pub(crate) const BASE_SEPOLIA_PERMIT2_ADDRESS: Address =
 pub struct RenegadeClientConfig {
     /// The relayer base URL
     pub relayer_base_url: String,
+    /// The historical state base URL
+    pub historical_state_base_url: String,
     /// The chain ID
     pub chain_id: u64,
     /// The darkpool contract address
@@ -75,6 +93,7 @@ impl RenegadeClientConfig {
     pub fn new_arbitrum_one(key: &PrivateKeySigner) -> Self {
         Self {
             relayer_base_url: ARBITRUM_ONE_RELAYER_BASE_URL.to_string(),
+            historical_state_base_url: MAINNET_HISTORICAL_STATE_BASE_URL.to_string(),
             chain_id: ARBITRUM_ONE_CHAIN_ID,
             darkpool_address: ARBITRUM_ONE_DARKPOOL_ADDRESS,
             permit2_address: ARBITRUM_ONE_PERMIT2_ADDRESS,
@@ -86,6 +105,7 @@ impl RenegadeClientConfig {
     pub fn new_arbitrum_sepolia(key: &PrivateKeySigner) -> Self {
         Self {
             relayer_base_url: ARBITRUM_SEPOLIA_RELAYER_BASE_URL.to_string(),
+            historical_state_base_url: TESTNET_HISTORICAL_STATE_BASE_URL.to_string(),
             chain_id: ARBITRUM_SEPOLIA_CHAIN_ID,
             darkpool_address: ARBITRUM_SEPOLIA_DARKPOOL_ADDRESS,
             permit2_address: ARBITRUM_SEPOLIA_PERMIT2_ADDRESS,
@@ -97,6 +117,7 @@ impl RenegadeClientConfig {
     pub fn new_base_mainnet(key: &PrivateKeySigner) -> Self {
         Self {
             relayer_base_url: BASE_MAINNET_RELAYER_BASE_URL.to_string(),
+            historical_state_base_url: MAINNET_HISTORICAL_STATE_BASE_URL.to_string(),
             chain_id: BASE_MAINNET_CHAIN_ID,
             darkpool_address: BASE_MAINNET_DARKPOOL_ADDRESS,
             permit2_address: BASE_MAINNET_PERMIT2_ADDRESS,
@@ -108,6 +129,7 @@ impl RenegadeClientConfig {
     pub fn new_base_sepolia(key: &PrivateKeySigner) -> Self {
         Self {
             relayer_base_url: BASE_SEPOLIA_RELAYER_BASE_URL.to_string(),
+            historical_state_base_url: TESTNET_HISTORICAL_STATE_BASE_URL.to_string(),
             chain_id: BASE_SEPOLIA_CHAIN_ID,
             darkpool_address: BASE_SEPOLIA_DARKPOOL_ADDRESS,
             permit2_address: BASE_SEPOLIA_PERMIT2_ADDRESS,

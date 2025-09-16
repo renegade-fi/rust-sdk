@@ -20,17 +20,3 @@ pub use renegade_wallet_client::*;
 
 #[cfg(feature = "examples")]
 pub mod example_utils;
-
-// -------------
-// | Constants |
-// -------------
-
-/// The Arbitrum Sepolia relayer base URL
-pub(crate) const ARBITRUM_SEPOLIA_RELAYER_BASE_URL: &str =
-    "https://arbitrum-sepolia.relayer.renegade.fi";
-/// The Arbitrum One relayer base URL
-pub(crate) const ARBITRUM_ONE_RELAYER_BASE_URL: &str = "https://arbitrum-one.relayer.renegade.fi";
-/// The Base Sepolia relayer base URL
-pub(crate) const BASE_SEPOLIA_RELAYER_BASE_URL: &str = "https://base-sepolia.relayer.renegade.fi";
-/// The Base mainnet relayer base URL
-pub(crate) const BASE_MAINNET_RELAYER_BASE_URL: &str = "https://base-mainnet.relayer.renegade.fi";

@@ -2,6 +2,8 @@
 
 use reqwest::StatusCode;
 
+use crate::http::RelayerHttpClientError;
+
 /// An error that can occur when requesting an external match
 #[derive(Debug, thiserror::Error)]
 pub enum ExternalMatchClientError {
@@ -55,6 +57,12 @@ impl ExternalMatchClientError {
 
 impl From<reqwest::Error> for ExternalMatchClientError {
     fn from(err: reqwest::Error) -> Self {
+        Self::Http(None, err.to_string())
+    }
+}
+
+impl From<RelayerHttpClientError> for ExternalMatchClientError {
+    fn from(err: RelayerHttpClientError) -> Self {
         Self::Http(None, err.to_string())
     }
 }

@@ -57,7 +57,7 @@ impl RenegadeClient {
             permit_deadline: transfer_auth.permit_deadline,
             permit_signature: transfer_auth.permit_signature,
         };
-        let response: DepositBalanceResponse = self.post_relayer(&route, request).await?;
+        let response: DepositBalanceResponse = self.relayer_client.post(&route, request).await?;
 
         // Create a task waiter for the task
         let task_id = response.task_id;
