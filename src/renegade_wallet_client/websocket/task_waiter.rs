@@ -67,8 +67,8 @@ impl TaskWaiter {
         let timeout = tokio::time::timeout(TASK_TIMEOUT, notification_rx.recv());
         let notification = timeout
             .await
-            .map_err(|_| RenegadeClientError::task("Task timed out"))?
-            .ok_or_else(|| RenegadeClientError::task("Task waiter closed"))?;
+            .map_err(|_| RenegadeClientError::task(format!("Task {task_id} timed out")))?
+            .ok_or_else(|| RenegadeClientError::task(format!("Task {task_id} waiter closed")))?;
 
         notification.into_result()
     }

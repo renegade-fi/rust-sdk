@@ -1,12 +1,12 @@
 //! The websocket client for listening to Renegade events
 
-use std::collections::HashMap;
 use std::sync::Arc;
+use std::{collections::HashMap, time::Duration};
 
 use futures_util::{Sink, SinkExt, StreamExt};
 use renegade_api::{
     bus_message::{SystemBusMessage, SystemBusMessageWithTopic as ServerMessage},
-    websocket::{ClientWebsocketMessage, SubscriptionResponse, WebsocketMessage},
+    websocket::{ClientWebsocketMessage, WebsocketMessage},
 };
 use renegade_common::types::tasks::TaskIdentifier;
 use tokio::sync::{
@@ -14,7 +14,7 @@ use tokio::sync::{
     OnceCell, RwLock,
 };
 use tokio_tungstenite::{connect_async, tungstenite::Message};
-use tracing::error;
+use tracing::{error, warn};
 
 use crate::{
     renegade_wallet_client::config::RenegadeClientConfig,
@@ -27,6 +27,9 @@ use crate::{
 
 /// The default port on which relayers run websocket servers
 const DEFAULT_WS_PORT: u16 = 4000;
+
+/// The delay between websocket reconnection attempts
+const WS_RECONNECTION_DELAY: Duration = Duration::from_secs(1);
 
 /// A notification channel
 ///
@@ -132,11 +135,7 @@ impl RenegadeWebsocketClient {
                 let (tx, rx) = create_subscription_channel();
                 let base_url = self.base_url.clone();
                 let notifications = self.notifications.clone();
-                tokio::spawn(async move {
-                    if let Err(e) = Self::handle_ws_connection(base_url, rx, notifications).await {
-                        error!("Failed to handle websocket connection: {e}");
-                    }
-                });
+                tokio::spawn(Self::ws_reconnection_loop(base_url, rx, notifications));
 
                 Ok(tx)
             })
@@ -148,41 +147,78 @@ impl RenegadeWebsocketClient {
     // | Connection Handler |
     // ----------------------
 
-    /// Connection handler loop
-    async fn handle_ws_connection(
+    /// Websocket reconnection loop. Re-establishes the websocket connection
+    /// if there is an error in handling it.
+    async fn ws_reconnection_loop(
         base_url: String,
         mut subscribe_rx: SubscribeRx,
         notifications: NotificationMap,
+    ) {
+        loop {
+            if let Err(e) =
+                Self::handle_ws_connection(&base_url, &mut subscribe_rx, notifications.clone())
+                    .await
+            {
+                error!("Error handling websocket connection: {e}");
+            }
+
+            warn!("Re-establishing websocket connection & re-subscribing to task updates...");
+            tokio::time::sleep(WS_RECONNECTION_DELAY).await;
+        }
+    }
+
+    /// Connection handler loop
+    async fn handle_ws_connection(
+        base_url: &str,
+        subscribe_rx: &mut SubscribeRx,
+        notifications: NotificationMap,
     ) -> Result<(), RenegadeClientError> {
-        let (ws_stream, _response) = connect_async(&base_url).await.map_err(|e| {
+        let (ws_stream, _response) = connect_async(base_url).await.map_err(|e| {
             RenegadeClientError::custom(format!("Failed to connect to websocket: {e}"))
         })?;
 
         // Split the websocket stream into sink and stream
         let (mut ws_tx, mut ws_rx) = ws_stream.split();
+
+        // Re-subscribe to all tasks in the notification map
+        Self::resubscribe_to_all_tasks(notifications.clone(), &mut ws_tx).await?;
+
         loop {
             tokio::select! {
-                Some(task_id) = subscribe_rx.recv() => {
-                    if let Err(e) = Self::subscribe_to_task(task_id, &mut ws_tx).await {
-                        error!("Failed to subscribe to task {task_id}: {e}");
-                    }
-                }
-                Some(msg_res) = ws_rx.next() => {
-                    let msg = match msg_res {
-                        Ok(msg) => msg,
-                        Err(e) => {
-                            error!("Failed to receive websocket message: {e}");
-                            continue;
-                        }
+                Some(task_id) = subscribe_rx.recv() => Self::subscribe_to_task(task_id, &mut ws_tx).await?,
+                Some(Ok(msg)) = ws_rx.next() => {
+                    let txt = match msg {
+                        Message::Text(txt) => txt,
+                        Message::Close(_) => {
+                            warn!("Websocket connection closed");
+                            break;
+                        },
+                        _ => continue,
                     };
 
                     // Handle the incoming message
-                    if let Err(e) = Self::handle_incoming_message(msg, notifications.clone()).await {
+                    if let Err(e) = Self::handle_incoming_message(txt, notifications.clone()).await {
                         error!("Failed to handle incoming websocket message: {e}");
                     }
                 }
                 else => break,
             }
+        }
+
+        Ok(())
+    }
+
+    /// Resubscribe to all tasks in the notification map
+    async fn resubscribe_to_all_tasks<W: Sink<Message> + Unpin>(
+        notifications: NotificationMap,
+        ws_tx: &mut W,
+    ) -> Result<(), RenegadeClientError> {
+        let notif_map = notifications.read().await;
+        let task_ids: Vec<TaskIdentifier> = notif_map.keys().cloned().collect();
+        drop(notif_map);
+
+        for task_id in task_ids {
+            Self::subscribe_to_task(task_id, ws_tx).await?;
         }
 
         Ok(())
@@ -208,26 +244,22 @@ impl RenegadeWebsocketClient {
 
     /// Handle an incoming websocket message
     async fn handle_incoming_message(
-        msg: Message,
+        txt: String,
         notifications: NotificationMap,
     ) -> Result<(), RenegadeClientError> {
-        let msg: ServerMessage = match msg {
-            Message::Text(txt) => {
-                match serde_json::from_str(&txt).map_err(RenegadeClientError::serde) {
-                    Ok(msg) => msg,
-                    Err(e) => {
-                        // It's likely the message was a subscription response, attempt to parse it
-                        // as such so that we can gracefully handle it
-                        if let Ok(_) = serde_json::from_str::<SubscriptionResponse>(&txt) {
-                            return Ok(());
-                        }
+        let msg: ServerMessage =
+            match serde_json::from_str(&txt).map_err(RenegadeClientError::serde) {
+                Ok(msg) => msg,
+                Err(e) => {
+                    // It's likely the message was a subscription response. If we find the relevant
+                    // "subscriptions" substring, we simply return early.
+                    if txt.contains("subscriptions") {
+                        return Ok(());
+                    }
 
-                        return Err(e);
-                    },
-                }
-            },
-            _ => return Ok(()),
-        };
+                    return Err(e);
+                },
+            };
 
         // Handle the message
         match msg.event {
