@@ -1,5 +1,7 @@
 //! The client for interacting with the Renegade darkpool API
 
+use std::sync::Arc;
+
 use alloy::primitives::Address;
 use alloy::signers::local::PrivateKeySigner;
 use renegade_common::types::tasks::TaskIdentifier;
@@ -23,13 +25,6 @@ use crate::{
     websocket::RenegadeWebsocketClient,
     RenegadeClientError,
 };
-
-// -------------
-// | Constants |
-// -------------
-
-/// The error message when a response body cannot be decoded
-const RESPONSE_BODY_DECODE_ERROR: &str = "<failed to decode response body>";
 
 // -----------
 // | Secrets |
@@ -77,7 +72,7 @@ pub struct RenegadeClient {
     ///
     /// Also a `RelayerHttpClient` as it mirrors the relayer's historical state
     /// API.
-    pub historical_state_client: RelayerHttpClient,
+    pub historical_state_client: Arc<RelayerHttpClient>,
     /// The websocket client
     pub websocket_client: RenegadeWebsocketClient,
 }
@@ -92,12 +87,16 @@ impl RenegadeClient {
         let relayer_client =
             RelayerHttpClient::new(config.relayer_base_url.clone(), HttpHmacKey(hmac_key.0));
 
-        let historical_state_client = RelayerHttpClient::new(
+        let historical_state_client = Arc::new(RelayerHttpClient::new(
             config.historical_state_base_url.clone(),
             HttpHmacKey(hmac_key.0),
-        );
+        ));
 
-        let websocket_client = RenegadeWebsocketClient::new(&config);
+        let websocket_client = RenegadeWebsocketClient::new(
+            &config,
+            secrets.wallet_id,
+            historical_state_client.clone(),
+        );
 
         Ok(Self { config, secrets, relayer_client, historical_state_client, websocket_client })
     }
