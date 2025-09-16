@@ -18,7 +18,7 @@ impl RenegadeClient {
     pub async fn get_wallet(&self) -> Result<ApiWallet, RenegadeClientError> {
         let id = self.secrets.wallet_id;
         let path = construct_http_path!(BACK_OF_QUEUE_WALLET_ROUTE, "wallet_id" => id);
-        let response: GetWalletResponse = self.get_relayer(&path).await?;
+        let response: GetWalletResponse = self.relayer_client.get(&path).await?;
         Ok(response.wallet)
     }
 

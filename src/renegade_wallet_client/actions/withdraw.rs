@@ -62,7 +62,7 @@ impl RenegadeClient {
             update_auth,
             external_transfer_sig: transfer_auth.external_transfer_signature,
         };
-        let response: WithdrawBalanceResponse = self.post_relayer(&route, request).await?;
+        let response: WithdrawBalanceResponse = self.relayer_client.post(&route, request).await?;
 
         // Create a task waiter for the task
         let task_id = response.task_id;
@@ -73,7 +73,9 @@ impl RenegadeClient {
     async fn enqueue_pay_fees(&self) -> Result<(), RenegadeClientError> {
         let wallet_id = self.secrets.wallet_id;
         let route = construct_http_path!(PAY_FEES_ROUTE, "wallet_id" => wallet_id);
-        let _response: PayFeesResponse = self.post_relayer(&route, EmptyRequestResponse {}).await?;
+        let _response: PayFeesResponse =
+            self.relayer_client.post(&route, EmptyRequestResponse {}).await?;
+
         Ok(())
     }
 

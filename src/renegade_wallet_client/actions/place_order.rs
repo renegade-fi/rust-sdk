@@ -32,7 +32,7 @@ impl RenegadeClient {
         let request = CreateOrderRequest { update_auth, order };
 
         let route = construct_http_path!(WALLET_ORDERS_ROUTE, "wallet_id" => wallet_id);
-        let response: CreateOrderResponse = self.post_relayer(&route, request).await?;
+        let response: CreateOrderResponse = self.relayer_client.post(&route, request).await?;
 
         // Create a task waiter for the task
         let task_id = response.task_id;

@@ -24,7 +24,8 @@ impl RenegadeClient {
         let request =
             FindWalletRequest { wallet_id, blinder_seed, secret_share_seed, private_keychain };
 
-        let response: FindWalletResponse = self.post_relayer(FIND_WALLET_ROUTE, request).await?;
+        let response: FindWalletResponse =
+            self.relayer_client.post(FIND_WALLET_ROUTE, request).await?;
 
         let task_id = response.task_id;
         Ok(self.get_task_waiter(task_id))

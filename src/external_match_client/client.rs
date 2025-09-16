@@ -10,8 +10,10 @@ use crate::{
         order_book::{GetDepthByMintResponse, GetDepthForAllPairsResponse},
         ORDER_BOOK_DEPTH_ROUTE,
     },
-    ARBITRUM_ONE_RELAYER_BASE_URL, ARBITRUM_SEPOLIA_RELAYER_BASE_URL,
-    BASE_MAINNET_RELAYER_BASE_URL, BASE_SEPOLIA_RELAYER_BASE_URL,
+    config::{
+        ARBITRUM_ONE_RELAYER_BASE_URL, ARBITRUM_SEPOLIA_RELAYER_BASE_URL,
+        BASE_MAINNET_RELAYER_BASE_URL, BASE_SEPOLIA_RELAYER_BASE_URL,
+    },
 };
 #[allow(deprecated)]
 use crate::{

@@ -109,7 +109,7 @@ impl RenegadeWebsocketClient {
         &self,
         task_id: TaskIdentifier,
     ) -> Result<TaskNotificationRx, RenegadeClientError> {
-        self.ensure_connected().await?;
+        self.ensure_connected().await;
         // Send a subscription message to the websocket client
         let subscribe_tx = self
             .subscribe_tx
@@ -129,18 +129,17 @@ impl RenegadeWebsocketClient {
     /// once if it is needed. The initialization spawns a thread to watch
     /// subscribed topics and forward them to threads watching for
     /// notifications.
-    pub async fn ensure_connected(&self) -> Result<(), RenegadeClientError> {
+    pub async fn ensure_connected(&self) {
         self.subscribe_tx
-            .get_or_try_init(|| async {
+            .get_or_init(|| async {
                 let (tx, rx) = create_subscription_channel();
                 let base_url = self.base_url.clone();
                 let notifications = self.notifications.clone();
                 tokio::spawn(Self::ws_reconnection_loop(base_url, rx, notifications));
 
-                Ok(tx)
+                tx
             })
-            .await?;
-        Ok(())
+            .await;
     }
 
     // ----------------------
