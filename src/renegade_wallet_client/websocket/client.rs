@@ -201,7 +201,7 @@ impl RenegadeWebsocketClient {
                     };
 
                     // Handle the incoming message
-                    if let Err(e) = self.handle_incoming_message(txt).await {
+                    if let Err(e) = self.handle_incoming_message(txt, &mut ws_tx).await {
                         error!("Failed to handle incoming websocket message: {e}");
                     }
                 }
@@ -247,7 +247,11 @@ impl RenegadeWebsocketClient {
     }
 
     /// Handle an incoming websocket message
-    async fn handle_incoming_message(&self, txt: String) -> Result<(), RenegadeClientError> {
+    async fn handle_incoming_message<W: Sink<Message> + Unpin>(
+        &self,
+        txt: String,
+        ws_tx: &mut W,
+    ) -> Result<(), RenegadeClientError> {
         let msg: ServerMessage =
             match serde_json::from_str(&txt).map_err(RenegadeClientError::serde) {
                 Ok(msg) => msg,
@@ -263,7 +267,7 @@ impl RenegadeWebsocketClient {
                     // success/failure of all completed tasks
                     if txt.contains("task not found") {
                         warn!("Task not found in relayer, checking task history...");
-                        return self.handle_historic_tasks().await;
+                        return self.handle_historic_tasks(ws_tx).await;
                     }
 
                     return Err(e);
@@ -320,7 +324,10 @@ impl RenegadeWebsocketClient {
     }
 
     /// Handle historic tasks that may have been missed by the websocket client
-    async fn handle_historic_tasks(&self) -> Result<(), RenegadeClientError> {
+    async fn handle_historic_tasks<W: Sink<Message> + Unpin>(
+        &self,
+        ws_tx: &mut W,
+    ) -> Result<(), RenegadeClientError> {
         let task_history = get_task_history(&self.historical_state_client, self.wallet_id).await?;
 
         let notif_map = self.notifications.read().await;
@@ -335,6 +342,10 @@ impl RenegadeWebsocketClient {
                     self.handle_completed_task(task_id).await?;
                 } else if state.contains("failed") {
                     self.handle_failed_task(task_id, state).await?;
+                } else {
+                    // The task is still in progress, so we send a subscription request
+                    // to be sure that we are listening for updates
+                    Self::subscribe_to_task(task_id, ws_tx).await?;
                 }
             }
         }
