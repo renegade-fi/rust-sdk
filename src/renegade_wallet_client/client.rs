@@ -15,6 +15,7 @@ use renegade_common::types::wallet::{
 use renegade_constants::Scalar;
 use uuid::Uuid;
 
+use crate::util::get_env_agnostic_chain;
 use crate::websocket::TaskWaiter;
 use crate::{
     http::RelayerHttpClient,
@@ -87,8 +88,9 @@ impl RenegadeClient {
         let relayer_client =
             RelayerHttpClient::new(config.relayer_base_url.clone(), HttpHmacKey(hmac_key.0));
 
+        let chain = get_env_agnostic_chain(config.chain_id);
         let historical_state_client = Arc::new(RelayerHttpClient::new(
-            config.historical_state_base_url.clone(),
+            format!("{}/{chain}", config.historical_state_base_url),
             HttpHmacKey(hmac_key.0),
         ));
 

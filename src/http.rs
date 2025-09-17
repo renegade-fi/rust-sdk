@@ -5,6 +5,7 @@ use crate::util::{self, HmacKey};
 use reqwest::{header::HeaderMap, Client};
 use serde::{de::DeserializeOwned, Serialize};
 use std::time::Duration;
+use url::Url;
 
 /// The duration for which request signatures are valid
 const REQUEST_SIGNATURE_DURATION: Duration = Duration::from_secs(10);
@@ -23,6 +24,17 @@ pub enum RelayerHttpClientError {
     /// An error in de/serialization
     #[error("serde error: {0}")]
     Serde(String),
+    /// An error parsing a value
+    #[error("parse error: {0}")]
+    Parse(String),
+}
+
+impl RelayerHttpClientError {
+    /// Create a new `Parse` error
+    #[allow(clippy::needless_pass_by_value)]
+    pub fn parse<T: ToString>(e: T) -> Self {
+        Self::Parse(e.to_string())
+    }
 }
 
 impl From<reqwest::Error> for RelayerHttpClientError {
@@ -114,9 +126,11 @@ impl RelayerHttpClient {
         body: Req,
         mut custom_headers: HeaderMap,
     ) -> Result<reqwest::Response, RelayerHttpClientError> {
-        let url = format!("{}{}", self.base_url, path);
+        let url_raw = format!("{}{}", self.base_url, path);
+        let url = Url::parse(&url_raw).map_err(RelayerHttpClientError::parse)?;
+
         let body_bytes = serde_json::to_vec(&body).unwrap();
-        self.add_headers(path, &mut custom_headers, &body_bytes);
+        self.add_headers(&url, &mut custom_headers, &body_bytes);
 
         let raw = self.client.post(url).headers(custom_headers).body(body_bytes).send().await?;
         Ok(raw)
@@ -129,8 +143,10 @@ impl RelayerHttpClient {
         path: &str,
         mut custom_headers: HeaderMap,
     ) -> Result<reqwest::Response, RelayerHttpClientError> {
-        let url = format!("{}{}", self.base_url, path);
-        self.add_headers(path, &mut custom_headers, &[]);
+        let url_raw = format!("{}{}", self.base_url, path);
+        let url = Url::parse(&url_raw).map_err(RelayerHttpClientError::parse)?;
+
+        self.add_headers(&url, &mut custom_headers, &[]);
 
         let raw = self.client.get(url).headers(custom_headers).send().await?;
         Ok(raw)
@@ -147,12 +163,16 @@ impl RelayerHttpClient {
     }
 
     /// Add authentication and SDK version headers to the request
-    fn add_headers(&self, path: &str, headers: &mut HeaderMap, body: &[u8]) {
+    fn add_headers(&self, url: &Url, headers: &mut HeaderMap, body: &[u8]) {
+        let path = url.path().to_string();
+        let query = url.query().map(|q| format!("?{q}")).unwrap_or_default();
+        let full_path = format!("{path}{query}");
+
         // Add SDK version header
         let sdk_version = Self::get_sdk_version();
         headers.insert(SDK_VERSION_HEADER, sdk_version.parse().unwrap());
         util::add_expiring_auth_to_headers(
-            path,
+            &full_path,
             headers,
             body,
             &self.auth_key,
