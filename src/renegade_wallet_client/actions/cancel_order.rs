@@ -26,7 +26,7 @@ impl RenegadeClient {
         // Send the request
         let route = construct_http_path!(CANCEL_ORDER_ROUTE, "wallet_id" => self.secrets.wallet_id, "order_id" => order_id);
         let request = CancelOrderRequest { update_auth };
-        let response: CancelOrderResponse = self.post_relayer(&route, request).await?;
+        let response: CancelOrderResponse = self.relayer_client.post(&route, request).await?;
 
         // Create a task waiter for the task
         let task_id = response.task_id;

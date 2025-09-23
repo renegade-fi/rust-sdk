@@ -1,5 +1,7 @@
 //! The client for interacting with the Renegade darkpool API
 
+use std::sync::Arc;
+
 use alloy::primitives::Address;
 use alloy::signers::local::PrivateKeySigner;
 use renegade_common::types::tasks::TaskIdentifier;
@@ -11,10 +13,9 @@ use renegade_common::types::wallet::{
     Wallet,
 };
 use renegade_constants::Scalar;
-use reqwest::header::HeaderMap;
-use serde::{de::DeserializeOwned, Serialize};
 use uuid::Uuid;
 
+use crate::util::get_env_agnostic_chain;
 use crate::websocket::TaskWaiter;
 use crate::{
     http::RelayerHttpClient,
@@ -25,13 +26,6 @@ use crate::{
     websocket::RenegadeWebsocketClient,
     RenegadeClientError,
 };
-
-// -------------
-// | Constants |
-// -------------
-
-/// The error message when a response body cannot be decoded
-const RESPONSE_BODY_DECODE_ERROR: &str = "<failed to decode response body>";
 
 // -----------
 // | Secrets |
@@ -75,6 +69,11 @@ pub struct RenegadeClient {
     pub secrets: WalletSecrets,
     /// The relayer HTTP client
     pub relayer_client: RelayerHttpClient,
+    /// The historical state HTTP client.
+    ///
+    /// Also a `RelayerHttpClient` as it mirrors the relayer's historical state
+    /// API.
+    pub historical_state_client: Arc<RelayerHttpClient>,
     /// The websocket client
     pub websocket_client: RenegadeWebsocketClient,
 }
@@ -85,11 +84,23 @@ impl RenegadeClient {
         let secrets = derive_wallet_from_key(&config.key, config.chain_id)
             .map_err(RenegadeClientError::setup)?;
         let hmac_key = secrets.keychain.secret_keys.symmetric_key;
-        let client =
-            RelayerHttpClient::new(config.relayer_base_url.clone(), HttpHmacKey(hmac_key.0));
-        let websocket_client = RenegadeWebsocketClient::new(&config);
 
-        Ok(Self { config, secrets, relayer_client: client, websocket_client })
+        let relayer_client =
+            RelayerHttpClient::new(config.relayer_base_url.clone(), HttpHmacKey(hmac_key.0));
+
+        let chain = get_env_agnostic_chain(config.chain_id);
+        let historical_state_client = Arc::new(RelayerHttpClient::new(
+            format!("{}/{chain}", config.historical_state_base_url),
+            HttpHmacKey(hmac_key.0),
+        ));
+
+        let websocket_client = RenegadeWebsocketClient::new(
+            &config,
+            secrets.wallet_id,
+            historical_state_client.clone(),
+        );
+
+        Ok(Self { config, secrets, relayer_client, historical_state_client, websocket_client })
     }
 
     /// Create a new wallet on Arbitrum Sepolia
@@ -126,57 +137,6 @@ impl RenegadeClient {
     /// Get a task waiter for a task
     pub fn get_task_waiter(&self, task_id: TaskIdentifier) -> TaskWaiter {
         TaskWaiter::new(task_id, self.websocket_client.clone())
-    }
-
-    // --------------
-    // | HTTP Utils |
-    // --------------
-
-    /// Send a get request to the relayer
-    pub async fn get_relayer<Resp: DeserializeOwned>(
-        &self,
-        path: &str,
-    ) -> Result<Resp, RenegadeClientError> {
-        let headers = HeaderMap::new();
-        let resp = self
-            .relayer_client
-            .get_with_headers_raw(path, headers)
-            .await
-            .map_err(RenegadeClientError::request)?;
-        let body = resp.text().await.unwrap_or_else(|_| RESPONSE_BODY_DECODE_ERROR.to_string());
-
-        // Try decoding the response body as the expected type
-        let decoded: Result<Resp, _> = serde_json::from_str(&body);
-        if let Ok(decoded) = decoded {
-            Ok(decoded)
-        } else {
-            Err(RenegadeClientError::relayer(body))
-        }
-    }
-
-    /// Send a post request to the relayer
-    pub async fn post_relayer<Req: Serialize, Resp: DeserializeOwned>(
-        &self,
-        path: &str,
-        body: Req,
-    ) -> Result<Resp, RenegadeClientError> {
-        // Send an HTTP request to the relayer
-        let headers = HeaderMap::new();
-        let resp = self
-            .relayer_client
-            .post_with_headers_raw(path, body, headers)
-            .await
-            .map_err(RenegadeClientError::request)?;
-        let body = resp.text().await.unwrap_or_else(|_| RESPONSE_BODY_DECODE_ERROR.to_string());
-
-        // Attempt to decode the response body as the expected type
-        // Otherwise, emit the body as an error
-        let decoded: Result<Resp, _> = serde_json::from_str(&body);
-        if let Ok(decoded) = decoded {
-            Ok(decoded)
-        } else {
-            Err(RenegadeClientError::relayer(body))
-        }
     }
 
     // --------------

@@ -17,7 +17,7 @@ impl RenegadeClient {
         let wallet_id = self.secrets.wallet_id;
         let mint_str = mint.to_string();
         let path = construct_http_path!(GET_BALANCE_BY_MINT_ROUTE, "wallet_id" => wallet_id, "mint" => mint_str);
-        let response: GetBalanceByMintResponse = self.get_relayer(&path).await?;
+        let response: GetBalanceByMintResponse = self.relayer_client.get(&path).await?;
         Ok(response.balance)
     }
 }

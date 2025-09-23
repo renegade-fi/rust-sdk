@@ -9,6 +9,7 @@ use renegade_api::{
     websocket::{ClientWebsocketMessage, WebsocketMessage},
 };
 use renegade_common::types::tasks::TaskIdentifier;
+use renegade_common::types::wallet::WalletIdentifier;
 use tokio::sync::{
     mpsc::{self, UnboundedReceiver, UnboundedSender},
     OnceCell, RwLock,
@@ -16,6 +17,8 @@ use tokio::sync::{
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 use tracing::{error, warn};
 
+use crate::actions::get_task_history::get_task_history;
+use crate::http::RelayerHttpClient;
 use crate::{
     renegade_wallet_client::config::RenegadeClientConfig,
     websocket::task_waiter::TaskStatusNotification, RenegadeClientError,
@@ -75,10 +78,15 @@ fn construct_websocket_topic(task_id: TaskIdentifier) -> String {
 // --------------------
 
 /// The websocket client for listening to Renegade events
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct RenegadeWebsocketClient {
     /// The base url of the websocket server
     base_url: String,
+    /// The wallet ID
+    wallet_id: WalletIdentifier,
+    /// The historical state client, used to check task history in the case of
+    /// missed updates
+    historical_state_client: Arc<RelayerHttpClient>,
     /// The notifications map
     notifications: NotificationMap,
     /// The channel to subscribe to task status updates
@@ -89,12 +97,18 @@ pub struct RenegadeWebsocketClient {
 
 impl RenegadeWebsocketClient {
     /// Create a new websocket client
-    pub fn new(config: &RenegadeClientConfig) -> Self {
+    pub fn new(
+        config: &RenegadeClientConfig,
+        wallet_id: WalletIdentifier,
+        historical_state_client: Arc<RelayerHttpClient>,
+    ) -> Self {
         let base_url = config.relayer_base_url.replace("http", "ws");
         let base_url = format!("{base_url}:{DEFAULT_WS_PORT}");
 
         Self {
             base_url,
+            wallet_id,
+            historical_state_client,
             notifications: create_notification_map(),
             subscribe_tx: Arc::new(OnceCell::new()),
         }
@@ -109,7 +123,7 @@ impl RenegadeWebsocketClient {
         &self,
         task_id: TaskIdentifier,
     ) -> Result<TaskNotificationRx, RenegadeClientError> {
-        self.ensure_connected().await?;
+        self.ensure_connected().await;
         // Send a subscription message to the websocket client
         let subscribe_tx = self
             .subscribe_tx
@@ -129,18 +143,16 @@ impl RenegadeWebsocketClient {
     /// once if it is needed. The initialization spawns a thread to watch
     /// subscribed topics and forward them to threads watching for
     /// notifications.
-    pub async fn ensure_connected(&self) -> Result<(), RenegadeClientError> {
+    pub async fn ensure_connected(&self) {
         self.subscribe_tx
-            .get_or_try_init(|| async {
+            .get_or_init(|| async {
                 let (tx, rx) = create_subscription_channel();
-                let base_url = self.base_url.clone();
-                let notifications = self.notifications.clone();
-                tokio::spawn(Self::ws_reconnection_loop(base_url, rx, notifications));
+                let self_clone = self.clone();
+                tokio::spawn(self_clone.ws_reconnection_loop(rx));
 
-                Ok(tx)
+                tx
             })
-            .await?;
-        Ok(())
+            .await;
     }
 
     // ----------------------
@@ -149,16 +161,9 @@ impl RenegadeWebsocketClient {
 
     /// Websocket reconnection loop. Re-establishes the websocket connection
     /// if there is an error in handling it.
-    async fn ws_reconnection_loop(
-        base_url: String,
-        mut subscribe_rx: SubscribeRx,
-        notifications: NotificationMap,
-    ) {
+    async fn ws_reconnection_loop(self, mut subscribe_rx: SubscribeRx) {
         loop {
-            if let Err(e) =
-                Self::handle_ws_connection(&base_url, &mut subscribe_rx, notifications.clone())
-                    .await
-            {
+            if let Err(e) = self.handle_ws_connection(&mut subscribe_rx).await {
                 error!("Error handling websocket connection: {e}");
             }
 
@@ -169,11 +174,10 @@ impl RenegadeWebsocketClient {
 
     /// Connection handler loop
     async fn handle_ws_connection(
-        base_url: &str,
+        &self,
         subscribe_rx: &mut SubscribeRx,
-        notifications: NotificationMap,
     ) -> Result<(), RenegadeClientError> {
-        let (ws_stream, _response) = connect_async(base_url).await.map_err(|e| {
+        let (ws_stream, _response) = connect_async(&self.base_url).await.map_err(|e| {
             RenegadeClientError::custom(format!("Failed to connect to websocket: {e}"))
         })?;
 
@@ -181,7 +185,7 @@ impl RenegadeWebsocketClient {
         let (mut ws_tx, mut ws_rx) = ws_stream.split();
 
         // Re-subscribe to all tasks in the notification map
-        Self::resubscribe_to_all_tasks(notifications.clone(), &mut ws_tx).await?;
+        self.resubscribe_to_all_tasks(&mut ws_tx).await?;
 
         loop {
             tokio::select! {
@@ -197,7 +201,7 @@ impl RenegadeWebsocketClient {
                     };
 
                     // Handle the incoming message
-                    if let Err(e) = Self::handle_incoming_message(txt, notifications.clone()).await {
+                    if let Err(e) = self.handle_incoming_message(txt).await {
                         error!("Failed to handle incoming websocket message: {e}");
                     }
                 }
@@ -210,10 +214,10 @@ impl RenegadeWebsocketClient {
 
     /// Resubscribe to all tasks in the notification map
     async fn resubscribe_to_all_tasks<W: Sink<Message> + Unpin>(
-        notifications: NotificationMap,
+        &self,
         ws_tx: &mut W,
     ) -> Result<(), RenegadeClientError> {
-        let notif_map = notifications.read().await;
+        let notif_map = self.notifications.read().await;
         let task_ids: Vec<TaskIdentifier> = notif_map.keys().cloned().collect();
         drop(notif_map);
 
@@ -243,18 +247,23 @@ impl RenegadeWebsocketClient {
     }
 
     /// Handle an incoming websocket message
-    async fn handle_incoming_message(
-        txt: String,
-        notifications: NotificationMap,
-    ) -> Result<(), RenegadeClientError> {
+    async fn handle_incoming_message(&self, txt: String) -> Result<(), RenegadeClientError> {
         let msg: ServerMessage =
             match serde_json::from_str(&txt).map_err(RenegadeClientError::serde) {
                 Ok(msg) => msg,
                 Err(e) => {
-                    // It's likely the message was a subscription response. If we find the relevant
-                    // "subscriptions" substring, we simply return early.
+                    // If the message contains the "subscriptions" substring, we interpret this as a
+                    // subscriptions response, and return early
                     if txt.contains("subscriptions") {
                         return Ok(());
+                    }
+
+                    // If the message contains the "task not found" substring, we interpret this as
+                    // a task having completed, so we check task history to track the
+                    // success/failure of all completed tasks
+                    if txt.contains("task not found") {
+                        warn!("Task not found in relayer, checking task history...");
+                        return self.handle_historic_tasks().await;
                     }
 
                     return Err(e);
@@ -267,9 +276,9 @@ impl RenegadeWebsocketClient {
                 let id = status.id;
                 let state = status.state.to_lowercase();
                 if state.contains("completed") {
-                    Self::handle_completed_task(id, notifications).await?;
+                    self.handle_completed_task(id).await?;
                 } else if state.contains("failed") {
-                    Self::handle_failed_task(id, state, notifications).await?;
+                    self.handle_failed_task(id, state).await?;
                 }
             },
             _ => return Ok(()),
@@ -279,10 +288,10 @@ impl RenegadeWebsocketClient {
 
     /// Handle a completed task
     async fn handle_completed_task(
+        &self,
         task_id: TaskIdentifier,
-        notifications: NotificationMap,
     ) -> Result<(), RenegadeClientError> {
-        let mut notif_map = notifications.write().await;
+        let mut notif_map = self.notifications.write().await;
         let tx = match notif_map.remove(&task_id) {
             Some(tx) => tx.clone(),
             None => return Ok(()),
@@ -295,11 +304,11 @@ impl RenegadeWebsocketClient {
 
     /// Handle a failed task
     async fn handle_failed_task(
+        &self,
         task_id: TaskIdentifier,
         error: String,
-        notifications: NotificationMap,
     ) -> Result<(), RenegadeClientError> {
-        let mut notif_map = notifications.write().await;
+        let mut notif_map = self.notifications.write().await;
         let tx = match notif_map.remove(&task_id) {
             Some(tx) => tx.clone(),
             None => return Ok(()),
@@ -307,6 +316,29 @@ impl RenegadeWebsocketClient {
 
         // We explicitly ignore errors here in case the receiver is dropped
         let _ = tx.send(TaskStatusNotification::Failed { error });
+        Ok(())
+    }
+
+    /// Handle historic tasks that may have been missed by the websocket client
+    async fn handle_historic_tasks(&self) -> Result<(), RenegadeClientError> {
+        let task_history = get_task_history(&self.historical_state_client, self.wallet_id).await?;
+
+        let notif_map = self.notifications.read().await;
+        let task_ids: Vec<TaskIdentifier> = notif_map.keys().cloned().collect();
+        drop(notif_map);
+
+        for task_id in task_ids {
+            let task = task_history.iter().find(|task| task.id == task_id);
+            if let Some(task) = task {
+                let state = task.state.to_lowercase();
+                if state.contains("completed") {
+                    self.handle_completed_task(task_id).await?;
+                } else if state.contains("failed") {
+                    self.handle_failed_task(task_id, state).await?;
+                }
+            }
+        }
+
         Ok(())
     }
 }

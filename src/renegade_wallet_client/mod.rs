@@ -1,5 +1,7 @@
 //! The renegade wallet client manages Renegade wallet operations
 
+use crate::http::RelayerHttpClientError;
+
 pub mod actions;
 pub mod client;
 pub mod config;
@@ -19,7 +21,7 @@ pub enum RenegadeClientError {
     InvalidOrder(String),
     /// A relayer error
     #[error("relayer error: {0}")]
-    Relayer(String),
+    Relayer(RelayerHttpClientError),
     /// An error sending a request to the relayer
     #[error("failed to send request to relayer: {0}")]
     Request(String),
@@ -77,12 +79,6 @@ impl RenegadeClientError {
         Self::Task(msg.to_string())
     }
 
-    /// Create a new relayer error
-    #[allow(clippy::needless_pass_by_value)]
-    pub fn relayer<T: ToString>(msg: T) -> Self {
-        Self::Relayer(msg.to_string())
-    }
-
     /// Create a new request error
     #[allow(clippy::needless_pass_by_value)]
     pub fn request<T: ToString>(msg: T) -> Self {
@@ -99,5 +95,11 @@ impl RenegadeClientError {
     #[allow(clippy::needless_pass_by_value)]
     pub fn websocket<T: ToString>(msg: T) -> Self {
         Self::Websocket(msg.to_string())
+    }
+}
+
+impl From<RelayerHttpClientError> for RenegadeClientError {
+    fn from(err: RelayerHttpClientError) -> Self {
+        Self::Relayer(err)
     }
 }

@@ -18,7 +18,7 @@ impl RenegadeClient {
     pub async fn get_order(&self, order_id: Uuid) -> Result<ApiOrder, RenegadeClientError> {
         let wallet_id = self.secrets.wallet_id;
         let path = construct_http_path!(GET_ORDER_BY_ID_ROUTE, "wallet_id" => wallet_id, "order_id" => order_id);
-        let response: GetOrderByIdResponse = self.get_relayer(&path).await?;
+        let response: GetOrderByIdResponse = self.relayer_client.get(&path).await?;
         Ok(response.order)
     }
 }
