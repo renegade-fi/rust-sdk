@@ -10,6 +10,7 @@ pub mod get_task_queue;
 pub mod get_wallet;
 pub mod lookup_wallet;
 pub mod place_order;
+pub mod refresh_wallet;
 pub mod withdraw;
 
 use renegade_api::http::wallet::WalletUpdateAuthorization;

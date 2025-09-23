@@ -5,7 +5,13 @@ use base64::engine::{general_purpose as b64_general_purpose, Engine};
 use hmac::Mac;
 use reqwest::header::{HeaderMap, HeaderValue};
 
-use crate::ExternalMatchClientError;
+use crate::{
+    config::{
+        ARBITRUM_ONE_CHAIN_ID, ARBITRUM_SEPOLIA_CHAIN_ID, BASE_MAINNET_CHAIN_ID,
+        BASE_SEPOLIA_CHAIN_ID,
+    },
+    ExternalMatchClientError,
+};
 
 /// The header namespace to include in the HMAC
 const RENEGADE_HEADER_NAMESPACE: &str = "x-renegade";
@@ -100,4 +106,13 @@ fn get_header_bytes(headers: &HeaderMap) -> Vec<u8> {
 /// Returns the current unix timestamp in milliseconds, represented as u64
 pub fn get_current_time_millis() -> u64 {
     SystemTime::now().duration_since(UNIX_EPOCH).expect("negative timestamp").as_millis() as u64
+}
+
+/// Returns the environment-agnostic name of the chain with the given ID
+pub fn get_env_agnostic_chain(chain_id: u64) -> String {
+    match chain_id {
+        ARBITRUM_ONE_CHAIN_ID | ARBITRUM_SEPOLIA_CHAIN_ID => "arbitrum".to_string(),
+        BASE_MAINNET_CHAIN_ID | BASE_SEPOLIA_CHAIN_ID => "base".to_string(),
+        _ => panic!("Unsupported chain ID: {chain_id}"),
+    }
 }
