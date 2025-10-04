@@ -16,6 +16,7 @@ use crate::{websocket::RenegadeWebsocketClient, RenegadeClientError};
 /// The timeout for a task to complete
 const TASK_TIMEOUT: Duration = Duration::from_secs(30);
 
+/// The future type for a task waiter
 type TaskWaiterFuture = BoxFuture<'static, Result<(), RenegadeClientError>>;
 
 /// A task status notification

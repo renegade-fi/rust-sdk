@@ -114,10 +114,10 @@ impl ExternalOrderBuilder {
             self.base_mint.ok_or(ExternalMatchClientError::invalid_order("invalid base mint"))?;
 
         // Ensure exactly one of the four amount fields is set
-        let base_zero = self.base_amount.map_or(true, |amt| amt == 0);
-        let quote_zero = self.quote_amount.map_or(true, |amt| amt == 0);
-        let exact_base_output = self.exact_base_output.map_or(false, |amt| amt != 0);
-        let exact_quote_output = self.exact_quote_output.map_or(false, |amt| amt != 0);
+        let base_zero = self.base_amount.is_none_or(|amt| amt == 0);
+        let quote_zero = self.quote_amount.is_none_or(|amt| amt == 0);
+        let exact_base_output = self.exact_base_output.is_some_and(|amt| amt != 0);
+        let exact_quote_output = self.exact_quote_output.is_some_and(|amt| amt != 0);
 
         // Check that exactly one of the sizing constraints is set
         let n_sizes_set = (!base_zero as u8)

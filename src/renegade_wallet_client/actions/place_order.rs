@@ -2,7 +2,9 @@
 
 use num_bigint::BigUint;
 use renegade_api::{
-    http::wallet::{CreateOrderRequest, CreateOrderResponse, WALLET_ORDERS_ROUTE},
+    http::wallet::{
+        CreateOrderOptions, CreateOrderRequest, CreateOrderResponse, WALLET_ORDERS_ROUTE,
+    },
     types::{ApiOrder, ApiOrderType},
 };
 use renegade_circuit_types::{fixed_point::FixedPoint, max_price, order::OrderSide};
@@ -29,7 +31,8 @@ impl RenegadeClient {
         // Update the wallet auth
         let wallet_id = self.secrets.wallet_id;
         let update_auth = prepare_wallet_update(&mut wallet)?;
-        let request = CreateOrderRequest { update_auth, order };
+        let options = CreateOrderOptions::default();
+        let request = CreateOrderRequest { update_auth, order, options };
 
         let route = construct_http_path!(WALLET_ORDERS_ROUTE, "wallet_id" => wallet_id);
         let response: CreateOrderResponse = self.relayer_client.post(&route, request).await?;

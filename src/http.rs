@@ -16,6 +16,7 @@ const SDK_VERSION_HEADER: &str = "x-renegade-sdk-version";
 /// The error message when a response body cannot be decoded
 const RESPONSE_BODY_DECODE_ERROR: &str = "<failed to decode response body>";
 
+/// The error type for the relayer HTTP client
 #[derive(Debug, thiserror::Error)]
 pub enum RelayerHttpClientError {
     /// An error making an HTTP request
@@ -44,7 +45,7 @@ impl From<reqwest::Error> for RelayerHttpClientError {
 }
 
 /// An HTTP client for connecting to the relayer
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct RelayerHttpClient {
     /// The HTTP client
     client: Client,

@@ -51,7 +51,7 @@ impl RenegadeClient {
             amount,
             direction: ExternalTransferDirection::Withdrawal,
         };
-        let transfer_auth = self.build_withdraw_auth(transfer).await?;
+        let transfer_auth = self.build_withdraw_auth(transfer)?;
 
         // Send the withdrawal request to the relayer
         let wallet_id = self.secrets.wallet_id;
@@ -80,7 +80,7 @@ impl RenegadeClient {
     }
 
     /// Build a withdraw permit for the connected chain
-    async fn build_withdraw_auth(
+    fn build_withdraw_auth(
         &self,
         transfer: ExternalTransfer,
     ) -> Result<WithdrawalAuth, RenegadeClientError> {

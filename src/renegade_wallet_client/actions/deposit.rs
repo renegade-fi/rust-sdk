@@ -43,7 +43,7 @@ impl RenegadeClient {
             amount,
             direction: ExternalTransferDirection::Deposit,
         };
-        let transfer_auth = self.build_deposit_auth(pkey, transfer).await?;
+        let transfer_auth = self.build_deposit_auth(pkey, transfer)?;
 
         // Send the deposit request to the relayer
         let wallet_id = self.secrets.wallet_id;
@@ -65,7 +65,7 @@ impl RenegadeClient {
     }
 
     /// Build a deposit permit for the connected chain
-    async fn build_deposit_auth(
+    fn build_deposit_auth(
         &self,
         signer: &PrivateKeySigner,
         transfer: ExternalTransfer,

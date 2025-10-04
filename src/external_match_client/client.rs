@@ -55,7 +55,7 @@ const BASE_MAINNET_AUTH_BASE_URL: &str = "https://base-mainnet.auth-server.reneg
 // ----------
 
 /// A client for requesting external matches from the relayer
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct ExternalMatchClient {
     /// The api key for the external match client
     api_key: String,

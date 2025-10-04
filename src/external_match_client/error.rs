@@ -32,6 +32,7 @@ pub enum ExternalMatchClientError {
 
 impl ExternalMatchClientError {
     /// Construct a new http error
+    #[allow(clippy::needless_pass_by_value)]
     pub(crate) fn http<T: ToString>(status: StatusCode, msg: T) -> Self {
         Self::Http(Some(status), msg.to_string())
     }
