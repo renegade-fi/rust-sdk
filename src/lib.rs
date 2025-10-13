@@ -6,7 +6,7 @@
 
 #[cfg(feature = "external-match-client")]
 pub(crate) mod external_match_client;
-mod http;
+pub mod http;
 pub mod types;
 mod util;
 
