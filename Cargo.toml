@@ -141,6 +141,7 @@ darkpool-client = [
     "dep:tracing",
 ]
 examples = []
+internal = []
 
 [dependencies]
 # === Auth === #

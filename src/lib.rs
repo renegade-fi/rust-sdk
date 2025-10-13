@@ -6,9 +6,13 @@
 
 #[cfg(feature = "external-match-client")]
 pub(crate) mod external_match_client;
-pub mod http;
+mod http;
 pub mod types;
 mod util;
+
+#[cfg(feature = "internal")]
+pub use http::*;
+pub use util::*;
 
 #[cfg(feature = "external-match-client")]
 pub use external_match_client::*;
