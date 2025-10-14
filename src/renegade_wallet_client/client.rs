@@ -97,7 +97,7 @@ impl RenegadeClient {
         let websocket_client = RenegadeWebsocketClient::new(
             &config,
             secrets.wallet_id,
-            historical_state_client.clone(),
+            secrets.keychain.secret_keys.symmetric_key,
         );
 
         Ok(Self { config, secrets, relayer_client, historical_state_client, websocket_client })
