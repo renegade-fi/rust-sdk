@@ -4,12 +4,16 @@ use std::sync::Arc;
 use std::{collections::HashMap, time::Duration};
 
 use futures_util::{Sink, SinkExt, StreamExt};
+use renegade_api::auth::add_expiring_auth_to_headers;
+use renegade_api::types::ApiHistoricalTask;
 use renegade_api::{
     bus_message::{SystemBusMessage, SystemBusMessageWithTopic as ServerMessage},
     websocket::{ClientWebsocketMessage, WebsocketMessage},
 };
+use renegade_common::types::hmac::HmacKey;
 use renegade_common::types::tasks::TaskIdentifier;
 use renegade_common::types::wallet::WalletIdentifier;
+use reqwest::header::HeaderMap;
 use tokio::sync::{
     mpsc::{self, UnboundedReceiver, UnboundedSender},
     OnceCell, RwLock,
@@ -17,22 +21,27 @@ use tokio::sync::{
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 use tracing::{error, warn};
 
-use crate::actions::get_task_history::get_task_history;
-use crate::http::RelayerHttpClient;
 use crate::{
     renegade_wallet_client::config::RenegadeClientConfig,
     websocket::task_waiter::TaskStatusNotification, RenegadeClientError,
 };
 
-// ---------
-// | Types |
-// ---------
+// -------------
+// | Constants |
+// -------------
 
 /// The default port on which relayers run websocket servers
 const DEFAULT_WS_PORT: u16 = 4000;
 
 /// The delay between websocket reconnection attempts
 const WS_RECONNECTION_DELAY: Duration = Duration::from_secs(1);
+
+/// The expiration duration for websocket subscription authentication
+const AUTH_EXPIRATION: Duration = Duration::from_secs(10);
+
+// ---------
+// | Types |
+// ---------
 
 /// A notification channel
 ///
@@ -63,14 +72,9 @@ pub fn create_notification_channel() -> (TaskNotificationTx, TaskNotificationRx)
     mpsc::unbounded_channel()
 }
 
-/// Create a new subscription channel
-pub fn create_subscription_channel() -> (SubscribeTx, SubscribeRx) {
-    mpsc::unbounded_channel()
-}
-
-/// Construct a websocket topic from a task identifier
-fn construct_websocket_topic(task_id: TaskIdentifier) -> String {
-    format!("/v0/tasks/{task_id}")
+/// Construct a websocket topic from a wallet's task history
+fn construct_task_history_topic(wallet_id: WalletIdentifier) -> String {
+    format!("/v0/wallet/{wallet_id}/task-history")
 }
 
 // --------------------
@@ -84,15 +88,13 @@ pub struct RenegadeWebsocketClient {
     base_url: String,
     /// The wallet ID
     wallet_id: WalletIdentifier,
-    /// The historical state client, used to check task history in the case of
-    /// missed updates
-    historical_state_client: Arc<RelayerHttpClient>,
+    /// The wallet's symmetric key
+    wallet_symmetric_key: HmacKey,
     /// The notifications map
     notifications: NotificationMap,
-    /// The channel to subscribe to task status updates
-    ///
-    /// This is used to send subscription messages to the websocket server.
-    subscribe_tx: Arc<OnceCell<SubscribeTx>>,
+    /// A guard used to ensure that the websocket connection is only ever
+    /// initialized once
+    connection_guard: Arc<OnceCell<()>>,
 }
 
 impl RenegadeWebsocketClient {
@@ -100,7 +102,7 @@ impl RenegadeWebsocketClient {
     pub fn new(
         config: &RenegadeClientConfig,
         wallet_id: WalletIdentifier,
-        historical_state_client: Arc<RelayerHttpClient>,
+        wallet_symmetric_key: HmacKey,
     ) -> Self {
         let base_url = config.relayer_base_url.replace("http", "ws");
         let base_url = format!("{base_url}:{DEFAULT_WS_PORT}");
@@ -108,9 +110,9 @@ impl RenegadeWebsocketClient {
         Self {
             base_url,
             wallet_id,
-            historical_state_client,
+            wallet_symmetric_key,
             notifications: create_notification_map(),
-            subscribe_tx: Arc::new(OnceCell::new()),
+            connection_guard: Arc::new(OnceCell::new()),
         }
     }
 
@@ -124,12 +126,6 @@ impl RenegadeWebsocketClient {
         task_id: TaskIdentifier,
     ) -> Result<TaskNotificationRx, RenegadeClientError> {
         self.ensure_connected().await;
-        // Send a subscription message to the websocket client
-        let subscribe_tx = self
-            .subscribe_tx
-            .get()
-            .ok_or(RenegadeClientError::custom("Websocket client not connected"))?;
-        subscribe_tx.send(task_id).map_err(RenegadeClientError::custom)?;
 
         // Add a notification channel to the map and create a task waiter
         let (tx, rx) = create_notification_channel();
@@ -144,13 +140,10 @@ impl RenegadeWebsocketClient {
     /// subscribed topics and forward them to threads watching for
     /// notifications.
     pub async fn ensure_connected(&self) {
-        self.subscribe_tx
+        self.connection_guard
             .get_or_init(|| async {
-                let (tx, rx) = create_subscription_channel();
                 let self_clone = self.clone();
-                tokio::spawn(self_clone.ws_reconnection_loop(rx));
-
-                tx
+                tokio::spawn(self_clone.ws_reconnection_loop());
             })
             .await;
     }
@@ -161,9 +154,9 @@ impl RenegadeWebsocketClient {
 
     /// Websocket reconnection loop. Re-establishes the websocket connection
     /// if there is an error in handling it.
-    async fn ws_reconnection_loop(self, mut subscribe_rx: SubscribeRx) {
+    async fn ws_reconnection_loop(self) {
         loop {
-            if let Err(e) = self.handle_ws_connection(&mut subscribe_rx).await {
+            if let Err(e) = self.handle_ws_connection().await {
                 error!("Error handling websocket connection: {e}");
             }
 
@@ -173,10 +166,7 @@ impl RenegadeWebsocketClient {
     }
 
     /// Connection handler loop
-    async fn handle_ws_connection(
-        &self,
-        subscribe_rx: &mut SubscribeRx,
-    ) -> Result<(), RenegadeClientError> {
+    async fn handle_ws_connection(&self) -> Result<(), RenegadeClientError> {
         let (ws_stream, _response) = connect_async(&self.base_url).await.map_err(|e| {
             RenegadeClientError::custom(format!("Failed to connect to websocket: {e}"))
         })?;
@@ -184,59 +174,50 @@ impl RenegadeWebsocketClient {
         // Split the websocket stream into sink and stream
         let (mut ws_tx, mut ws_rx) = ws_stream.split();
 
-        // Re-subscribe to all tasks in the notification map
-        self.resubscribe_to_all_tasks(&mut ws_tx).await?;
+        self.subscribe_to_task_history(&mut ws_tx).await?;
 
-        loop {
-            tokio::select! {
-                Some(task_id) = subscribe_rx.recv() => Self::subscribe_to_task(task_id, &mut ws_tx).await?,
-                Some(Ok(msg)) = ws_rx.next() => {
-                    let txt = match msg {
-                        Message::Text(txt) => txt,
-                        Message::Close(_) => {
-                            warn!("Websocket connection closed");
-                            break;
-                        },
-                        _ => continue,
-                    };
+        while let Some(Ok(msg)) = ws_rx.next().await {
+            let txt = match msg {
+                Message::Text(txt) => txt,
+                Message::Close(_) => {
+                    warn!("Websocket connection closed");
+                    break;
+                },
+                _ => continue,
+            };
 
-                    // Handle the incoming message
-                    if let Err(e) = self.handle_incoming_message(txt).await {
-                        error!("Failed to handle incoming websocket message: {e}");
-                    }
-                }
-                else => break,
+            // Handle the incoming message
+            if let Err(e) = self.handle_incoming_message(txt).await {
+                error!("Failed to handle incoming websocket message: {e}");
             }
         }
 
         Ok(())
     }
 
-    /// Resubscribe to all tasks in the notification map
-    async fn resubscribe_to_all_tasks<W: Sink<Message> + Unpin>(
+    /// Subscribe to the task history of the given wallet
+    async fn subscribe_to_task_history<W: Sink<Message> + Unpin>(
         &self,
         ws_tx: &mut W,
     ) -> Result<(), RenegadeClientError> {
-        let notif_map = self.notifications.read().await;
-        let task_ids: Vec<TaskIdentifier> = notif_map.keys().cloned().collect();
-        drop(notif_map);
+        let topic = construct_task_history_topic(self.wallet_id);
 
-        for task_id in task_ids {
-            Self::subscribe_to_task(task_id, ws_tx).await?;
-        }
+        let body = WebsocketMessage::Subscribe { topic: topic.clone() };
 
-        Ok(())
-    }
+        let body_ser = serde_json::to_vec(&body).map_err(RenegadeClientError::serde)?;
+        let mut headers = HeaderMap::new();
+        add_expiring_auth_to_headers(
+            &topic,
+            &mut headers,
+            &body_ser,
+            &self.wallet_symmetric_key,
+            AUTH_EXPIRATION,
+        );
 
-    /// Subscribe to a new task's status
-    async fn subscribe_to_task<W: Sink<Message> + Unpin>(
-        task_id: TaskIdentifier,
-        ws_tx: &mut W,
-    ) -> Result<(), RenegadeClientError> {
-        let topic = construct_websocket_topic(task_id);
-        let headers = HashMap::new();
-        let subscribe =
-            ClientWebsocketMessage { headers, body: WebsocketMessage::Subscribe { topic } };
+        let headers = header_map_to_hash_map(headers);
+
+        let subscribe = ClientWebsocketMessage { headers, body };
+
         let msg_txt = serde_json::to_string(&subscribe).map_err(RenegadeClientError::serde)?;
 
         // Send the message onto the websocket
@@ -258,23 +239,14 @@ impl RenegadeWebsocketClient {
                         return Ok(());
                     }
 
-                    // If the message contains the "task not found" substring, we interpret this as
-                    // a task having completed, so we check task history to track the
-                    // success/failure of all completed tasks
-                    if txt.contains("task not found") {
-                        warn!("Task not found in relayer, checking task history...");
-                        return self.handle_historic_tasks().await;
-                    }
-
                     return Err(e);
                 },
             };
 
         // Handle the message
         match msg.event {
-            SystemBusMessage::TaskStatusUpdate { status } => {
-                let id = status.id;
-                let state = status.state.to_lowercase();
+            SystemBusMessage::TaskHistoryUpdate { task: ApiHistoricalTask { id, state, .. } } => {
+                let state = state.to_lowercase();
                 if state.contains("completed") {
                     self.handle_completed_task(id).await?;
                 } else if state.contains("failed") {
@@ -318,27 +290,22 @@ impl RenegadeWebsocketClient {
         let _ = tx.send(TaskStatusNotification::Failed { error });
         Ok(())
     }
+}
 
-    /// Handle historic tasks that may have been missed by the websocket client
-    async fn handle_historic_tasks(&self) -> Result<(), RenegadeClientError> {
-        let task_history = get_task_history(&self.historical_state_client, self.wallet_id).await?;
+// -----------
+// | Helpers |
+// -----------
 
-        let notif_map = self.notifications.read().await;
-        let task_ids: Vec<TaskIdentifier> = notif_map.keys().cloned().collect();
-        drop(notif_map);
-
-        for task_id in task_ids {
-            let task = task_history.iter().find(|task| task.id == task_id);
-            if let Some(task) = task {
-                let state = task.state.to_lowercase();
-                if state.contains("completed") {
-                    self.handle_completed_task(task_id).await?;
-                } else if state.contains("failed") {
-                    self.handle_failed_task(task_id, state).await?;
-                }
-            }
+/// Convert an `http::HeaderMap` to a `HashMap`
+pub fn header_map_to_hash_map(header_map: HeaderMap) -> HashMap<String, String> {
+    let mut headers = HashMap::new();
+    for (k, v) in header_map.into_iter() {
+        if let Some(k) = k
+            && let Ok(v) = v.to_str()
+        {
+            headers.insert(k.to_string(), v.to_string());
         }
-
-        Ok(())
     }
+
+    headers
 }
