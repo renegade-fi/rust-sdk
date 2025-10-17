@@ -28,6 +28,6 @@ impl RenegadeClient {
             self.relayer_client.post(FIND_WALLET_ROUTE, request).await?;
 
         let task_id = response.task_id;
-        Ok(self.get_task_waiter(task_id))
+        Ok(self.get_default_task_waiter(task_id))
     }
 }

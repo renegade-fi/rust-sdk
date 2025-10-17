@@ -23,6 +23,6 @@ impl RenegadeClient {
 
         // Create a task waiter for the task
         let task_id = response.task_id;
-        Ok(self.get_task_waiter(task_id))
+        Ok(self.get_default_task_waiter(task_id))
     }
 }
