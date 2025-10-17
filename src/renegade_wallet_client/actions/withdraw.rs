@@ -1,5 +1,7 @@
 //! Withdraw funds from the wallet
 
+use std::time::Duration;
+
 use alloy::signers::local::PrivateKeySigner;
 use darkpool_client::{
     conversion::address_to_biguint,
@@ -24,6 +26,12 @@ use crate::{
     websocket::TaskWaiter,
     RenegadeClientError,
 };
+
+/// The timeout for a withdrawal action to complete.
+///
+/// This is longer than the default since any enqueued fee payment tasks must
+/// complete first.
+const TASK_WAITER_TIMEOUT: Duration = Duration::from_secs(120);
 
 impl RenegadeClient {
     /// Withdraw funds from the wallet
@@ -66,7 +74,8 @@ impl RenegadeClient {
 
         // Create a task waiter for the task
         let task_id = response.task_id;
-        Ok(self.get_task_waiter(task_id))
+        let task_waiter_builder = self.get_task_waiter_builder(task_id);
+        Ok(task_waiter_builder.with_timeout(TASK_WAITER_TIMEOUT).build())
     }
 
     /// Enqueue a task to pay fees on the wallet

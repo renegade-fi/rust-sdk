@@ -16,7 +16,7 @@ use renegade_constants::Scalar;
 use uuid::Uuid;
 
 use crate::util::get_env_agnostic_chain;
-use crate::websocket::TaskWaiter;
+use crate::websocket::{TaskWaiter, TaskWaiterBuilder};
 use crate::{
     http::RelayerHttpClient,
     renegade_wallet_client::config::{
@@ -134,9 +134,14 @@ impl RenegadeClient {
     // | Task Utils |
     // --------------
 
-    /// Get a task waiter for a task
-    pub fn get_task_waiter(&self, task_id: TaskIdentifier) -> TaskWaiter {
-        TaskWaiter::new(task_id, self.websocket_client.clone())
+    /// Get a task waiter builder for a task
+    pub fn get_task_waiter_builder(&self, task_id: TaskIdentifier) -> TaskWaiterBuilder {
+        TaskWaiterBuilder::new(task_id, self.websocket_client.clone())
+    }
+
+    /// Get a default-configured task waiter for a task
+    pub fn get_default_task_waiter(&self, task_id: TaskIdentifier) -> TaskWaiter {
+        self.get_task_waiter_builder(task_id).build()
     }
 
     // --------------
