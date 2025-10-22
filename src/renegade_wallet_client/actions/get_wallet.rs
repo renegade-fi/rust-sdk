@@ -5,6 +5,7 @@ use renegade_api::{
     types::ApiWallet,
 };
 use renegade_common::types::wallet::Wallet;
+use tracing::info;
 
 use crate::{actions::construct_http_path, client::RenegadeClient, RenegadeClientError};
 
@@ -25,7 +26,19 @@ impl RenegadeClient {
     /// An internal helper to get the back of queue wallet as a
     /// `renegade_common::Wallet`
     pub(crate) async fn get_internal_wallet(&self) -> Result<Wallet, RenegadeClientError> {
-        let wallet = self.get_wallet().await?;
-        wallet.try_into().map_err(RenegadeClientError::conversion)
+        let id = self.secrets.wallet_id;
+        let path = construct_http_path!(BACK_OF_QUEUE_WALLET_ROUTE, "wallet_id" => id);
+        let response: GetWalletResponse = self.relayer_client.get(&path).await?;
+        let wallet = response.wallet.try_into().map_err(RenegadeClientError::conversion)?;
+
+        let tasks: Vec<String> = response
+            .task_queue
+            .iter()
+            .map(|t| format!("{}({}): {}", t.description, t.id, t.state))
+            .collect();
+
+        info!("Task queue: {}", tasks.join(", "));
+
+        Ok(wallet)
     }
 }

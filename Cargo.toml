@@ -164,18 +164,18 @@ alloy-rpc-types-eth = { version = ">=0.12, <2.0" }
 k256 = { version = "0.13", features = ["ecdsa"] }
 
 # === Renegade Dependencies === #
-darkpool-client = { git = "https://github.com/renegade-fi/renegade.git", features = [
+darkpool-client = { git = "https://github.com/renegade-fi/renegade.git", branch = "andrew/ret-simulated-queue", features = [
     "all-chains",
     "transfer-auth",
 ], optional = true }
-renegade-circuit-types = { package = "circuit-types", git = "https://github.com/renegade-fi/renegade.git", optional = true }
-renegade-api = { package = "external-api", git = "https://github.com/renegade-fi/renegade.git", features = [
+renegade-circuit-types = { package = "circuit-types", git = "https://github.com/renegade-fi/renegade.git", branch = "andrew/ret-simulated-queue", optional = true }
+renegade-api = { package = "external-api", git = "https://github.com/renegade-fi/renegade.git", branch = "andrew/ret-simulated-queue", features = [
     "auth",
 ], optional = true }
-renegade-common = { package = "common", git = "https://github.com/renegade-fi/renegade.git", optional = true }
-renegade-constants = { package = "constants", git = "https://github.com/renegade-fi/renegade.git", optional = true }
-renegade-crypto = { package = "renegade-crypto", git = "https://github.com/renegade-fi/renegade.git", optional = true }
-renegade-utils = { package = "util", git = "https://github.com/renegade-fi/renegade.git", optional = true }
+renegade-common = { package = "common", git = "https://github.com/renegade-fi/renegade.git", branch = "andrew/ret-simulated-queue", optional = true }
+renegade-constants = { package = "constants", git = "https://github.com/renegade-fi/renegade.git", branch = "andrew/ret-simulated-queue", optional = true }
+renegade-crypto = { package = "renegade-crypto", git = "https://github.com/renegade-fi/renegade.git", branch = "andrew/ret-simulated-queue", optional = true }
+renegade-utils = { package = "util", git = "https://github.com/renegade-fi/renegade.git", branch = "andrew/ret-simulated-queue", optional = true }
 
 # === Misc === #
 base64 = "0.22"
