@@ -1,5 +1,7 @@
 //! The renegade wallet client manages Renegade wallet operations
 
+use renegade_common::types::tasks::TaskIdentifier;
+
 use crate::http::RelayerHttpClientError;
 
 pub mod actions;
@@ -32,8 +34,13 @@ pub enum RenegadeClientError {
     #[error("failed to setup wallet: {0}")]
     Setup(String),
     /// A task error
-    #[error("task error: {0}")]
-    Task(String),
+    #[error("task error: task {task_id}: {message}")]
+    Task {
+        /// The task identifier
+        task_id: TaskIdentifier,
+        /// The error message
+        message: String,
+    },
     /// A wallet error
     #[error("wallet error: {0}")]
     Wallet(String),
@@ -75,8 +82,8 @@ impl RenegadeClientError {
 
     /// Create a new task error
     #[allow(clippy::needless_pass_by_value)]
-    pub fn task<T: ToString>(msg: T) -> Self {
-        Self::Task(msg.to_string())
+    pub fn task<T: ToString>(task_id: TaskIdentifier, msg: T) -> Self {
+        Self::Task { task_id, message: msg.to_string() }
     }
 
     /// Create a new request error

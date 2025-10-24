@@ -33,10 +33,10 @@ pub enum TaskStatusNotification {
 
 impl TaskStatusNotification {
     /// Convert the task status into a Result<(), RenegadeClientError>
-    pub fn into_result(self) -> Result<(), RenegadeClientError> {
+    pub fn into_result(self, task_id: TaskIdentifier) -> Result<(), RenegadeClientError> {
         match self {
             Self::Success => Ok(()),
-            Self::Failed { error } => Err(RenegadeClientError::task(error)),
+            Self::Failed { error } => Err(RenegadeClientError::task(task_id, error)),
         }
     }
 }
@@ -75,10 +75,10 @@ impl TaskWaiter {
         let timeout = tokio::time::timeout(timeout, notification_rx.recv());
         let notification = timeout
             .await
-            .map_err(|_| RenegadeClientError::task(format!("Task {task_id} timed out")))?
-            .ok_or_else(|| RenegadeClientError::task(format!("Task {task_id} waiter closed")))?;
+            .map_err(|_| RenegadeClientError::task(task_id, "Task timed out"))?
+            .ok_or_else(|| RenegadeClientError::task(task_id, "Task waiter closed"))?;
 
-        notification.into_result()
+        notification.into_result(task_id)
     }
 }
 
