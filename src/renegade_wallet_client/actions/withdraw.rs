@@ -9,15 +9,14 @@ use darkpool_client::{
 };
 use k256::ecdsa::SigningKey;
 use num_bigint::BigUint;
-use renegade_api::{
-    http::wallet::{
-        PayFeesResponse, WithdrawBalanceRequest, WithdrawBalanceResponse, PAY_FEES_ROUTE,
-        WITHDRAW_BALANCE_ROUTE,
-    },
-    EmptyRequestResponse,
+use renegade_api::http::wallet::{
+    WithdrawBalanceRequest, WithdrawBalanceResponse, WITHDRAW_BALANCE_ROUTE,
 };
 use renegade_circuit_types::transfers::{ExternalTransfer, ExternalTransferDirection};
-use renegade_common::types::transfer_auth::{TransferAuth, WithdrawalAuth};
+use renegade_common::types::{
+    transfer_auth::{TransferAuth, WithdrawalAuth},
+    wallet::Wallet,
+};
 use renegade_utils::hex::biguint_from_hex_string;
 
 use crate::{
@@ -41,12 +40,13 @@ impl RenegadeClient {
         amount: u128,
         pkey: &PrivateKeySigner,
     ) -> Result<TaskWaiter, RenegadeClientError> {
-        // First, pay all fees on the wallet
-        self.enqueue_pay_fees().await?;
+        let mut wallet = self.get_internal_wallet().await?;
+
+        // Zero out fees for all balances in the wallet
+        pay_all_fees(&mut wallet);
 
         // Remove the balance from the wallet
         let mint = biguint_from_hex_string(token_mint).map_err(RenegadeClientError::conversion)?;
-        let mut wallet = self.get_internal_wallet().await?;
         wallet.withdraw(&mint, amount).map_err(RenegadeClientError::wallet)?;
 
         // Prepare wallet update and transfer authorization
@@ -78,16 +78,6 @@ impl RenegadeClient {
         Ok(task_waiter_builder.with_timeout(TASK_WAITER_TIMEOUT).build())
     }
 
-    /// Enqueue a task to pay fees on the wallet
-    async fn enqueue_pay_fees(&self) -> Result<(), RenegadeClientError> {
-        let wallet_id = self.secrets.wallet_id;
-        let route = construct_http_path!(PAY_FEES_ROUTE, "wallet_id" => wallet_id);
-        let _response: PayFeesResponse =
-            self.relayer_client.post(&route, EmptyRequestResponse {}).await?;
-
-        Ok(())
-    }
-
     /// Build a withdraw permit for the connected chain
     fn build_withdraw_auth(
         &self,
@@ -115,6 +105,23 @@ impl RenegadeClient {
         match transfer_with_auth.transfer_auth {
             TransferAuth::Withdrawal(withdrawal_auth) => Ok(withdrawal_auth),
             TransferAuth::Deposit(_) => unreachable!(),
+        }
+    }
+}
+
+/// Replicate the effect of paying all fees in the wallet, zeroing them out and
+/// applying reblinds as expected.
+fn pay_all_fees(wallet: &mut Wallet) {
+    let balances = wallet.balances.clone();
+    for (mint, balance) in balances {
+        if balance.relayer_fee_balance > 0 {
+            wallet.get_balance_mut(&mint).unwrap().relayer_fee_balance = 0;
+            wallet.reblind_wallet();
+        }
+
+        if balance.protocol_fee_balance > 0 {
+            wallet.get_balance_mut(&mint).unwrap().protocol_fee_balance = 0;
+            wallet.reblind_wallet();
         }
     }
 }
