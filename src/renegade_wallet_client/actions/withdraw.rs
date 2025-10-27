@@ -19,6 +19,7 @@ use renegade_api::{
 use renegade_circuit_types::transfers::{ExternalTransfer, ExternalTransferDirection};
 use renegade_common::types::transfer_auth::{TransferAuth, WithdrawalAuth};
 use renegade_utils::hex::biguint_from_hex_string;
+use tracing::{error, info};
 
 use crate::{
     actions::{construct_http_path, prepare_wallet_update},
@@ -46,13 +47,17 @@ impl RenegadeClient {
 
         // Remove the balance from the wallet
         let mint = biguint_from_hex_string(token_mint).map_err(RenegadeClientError::conversion)?;
+
         let mut wallet = self.get_internal_wallet().await?;
+        let back_of_queue_wallet = wallet.clone();
+
         wallet.withdraw(&mint, amount).map_err(RenegadeClientError::wallet)?;
 
         // Prepare wallet update and transfer authorization
         let update_auth = prepare_wallet_update(&mut wallet)?;
         let account_addr =
             address_to_biguint(&pkey.address()).map_err(RenegadeClientError::conversion)?;
+
         let transfer = ExternalTransfer {
             account_addr: account_addr.clone(),
             mint: mint.clone(),
@@ -70,7 +75,34 @@ impl RenegadeClient {
             update_auth,
             external_transfer_sig: transfer_auth.external_transfer_signature,
         };
-        let response: WithdrawBalanceResponse = self.relayer_client.post(&route, request).await?;
+        let result: Result<WithdrawBalanceResponse, _> =
+            self.relayer_client.post(&route, request).await;
+
+        if let Err(e) = result {
+            let balances = back_of_queue_wallet
+                .balances
+                .iter()
+                .map(|(_, b)| serde_json::to_string_pretty(b))
+                .collect::<Result<Vec<String>, _>>()
+                .map_err(RenegadeClientError::serde)?;
+
+            let orders = back_of_queue_wallet
+                .orders
+                .iter()
+                .map(|(_, o)| serde_json::to_string_pretty(o))
+                .collect::<Result<Vec<String>, _>>()
+                .map_err(RenegadeClientError::serde)?;
+
+            error!(
+                balances = ?balances,
+                orders = ?orders,
+                "Failed to withdraw from wallet: {e}"
+            );
+
+            return Err(e.into());
+        }
+
+        let response = result.unwrap();
 
         // Create a task waiter for the task
         let task_id = response.task_id;
@@ -82,8 +114,13 @@ impl RenegadeClient {
     async fn enqueue_pay_fees(&self) -> Result<(), RenegadeClientError> {
         let wallet_id = self.secrets.wallet_id;
         let route = construct_http_path!(PAY_FEES_ROUTE, "wallet_id" => wallet_id);
-        let _response: PayFeesResponse =
+        let response: PayFeesResponse =
             self.relayer_client.post(&route, EmptyRequestResponse {}).await?;
+
+        let task_id_strings: Vec<String> =
+            response.task_ids.iter().map(|id| id.to_string()).collect();
+
+        info!("Enqueued fee payment tasks: {}", task_id_strings.join(", "));
 
         Ok(())
     }
