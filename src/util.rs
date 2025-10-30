@@ -6,11 +6,8 @@ use hmac::Mac;
 use reqwest::header::{HeaderMap, HeaderValue};
 
 use crate::{
-    config::{
-        ARBITRUM_ONE_CHAIN_ID, ARBITRUM_SEPOLIA_CHAIN_ID, BASE_MAINNET_CHAIN_ID,
-        BASE_SEPOLIA_CHAIN_ID,
-    },
-    ExternalMatchClientError,
+    ExternalMatchClientError, ARBITRUM_ONE_CHAIN_ID, ARBITRUM_SEPOLIA_CHAIN_ID,
+    BASE_MAINNET_CHAIN_ID, BASE_SEPOLIA_CHAIN_ID,
 };
 
 /// The header namespace to include in the HMAC

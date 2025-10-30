@@ -9,10 +9,10 @@ readme = "README.md"
 keywords = ["renegade", "darkpool", "zk", "sdk"]
 license = "MIT"
 
-[[example]]
 
 # === External Match Examples === #
 
+[[example]]
 name = "external_match"
 path = "examples/external_match/external_match.rs"
 required-features = ["examples"]
@@ -80,6 +80,11 @@ required-features = ["examples"]
 [[example]]
 name = "malleable_match"
 path = "examples/external_match/malleable_match.rs"
+required-features = ["examples"]
+
+[[example]]
+name = "connector_malleable_match"
+path = "examples/external_match/connector_malleable_match.rs"
 required-features = ["examples"]
 
 # === Wallet Examples === #

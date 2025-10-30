@@ -94,9 +94,18 @@ pub struct AssembleExternalMatchRequest {
     pub signed_quote: ApiSignedQuote,
 }
 
+/// A type alias for the malleable match response routed through the gas sponsor
+/// ABI
+pub type MalleableExternalMatchResponse =
+    GenericMalleableExternalMatchResponse<false /* USE_CONNECTOR */>;
+/// A type alias for the malleable match response routed through the connector
+/// ABI
+pub type MalleableExternalMatchResponseWithConnector =
+    GenericMalleableExternalMatchResponse<true /* USE_CONNECTOR */>;
+
 /// The response type for requesting a malleable quote on an external order
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct MalleableExternalMatchResponse {
+pub struct GenericMalleableExternalMatchResponse<const USE_CONNECTOR: bool> {
     /// The match bundle
     pub match_bundle: MalleableAtomicMatchApiBundle,
     /// The base amount chosen for the match

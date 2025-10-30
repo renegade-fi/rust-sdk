@@ -18,13 +18,9 @@ use uuid::Uuid;
 use crate::util::get_env_agnostic_chain;
 use crate::websocket::{TaskWaiter, TaskWaiterBuilder};
 use crate::{
-    http::RelayerHttpClient,
-    renegade_wallet_client::config::{
-        RenegadeClientConfig, BASE_MAINNET_CHAIN_ID, BASE_SEPOLIA_CHAIN_ID,
-    },
-    util::HmacKey as HttpHmacKey,
-    websocket::RenegadeWebsocketClient,
-    RenegadeClientError,
+    http::RelayerHttpClient, renegade_wallet_client::config::RenegadeClientConfig,
+    util::HmacKey as HttpHmacKey, websocket::RenegadeWebsocketClient, RenegadeClientError,
+    BASE_MAINNET_CHAIN_ID, BASE_SEPOLIA_CHAIN_ID,
 };
 
 // -----------
