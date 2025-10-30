@@ -51,10 +51,11 @@ async fn fetch_quote_and_execute_malleable(
 
     // Assemble the quote into a malleable bundle
     println!("Assembling malleable quote...");
-    let mut bundle = match client.assemble_malleable_quote(quote).await? {
-        Some(resp) => resp,
-        None => eyre::bail!("No malleable bundle found"),
-    };
+    let mut bundle: MalleableExternalMatchResponse =
+        match client.assemble_malleable_quote(quote).await? {
+            Some(resp) => resp,
+            None => eyre::bail!("No malleable bundle found"),
+        };
 
     // Set a base amount on the bundle
     // Alternatively, you can set a quote amount on the bundle - see

@@ -8,18 +8,14 @@ use reqwest::{
 use crate::{
     api_types::{
         order_book::{GetDepthByMintResponse, GetDepthForAllPairsResponse},
-        ORDER_BOOK_DEPTH_ROUTE,
+        GenericMalleableExternalMatchResponse, ORDER_BOOK_DEPTH_ROUTE,
     },
-    config::{
-        ARBITRUM_ONE_RELAYER_BASE_URL, ARBITRUM_SEPOLIA_RELAYER_BASE_URL,
-        BASE_MAINNET_RELAYER_BASE_URL, BASE_SEPOLIA_RELAYER_BASE_URL,
-    },
+    ARBITRUM_ONE_RELAYER_BASE_URL, ARBITRUM_SEPOLIA_RELAYER_BASE_URL,
+    BASE_MAINNET_RELAYER_BASE_URL, BASE_SEPOLIA_RELAYER_BASE_URL,
 };
 #[allow(deprecated)]
 use crate::{
-    api_types::{
-        GetTokenPricesResponse, ASSEMBLE_EXTERNAL_MATCH_MALLEABLE_ROUTE, GET_TOKEN_PRICES_ROUTE,
-    },
+    api_types::{GetTokenPricesResponse, GET_TOKEN_PRICES_ROUTE},
     http::RelayerHttpClient,
     util::HmacKey,
     AssembleQuoteOptions, ExternalMatchOptions, RequestQuoteOptions,
@@ -29,7 +25,7 @@ use super::{
     api_types::{
         ApiSignedQuote, AssembleExternalMatchRequest, ExternalMatchRequest, ExternalMatchResponse,
         ExternalOrder, ExternalQuoteRequest, ExternalQuoteResponse, GetSupportedTokensResponse,
-        MalleableExternalMatchResponse, SignedExternalQuote, GET_SUPPORTED_TOKENS_ROUTE,
+        SignedExternalQuote, GET_SUPPORTED_TOKENS_ROUTE,
     },
     error::ExternalMatchClientError,
 };
@@ -282,7 +278,7 @@ impl ExternalMatchClient {
     pub async fn assemble_quote_with_options(
         &self,
         quote: SignedExternalQuote,
-        options: AssembleQuoteOptions,
+        options: AssembleQuoteOptions<false /* USE_CONNECTOR */>,
     ) -> Result<Option<ExternalMatchResponse>, ExternalMatchClientError> {
         let path = options.build_request_path();
         let signed_quote = ApiSignedQuote { quote: quote.quote, signature: quote.signature };
@@ -305,18 +301,28 @@ impl ExternalMatchClient {
     pub async fn assemble_malleable_quote(
         &self,
         quote: SignedExternalQuote,
-    ) -> Result<Option<MalleableExternalMatchResponse>, ExternalMatchClientError> {
-        self.assemble_malleable_quote_with_options(quote, AssembleQuoteOptions::default()).await
+    ) -> Result<
+        Option<GenericMalleableExternalMatchResponse<false /* USE_CONNECTOR */>>,
+        ExternalMatchClientError,
+    > {
+        self.assemble_malleable_quote_with_options(
+            quote,
+            AssembleQuoteOptions::<false /* USE_CONNECTOR */>::default(),
+        )
+        .await
     }
 
     /// Assemble a quote into a malleable match bundle, ready for settlement,
     /// with options
-    pub async fn assemble_malleable_quote_with_options(
+    pub async fn assemble_malleable_quote_with_options<const USE_CONNECTOR: bool>(
         &self,
         quote: SignedExternalQuote,
-        options: AssembleQuoteOptions,
-    ) -> Result<Option<MalleableExternalMatchResponse>, ExternalMatchClientError> {
-        let path = ASSEMBLE_EXTERNAL_MATCH_MALLEABLE_ROUTE;
+        options: AssembleQuoteOptions<USE_CONNECTOR>,
+    ) -> Result<
+        Option<GenericMalleableExternalMatchResponse<USE_CONNECTOR>>,
+        ExternalMatchClientError,
+    > {
+        let path = options.build_malleable_request_path();
         let signed_quote = ApiSignedQuote { quote: quote.quote, signature: quote.signature };
         let request = AssembleExternalMatchRequest {
             signed_quote,
@@ -327,9 +333,12 @@ impl ExternalMatchClient {
         };
         let headers = self.get_headers()?;
 
-        let resp = self.auth_http_client.post_with_headers_raw(path, request, headers).await?;
-        let match_resp =
-            Self::handle_optional_response::<MalleableExternalMatchResponse>(resp).await?;
+        let resp =
+            self.auth_http_client.post_with_headers_raw(path.as_str(), request, headers).await?;
+        let match_resp = Self::handle_optional_response::<
+            GenericMalleableExternalMatchResponse<USE_CONNECTOR>,
+        >(resp)
+        .await?;
         Ok(match_resp)
     }
 
