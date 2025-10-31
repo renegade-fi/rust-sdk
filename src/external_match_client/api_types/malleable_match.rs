@@ -72,6 +72,18 @@ impl<const USE_CONNECTOR: bool> GenericMalleableExternalMatchResponse<USE_CONNEC
         (min_quote, max_quote)
     }
 
+    /// Return the bounds on the input amount
+    ///
+    /// This depends on the direction of the trade and is denominated in units
+    /// of the sell-side token.
+    pub fn input_bounds(&self) -> (u128, u128) {
+        if self.sells_base_token() {
+            self.base_bounds()
+        } else {
+            self.quote_bounds()
+        }
+    }
+
     /// Get the bounds on the quote amount for a given base amount.
     ///
     /// For an explanation of these bounds, see:
