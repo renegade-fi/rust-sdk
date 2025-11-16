@@ -5,6 +5,7 @@ use crate::{
     api_types::{
         ASSEMBLE_EXTERNAL_MATCH_MALLEABLE_ROUTE, ASSEMBLE_EXTERNAL_MATCH_ROUTE,
         REQUEST_EXTERNAL_MATCH_ROUTE, REQUEST_EXTERNAL_QUOTE_ROUTE,
+        REQUEST_MALLEABLE_EXTERNAL_MATCH_ROUTE,
     },
     types::ExternalOrder,
     GAS_REFUND_NATIVE_ETH_QUERY_PARAM,
@@ -65,11 +66,7 @@ impl RequestQuoteOptions {
 }
 
 /// The options for requesting an external match
-#[deprecated(
-    since = "0.1.0",
-    note = "This endpoint will soon be removed, use `request_quote` and `assemble_quote` instead"
-)]
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct ExternalMatchOptions {
     /// Whether to perform gas estimation
     pub do_gas_estimation: bool,
@@ -85,6 +82,17 @@ pub struct ExternalMatchOptions {
     ///
     /// If not provided, the receiver address is the message sender
     pub receiver_address: Option<String>,
+}
+
+impl Default for ExternalMatchOptions {
+    fn default() -> Self {
+        Self {
+            do_gas_estimation: false,
+            sponsor_gas: true,
+            gas_refund_address: None,
+            receiver_address: None,
+        }
+    }
 }
 
 #[allow(deprecated)]
@@ -129,6 +137,19 @@ impl ExternalMatchOptions {
         }
 
         format!("{}?{}", REQUEST_EXTERNAL_MATCH_ROUTE, query.finish())
+    }
+
+    /// Get the request path for a malleable match given the options
+    pub(crate) fn build_malleable_request_path(&self) -> String {
+        let mut query = form_urlencoded::Serializer::new(String::new());
+
+        // Add query params for gas sponsorship
+        query.append_pair(GAS_SPONSORSHIP_QUERY_PARAM, &(!self.sponsor_gas).to_string());
+        if let Some(addr) = &self.gas_refund_address {
+            query.append_pair(GAS_REFUND_ADDRESS_QUERY_PARAM, addr);
+        }
+
+        format!("{}?{}", REQUEST_MALLEABLE_EXTERNAL_MATCH_ROUTE, query.finish())
     }
 }
 

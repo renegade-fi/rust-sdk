@@ -87,6 +87,11 @@ name = "connector_malleable_match"
 path = "examples/external_match/connector_malleable_match.rs"
 required-features = ["examples"]
 
+[[example]]
+name = "direct_malleable_match"
+path = "examples/external_match/direct_malleable_match.rs"
+required-features = ["examples"]
+
 # === Wallet Examples === #
 
 [[example]]
