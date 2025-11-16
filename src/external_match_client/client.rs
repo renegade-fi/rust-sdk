@@ -343,11 +343,6 @@ impl ExternalMatchClient {
     }
 
     /// Request an external match
-    #[deprecated(
-        since = "0.1.0",
-        note = "This endpoint will soon be removed, use `request_quote` and `assemble_quote` instead"
-    )]
-    #[allow(deprecated)]
     pub async fn request_external_match(
         &self,
         order: ExternalOrder,
@@ -356,11 +351,6 @@ impl ExternalMatchClient {
     }
 
     /// Request an external match and specify any options for the request
-    #[deprecated(
-        since = "0.1.0",
-        note = "This endpoint will soon be removed, use `request_quote` and `assemble_quote` instead"
-    )]
-    #[allow(deprecated)]
     pub async fn request_external_match_with_options(
         &self,
         order: ExternalOrder,
@@ -378,6 +368,45 @@ impl ExternalMatchClient {
         let resp =
             self.auth_http_client.post_with_headers_raw(path.as_str(), request, headers).await?;
         let match_resp = Self::handle_optional_response::<ExternalMatchResponse>(resp).await?;
+        Ok(match_resp)
+    }
+
+    /// Request a malleable external match
+    pub async fn request_malleable_external_match(
+        &self,
+        order: ExternalOrder,
+    ) -> Result<
+        Option<GenericMalleableExternalMatchResponse<false /* USE_CONNECTOR */>>,
+        ExternalMatchClientError,
+    > {
+        self.request_malleable_external_match_with_options(order, Default::default()).await
+    }
+
+    /// Request a malleable external match and specify any options for the
+    /// request
+    pub async fn request_malleable_external_match_with_options(
+        &self,
+        order: ExternalOrder,
+        options: ExternalMatchOptions,
+    ) -> Result<
+        Option<GenericMalleableExternalMatchResponse<false /* USE_CONNECTOR */>>,
+        ExternalMatchClientError,
+    > {
+        let path = options.build_malleable_request_path();
+        let do_gas_estimation = options.do_gas_estimation;
+        let request = ExternalMatchRequest {
+            external_order: order,
+            do_gas_estimation,
+            receiver_address: options.receiver_address,
+        };
+        let headers = self.get_headers()?;
+
+        let resp =
+            self.auth_http_client.post_with_headers_raw(path.as_str(), request, headers).await?;
+        let match_resp = Self::handle_optional_response::<
+            GenericMalleableExternalMatchResponse<false /* USE_CONNECTOR */>,
+        >(resp)
+        .await?;
         Ok(match_resp)
     }
 
