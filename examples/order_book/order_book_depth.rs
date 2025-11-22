@@ -22,7 +22,8 @@ async fn main() -> Result<(), eyre::Error> {
 
     // Get the order book depth for WETH
     println!("Fetching order book depth for WETH...");
-    let depth = client.get_order_book_depth(&weth_address).await?;
+    let resp = client.get_order_book_depth(&weth_address).await?;
+    let depth = resp.depth;
     println!("Current price: ${:.2}", depth.price);
     println!("Timestamp: {}", depth.timestamp);
     println!("\nBuy side:");
@@ -31,6 +32,10 @@ async fn main() -> Result<(), eyre::Error> {
     println!("\nSell side:");
     println!("  Total quantity: {}", depth.sell.total_quantity);
     println!("  Total quantity (USD): ${:.2}", depth.sell.total_quantity_usd);
+    println!(
+        "  Fee rates: {:.6}% relayer, {:.6}% protocol",
+        depth.fee_rates.relayer_fee_rate, depth.fee_rates.protocol_fee_rate
+    );
 
     Ok(())
 }

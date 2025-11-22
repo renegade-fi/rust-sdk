@@ -7,7 +7,8 @@ use reqwest::{
 
 use crate::{
     api_types::{
-        order_book::{GetDepthByMintResponse, GetDepthForAllPairsResponse},
+        exchange_metadata::ExchangeMetadataResponse,
+        order_book::{GetDepthByMintResponse, GetDepthForAllPairsResponse, PriceAndDepth},
         GenericMalleableExternalMatchResponse, ORDER_BOOK_DEPTH_ROUTE,
     },
     ARBITRUM_ONE_RELAYER_BASE_URL, ARBITRUM_SEPOLIA_RELAYER_BASE_URL,
@@ -25,7 +26,7 @@ use super::{
     api_types::{
         ApiSignedQuote, AssembleExternalMatchRequest, ExternalMatchRequest, ExternalMatchResponse,
         ExternalOrder, ExternalQuoteRequest, ExternalQuoteResponse, GetSupportedTokensResponse,
-        SignedExternalQuote, GET_SUPPORTED_TOKENS_ROUTE,
+        SignedExternalQuote, GET_EXCHANGE_METADATA_ROUTE, GET_SUPPORTED_TOKENS_ROUTE,
     },
     error::ExternalMatchClientError,
 };
@@ -211,6 +212,17 @@ impl ExternalMatchClient {
         Ok(resp)
     }
 
+    /// Get metadata about the Renegade exchange
+    pub async fn get_exchange_metadata(
+        &self,
+    ) -> Result<ExchangeMetadataResponse, ExternalMatchClientError> {
+        let path = GET_EXCHANGE_METADATA_ROUTE;
+        let headers = self.get_headers()?;
+        let resp = self.auth_http_client.get_with_headers(path, headers).await?;
+
+        Ok(resp)
+    }
+
     /// Get the order book depth for a token
     ///
     /// The address is the address of the token
@@ -220,9 +232,10 @@ impl ExternalMatchClient {
     ) -> Result<GetDepthByMintResponse, ExternalMatchClientError> {
         let path = format!("{ORDER_BOOK_DEPTH_ROUTE}/{address}");
         let headers = self.get_headers()?;
-        let resp = self.auth_http_client.get_with_headers(path.as_str(), headers).await?;
+        let resp: PriceAndDepth =
+            self.auth_http_client.get_with_headers(path.as_str(), headers).await?;
 
-        Ok(resp)
+        Ok(GetDepthByMintResponse { depth: resp })
     }
 
     /// Get the order book depth for all supported tokens
@@ -260,10 +273,8 @@ impl ExternalMatchClient {
 
         let resp = self.auth_http_client.post_with_headers_raw(&path, request, headers).await?;
         let quote_resp = Self::handle_optional_response::<ExternalQuoteResponse>(resp).await?;
-        Ok(quote_resp.map(|r| {
-            let ApiSignedQuote { quote, signature } = r.signed_quote;
-            SignedExternalQuote { quote, signature, gas_sponsorship_info: r.gas_sponsorship_info }
-        }))
+        Ok(quote_resp
+            .map(|r| SignedExternalQuote::from_api_quote(r.signed_quote, r.gas_sponsorship_info)))
     }
 
     /// Assemble a quote into a match bundle, ready for settlement
@@ -281,7 +292,7 @@ impl ExternalMatchClient {
         options: AssembleQuoteOptions<false /* USE_CONNECTOR */>,
     ) -> Result<Option<ExternalMatchResponse>, ExternalMatchClientError> {
         let path = options.build_request_path();
-        let signed_quote = ApiSignedQuote { quote: quote.quote, signature: quote.signature };
+        let signed_quote = ApiSignedQuote::from(quote);
         let request = AssembleExternalMatchRequest {
             signed_quote,
             receiver_address: options.receiver_address,
@@ -323,7 +334,7 @@ impl ExternalMatchClient {
         ExternalMatchClientError,
     > {
         let path = options.build_malleable_request_path();
-        let signed_quote = ApiSignedQuote { quote: quote.quote, signature: quote.signature };
+        let signed_quote = ApiSignedQuote::from(quote);
         let request = AssembleExternalMatchRequest {
             signed_quote,
             receiver_address: options.receiver_address.clone(),

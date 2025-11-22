@@ -16,6 +16,15 @@ pub struct GetDepthForAllPairsResponse {
     pub pairs: Vec<PriceAndDepth>,
 }
 
+/// The fee rates for a given pair
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct FeeRates {
+    /// The relayer fee rate
+    pub relayer_fee_rate: f64,
+    /// The protocol fee rate
+    pub protocol_fee_rate: f64,
+}
+
 /// The liquidity depth for a given pair
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct PriceAndDepth {
@@ -29,6 +38,8 @@ pub struct PriceAndDepth {
     pub buy: DepthSide,
     /// The liquidity depth for the sell side
     pub sell: DepthSide,
+    /// The fee rates for the pair
+    pub fee_rates: FeeRates,
 }
 
 /// The liquidity depth for a given side of the market

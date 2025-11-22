@@ -23,6 +23,10 @@ async fn main() -> Result<(), eyre::Error> {
         println!("   Sell side:");
         println!("     Total quantity: {}", pair.sell.total_quantity);
         println!("     Total quantity (USD): ${:.2}", pair.sell.total_quantity_usd);
+        println!(
+            "   Fee rates: {:.6}% relayer, {:.6}% protocol",
+            pair.fee_rates.relayer_fee_rate, pair.fee_rates.protocol_fee_rate
+        );
         println!();
     }
 
