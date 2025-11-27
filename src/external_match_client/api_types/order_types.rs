@@ -122,6 +122,8 @@ pub struct MalleableAtomicMatchApiBundle {
     pub min_send: ApiExternalAssetTransfer,
     /// The transaction which settles the match on-chain
     pub settlement_tx: TransactionRequest,
+    /// The deadline of the bundle, in milliseconds since the epoch
+    pub deadline: u64,
 }
 
 /// An atomic match settlement bundle, sent to the client so that they may
@@ -138,6 +140,8 @@ pub struct AtomicMatchApiBundle {
     pub send: ApiExternalAssetTransfer,
     /// The transaction which settles the match on-chain
     pub settlement_tx: TransactionRequest,
+    /// The deadline of the bundle, in milliseconds since the epoch
+    pub deadline: u64,
 }
 
 /// An asset transfer from an external party
@@ -171,6 +175,18 @@ pub struct ApiSignedQuote {
     pub quote: ApiExternalQuote,
     /// The signature
     pub signature: String,
+    /// The deadline of the quote, in milliseconds since the epoch
+    pub deadline: u64,
+}
+
+impl From<SignedExternalQuote> for ApiSignedQuote {
+    fn from(signed_quote: SignedExternalQuote) -> Self {
+        ApiSignedQuote {
+            quote: signed_quote.quote,
+            signature: signed_quote.signature,
+            deadline: signed_quote.deadline,
+        }
+    }
 }
 
 /// A signed quote for an external order, including gas sponsorship info, if any
@@ -180,11 +196,25 @@ pub struct SignedExternalQuote {
     pub quote: ApiExternalQuote,
     /// The signature
     pub signature: String,
+    /// The deadline of the quote, in milliseconds since the epoch
+    pub deadline: u64,
     /// The signed gas sponsorship info, if sponsorship was requested
     pub gas_sponsorship_info: Option<SignedGasSponsorshipInfo>,
 }
 
 impl SignedExternalQuote {
+    /// Create a signed quote from an external quote
+    pub fn from_api_quote(
+        external_quote: ApiSignedQuote,
+        gas_sponsorship_info: Option<SignedGasSponsorshipInfo>,
+    ) -> Self {
+        SignedExternalQuote {
+            quote: external_quote.quote,
+            signature: external_quote.signature,
+            deadline: external_quote.deadline,
+            gas_sponsorship_info,
+        }
+    }
     /// Get the match result from the quote
     pub fn match_result(&self) -> ApiExternalMatchResult {
         self.quote.match_result.clone()

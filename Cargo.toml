@@ -73,6 +73,11 @@ path = "examples/order_book/all_pairs_depth.rs"
 required-features = ["examples"]
 
 [[example]]
+name = "exchange_metadata"
+path = "examples/order_book/exchange_metadata.rs"
+required-features = ["examples"]
+
+[[example]]
 name = "shared_bundle"
 path = "examples/external_match/shared_bundle.rs"
 required-features = ["examples"]
