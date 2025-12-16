@@ -3,9 +3,8 @@ use url::form_urlencoded;
 
 use crate::{
     api_types::{
-        ASSEMBLE_EXTERNAL_MATCH_MALLEABLE_ROUTE, ASSEMBLE_EXTERNAL_MATCH_ROUTE,
-        REQUEST_EXTERNAL_MATCH_ROUTE, REQUEST_EXTERNAL_QUOTE_ROUTE,
-        REQUEST_MALLEABLE_EXTERNAL_MATCH_ROUTE,
+        ASSEMBLE_EXTERNAL_MATCH_MALLEABLE_ROUTE, ASSEMBLE_EXTERNAL_MATCH_ROUTE, GET_QUOTE_ROUTE,
+        REQUEST_EXTERNAL_MATCH_ROUTE, REQUEST_MALLEABLE_EXTERNAL_MATCH_ROUTE,
     },
     types::ExternalOrder,
     GAS_REFUND_NATIVE_ETH_QUERY_PARAM,
@@ -61,7 +60,7 @@ impl RequestQuoteOptions {
             query.append_pair(GAS_REFUND_ADDRESS_QUERY_PARAM, addr);
         }
 
-        format!("{}?{}", REQUEST_EXTERNAL_QUOTE_ROUTE, query.finish())
+        format!("{}?{}", GET_QUOTE_ROUTE, query.finish())
     }
 }
 

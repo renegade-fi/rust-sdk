@@ -8,7 +8,7 @@ pub mod api_types;
 
 mod client;
 mod options;
-use api_types::{Amount, ExternalOrder, OrderSide};
+use api_types::{Amount, ExternalOrder};
 pub use client::ExternalMatchClient;
 #[allow(deprecated)]
 pub use options::{AssembleQuoteOptions, ExternalMatchOptions, RequestQuoteOptions};
@@ -28,20 +28,16 @@ pub const USE_MALLEABLE_MATCH_CONNECTOR_QUERY_PARAM: &str = "use_malleable_match
 /// A builder for an [`ExternalOrder`]
 #[derive(Debug, Clone, Default)]
 pub struct ExternalOrderBuilder {
-    /// The mint (erc20 address) of the quote token
-    quote_mint: Option<String>,
-    /// The mint (erc20 address) of the base token
-    base_mint: Option<String>,
-    /// The amount of the order
-    base_amount: Option<Amount>,
-    /// The amount of the order
-    quote_amount: Option<Amount>,
-    /// The exact base amount to output from the order
-    exact_base_output: Option<Amount>,
-    /// The exact quote amount to output from the order
-    exact_quote_output: Option<Amount>,
-    /// The side of the order
-    side: Option<OrderSide>,
+    /// The mint (erc20 address) of the input token
+    input_mint: Option<String>,
+    /// The mint (erc20 address) of the output token
+    output_mint: Option<String>,
+    /// The input amount of the order
+    input_amount: Option<Amount>,
+    /// The output amount of the order
+    output_amount: Option<Amount>,
+    /// Whether to consider the output amount as an exact amount (net of fees)
+    use_exact_output_amount: Option<bool>,
     /// The minimum fill size
     min_fill_size: Option<Amount>,
 }
@@ -52,53 +48,35 @@ impl ExternalOrderBuilder {
         Self::default()
     }
 
-    /// Set the quote mint
+    /// Set the input mint
     ///
-    /// Expects the quote mint as a hex encoded string
-    pub fn quote_mint(mut self, quote_mint: &str) -> Self {
-        self.quote_mint = Some(quote_mint.to_string());
+    /// Expects the input mint as a hex encoded string
+    pub fn input_mint(mut self, input_mint: &str) -> Self {
+        self.input_mint = Some(input_mint.to_string());
         self
     }
 
-    /// Set the base mint
-    pub fn base_mint(mut self, base_mint: &str) -> Self {
-        self.base_mint = Some(base_mint.to_string());
+    /// Set the output mint
+    pub fn output_mint(mut self, output_mint: &str) -> Self {
+        self.output_mint = Some(output_mint.to_string());
         self
     }
 
-    /// Set the amount (deprecated -- use base_amount or quote_amount instead)
-    #[deprecated(since = "0.1.0", note = "use base_amount() or quote_amount() instead")]
-    pub fn amount(self, amount: Amount) -> Self {
-        self.base_amount(amount)
-    }
-
-    /// Set the base amount
-    pub fn base_amount(mut self, base_amount: Amount) -> Self {
-        self.base_amount = Some(base_amount);
+    /// Set the input amount
+    pub fn input_amount(mut self, input_amount: Amount) -> Self {
+        self.input_amount = Some(input_amount);
         self
     }
 
-    /// Set the quote amount
-    pub fn quote_amount(mut self, quote_amount: Amount) -> Self {
-        self.quote_amount = Some(quote_amount);
+    /// Set the output amount
+    pub fn output_amount(mut self, output_amount: Amount) -> Self {
+        self.output_amount = Some(output_amount);
         self
     }
 
-    /// Set the side
-    pub fn side(mut self, side: OrderSide) -> Self {
-        self.side = Some(side);
-        self
-    }
-
-    /// Set the exact base output amount
-    pub fn exact_base_output(mut self, exact_base_output: Amount) -> Self {
-        self.exact_base_output = Some(exact_base_output);
-        self
-    }
-
-    /// Set the exact quote output amount
-    pub fn exact_quote_output(mut self, exact_quote_output: Amount) -> Self {
-        self.exact_quote_output = Some(exact_quote_output);
+    /// Set whether to use an exact output amount
+    pub fn use_exact_output_amount(mut self) -> Self {
+        self.use_exact_output_amount = Some(true);
         self
     }
 
@@ -110,45 +88,33 @@ impl ExternalOrderBuilder {
 
     /// Build the external order
     pub fn build(self) -> Result<ExternalOrder, ExternalMatchClientError> {
-        let quote_mint =
-            self.quote_mint.ok_or(ExternalMatchClientError::invalid_order("invalid quote mint"))?;
-        let base_mint =
-            self.base_mint.ok_or(ExternalMatchClientError::invalid_order("invalid base mint"))?;
+        let input_mint =
+            self.input_mint.ok_or(ExternalMatchClientError::invalid_order("invalid input mint"))?;
 
-        // Ensure exactly one of the four amount fields is set
-        let base_zero = self.base_amount.is_none_or(|amt| amt == 0);
-        let quote_zero = self.quote_amount.is_none_or(|amt| amt == 0);
-        let exact_base_output = self.exact_base_output.is_some_and(|amt| amt != 0);
-        let exact_quote_output = self.exact_quote_output.is_some_and(|amt| amt != 0);
+        let output_mint = self
+            .output_mint
+            .ok_or(ExternalMatchClientError::invalid_order("invalid output mint"))?;
 
-        // Check that exactly one of the sizing constraints is set
-        let n_sizes_set = (!base_zero as u8)
-            + (!quote_zero as u8)
-            + (exact_base_output as u8)
-            + (exact_quote_output as u8);
-
-        if n_sizes_set != 1 {
+        // Ensure exactly one of the amount fields is set
+        let input_zero = self.input_amount.is_none_or(|amt| amt == 0);
+        let output_zero = self.output_amount.is_none_or(|amt| amt == 0);
+        if !(input_zero ^ output_zero) {
             return Err(ExternalMatchClientError::invalid_order(
-                "exactly one of base_amount, quote_amount, exact_base_output, or exact_quote_output must be set",
+                "exactly one of input_amount or output_amount must be set",
             ));
         }
 
-        let base_amount = self.base_amount.unwrap_or_default();
-        let quote_amount = self.quote_amount.unwrap_or_default();
-        let exact_base_output = self.exact_base_output.unwrap_or_default();
-        let exact_quote_output = self.exact_quote_output.unwrap_or_default();
-
-        let side = self.side.ok_or(ExternalMatchClientError::invalid_order("invalid side"))?;
+        let input_amount = self.input_amount.unwrap_or_default();
+        let output_amount = self.output_amount.unwrap_or_default();
+        let use_exact_output_amount = self.use_exact_output_amount.unwrap_or_default();
         let min_fill_size = self.min_fill_size.unwrap_or_default();
 
         Ok(ExternalOrder {
-            quote_mint,
-            base_mint,
-            base_amount,
-            quote_amount,
-            exact_base_output,
-            exact_quote_output,
-            side,
+            input_mint,
+            output_mint,
+            input_amount,
+            output_amount,
+            use_exact_output_amount,
             min_fill_size,
         })
     }

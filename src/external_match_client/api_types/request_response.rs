@@ -6,7 +6,7 @@ use crate::api_types::token::TokenPrice;
 
 use super::{
     token::ApiToken, ApiSignedQuote, AtomicMatchApiBundle, ExternalOrder, GasSponsorshipInfo,
-    MalleableAtomicMatchApiBundle, SignedGasSponsorshipInfo,
+    MalleableAtomicMatchApiBundle,
 };
 
 // -------------------------------
@@ -68,7 +68,7 @@ pub struct ExternalQuoteResponse {
     /// The signed quote
     pub signed_quote: ApiSignedQuote,
     /// The signed gas sponsorship info, if sponsorship was requested
-    pub gas_sponsorship_info: Option<SignedGasSponsorshipInfo>,
+    pub gas_sponsorship_info: Option<GasSponsorshipInfo>,
 }
 
 /// The request type for assembling an external match quote into a settlement

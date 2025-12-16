@@ -14,7 +14,7 @@ use crate::{
     ARBITRUM_ONE_RELAYER_BASE_URL, ARBITRUM_SEPOLIA_RELAYER_BASE_URL,
     BASE_MAINNET_RELAYER_BASE_URL, BASE_SEPOLIA_RELAYER_BASE_URL,
 };
-#[allow(deprecated)]
+
 use crate::{
     api_types::{GetTokenPricesResponse, GET_TOKEN_PRICES_ROUTE},
     http::RelayerHttpClient,
@@ -124,15 +124,6 @@ impl ExternalMatchClient {
         Self::new(api_key, api_secret, BASE_SEPOLIA_AUTH_BASE_URL, BASE_SEPOLIA_RELAYER_BASE_URL)
     }
 
-    /// Create a new client for the Arbitrum Sepolia network
-    #[deprecated(since = "0.1.6", note = "Use new_arbitrum_sepolia_client instead")]
-    pub fn new_sepolia_client(
-        api_key: &str,
-        api_secret: &str,
-    ) -> Result<Self, ExternalMatchClientError> {
-        Self::new_arbitrum_sepolia_client(api_key, api_secret)
-    }
-
     /// Create a new client for the Arbitrum One network
     pub fn new_arbitrum_one_client(
         api_key: &str,
@@ -177,15 +168,6 @@ impl ExternalMatchClient {
             BASE_MAINNET_RELAYER_BASE_URL,
             client,
         )
-    }
-
-    /// Create a new client for the Arbitrum One network
-    #[deprecated(since = "0.1.6", note = "Use new_arbitrum_one_client instead")]
-    pub fn new_mainnet_client(
-        api_key: &str,
-        api_secret: &str,
-    ) -> Result<Self, ExternalMatchClientError> {
-        Self::new_arbitrum_one_client(api_key, api_secret)
     }
 
     // --------------------

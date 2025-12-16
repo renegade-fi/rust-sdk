@@ -10,7 +10,6 @@ pub(crate) mod external_match_client;
 mod http;
 pub mod types;
 mod util;
-pub mod v2;
 
 #[cfg(feature = "internal")]
 pub use http::*;
