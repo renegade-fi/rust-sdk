@@ -4,6 +4,11 @@
 //! committed into the Renegade darkpool, and an external party -- one with no
 //! state committed into the Renegade darkpool.
 
+use reqwest::{
+    header::{HeaderMap, HeaderValue},
+    StatusCode,
+};
+
 use crate::{
     v2::{
         ARBITRUM_ONE_RELAYER_BASE_URL, ARBITRUM_SEPOLIA_RELAYER_BASE_URL,
@@ -12,12 +17,10 @@ use crate::{
     HmacKey, RelayerHttpClient,
 };
 
+mod api;
 mod error;
+
 pub use error::ExternalMatchClientError;
-use reqwest::{
-    header::{HeaderMap, HeaderValue},
-    StatusCode,
-};
 
 // -------------
 // | Constants |
