@@ -4,13 +4,14 @@ use std::sync::Arc;
 use std::{collections::HashMap, time::Duration};
 
 use futures_util::{Sink, SinkExt, StreamExt};
+use renegade_api::auth::add_expiring_auth_to_headers;
 use renegade_api::types::ApiHistoricalTask;
 use renegade_api::{
     bus_message::{SystemBusMessage, SystemBusMessageWithTopic as ServerMessage},
     websocket::{ClientWebsocketMessage, WebsocketMessage},
 };
+use renegade_common::types::hmac::HmacKey;
 use renegade_common::types::tasks::TaskIdentifier;
-use renegade_common::types::wallet::WalletIdentifier;
 use reqwest::header::HeaderMap;
 use tokio::sync::{
     mpsc::{self, UnboundedReceiver, UnboundedSender},
@@ -22,9 +23,7 @@ use uuid::Uuid;
 
 use crate::{
     renegade_wallet_client::config::RenegadeClientConfig,
-    util::{add_expiring_auth_to_headers, HmacKey},
-    websocket::task_waiter::TaskStatusNotification,
-    RenegadeClientError,
+    websocket::task_waiter::TaskStatusNotification, RenegadeClientError,
 };
 
 // -------------
@@ -100,18 +99,14 @@ pub struct RenegadeWebsocketClient {
 
 impl RenegadeWebsocketClient {
     /// Create a new websocket client
-    pub fn new(
-        config: &RenegadeClientConfig,
-        wallet_id: WalletIdentifier,
-        wallet_symmetric_key: HmacKey,
-    ) -> Self {
+    pub fn new(config: &RenegadeClientConfig, account_id: Uuid, auth_hmac_key: HmacKey) -> Self {
         let base_url = config.relayer_base_url.replace("http", "ws");
         let base_url = format!("{base_url}:{DEFAULT_WS_PORT}");
 
         Self {
             base_url,
-            account_id: wallet_id,
-            auth_hmac_key: wallet_symmetric_key,
+            account_id,
+            auth_hmac_key,
             notifications: create_notification_map(),
             connection_guard: Arc::new(OnceCell::new()),
         }

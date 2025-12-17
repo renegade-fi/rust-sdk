@@ -7,6 +7,7 @@ use alloy::signers::local::PrivateKeySigner;
 use alloy::signers::SignerSync;
 use ark_ff::PrimeField;
 use renegade_circuit_types::schnorr::SchnorrPrivateKey;
+use renegade_common::types::hmac::HmacKey;
 use renegade_common::types::tasks::TaskIdentifier;
 use renegade_constants::{EmbeddedScalarField, Scalar};
 use uuid::Uuid;
@@ -14,7 +15,7 @@ use uuid::Uuid;
 use crate::util::get_env_agnostic_chain;
 use crate::websocket::{TaskWaiter, TaskWaiterBuilder};
 use crate::{
-    http::RelayerHttpClient, renegade_wallet_client::config::RenegadeClientConfig, util::HmacKey,
+    http::RelayerHttpClient, renegade_wallet_client::config::RenegadeClientConfig,
     websocket::RenegadeWebsocketClient, RenegadeClientError, BASE_MAINNET_CHAIN_ID,
     BASE_SEPOLIA_CHAIN_ID,
 };
@@ -44,7 +45,7 @@ const ACCOUNT_ID_BYTES: usize = 16;
 // -----------
 
 /// The secrets used to authenticate account actions
-#[derive(Clone)]
+#[derive(Copy, Clone)]
 pub struct AccountSecrets {
     /// The ID of the account
     pub account_id: Uuid,

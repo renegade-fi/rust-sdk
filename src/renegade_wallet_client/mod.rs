@@ -7,6 +7,7 @@ use crate::http::RelayerHttpClientError;
 pub mod actions;
 pub mod client;
 pub mod config;
+pub mod renegade_api_types;
 pub mod websocket;
 
 /// The error type for the renegade wallet client

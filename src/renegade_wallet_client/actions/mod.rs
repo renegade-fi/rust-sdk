@@ -1,13 +1,13 @@
 //! Actions to update a Renegade wallet
 
 pub mod cancel_order;
-pub mod create_wallet;
+pub mod create_account;
 pub mod deposit;
+pub mod get_account_seeds;
 pub mod get_balance_by_mint;
 pub mod get_order;
 pub mod get_task_history;
 pub mod get_task_queue;
-pub mod get_wallet;
 pub mod lookup_wallet;
 pub mod place_order;
 pub mod refresh_wallet;
