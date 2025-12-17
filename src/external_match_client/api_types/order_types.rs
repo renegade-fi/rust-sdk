@@ -84,27 +84,33 @@ impl FeeTakeRate {
 /// An API server bounded match result
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ApiBoundedMatchResult {
-    /// The mint of the quote token in the matched asset pair
-    pub quote_mint: String,
-    /// The mint of the base token in the matched asset pair
-    pub base_mint: String,
-    /// The price at which the match executes
+    /// The mint of the input token in the matched asset pair
+    pub input_mint: String,
+    /// The mint of the output token in the matched asset pair
+    pub output_mint: String,
+    /// The price at which the match executes, in terms of quote token per base
+    /// token.
+    ///
+    /// Renegade always uses USDC as the quote token.
     pub price_fp: FixedPoint,
-    /// The minimum base amount of the match
-    pub min_base_amount: Amount,
-    /// The maximum base amount of the match
-    pub max_base_amount: Amount,
-    /// The direction of the match
-    pub direction: OrderSide,
+    /// The price at which the match executes, in terms of output token per
+    /// input token.
+    pub output_quoted_price_fp: FixedPoint,
+    /// The minimum input amount of the match
+    #[serde(with = "amount_string_serde")]
+    pub min_input_amount: Amount,
+    /// The maximum input amount of the match
+    #[serde(with = "amount_string_serde")]
+    pub max_input_amount: Amount,
 }
 
 /// An atomic match settlement bundle using a malleable match result
 ///
-/// A malleable match result is one in which the exact `base_amount` swapped
+/// A malleable match result is one in which the exact `input_amount` swapped
 /// is not known at the time the proof is generated, and may be changed up until
 /// it is submitted on-chain. Instead, a bounded match result gives a
-/// `min_base_amount` and a `max_base_amount`, between which the `base_amount`
-/// may take any value
+/// `min_input_amount` and a `max_input_amount`, between which the
+/// `input_amount` may take any value
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct MalleableAtomicMatchApiBundle {
     /// The match result
@@ -119,24 +125,6 @@ pub struct MalleableAtomicMatchApiBundle {
     pub max_send: ApiExternalAssetTransfer,
     /// The minimum amount that the external party will send
     pub min_send: ApiExternalAssetTransfer,
-    /// The transaction which settles the match on-chain
-    pub settlement_tx: TransactionRequest,
-    /// The deadline of the bundle, in milliseconds since the epoch
-    pub deadline: u64,
-}
-
-/// An atomic match settlement bundle, sent to the client so that they may
-/// settle the match on-chain
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct AtomicMatchApiBundle {
-    /// The match result
-    pub match_result: ApiExternalMatchResult,
-    /// The fees owed by the external party
-    pub fees: FeeTake,
-    /// The transfer received by the external party, net of fees
-    pub receive: ApiExternalAssetTransfer,
-    /// The transfer sent by the external party
-    pub send: ApiExternalAssetTransfer,
     /// The transaction which settles the match on-chain
     pub settlement_tx: TransactionRequest,
     /// The deadline of the bundle, in milliseconds since the epoch

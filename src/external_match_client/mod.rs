@@ -22,8 +22,6 @@ pub const GAS_SPONSORSHIP_QUERY_PARAM: &str = "disable_gas_sponsorship";
 pub const GAS_REFUND_ADDRESS_QUERY_PARAM: &str = "refund_address";
 /// The auth server query param for refunding gas in terms of native ETH
 pub const GAS_REFUND_NATIVE_ETH_QUERY_PARAM: &str = "refund_native_eth";
-/// The auth server query param for using the malleable match connector
-pub const USE_MALLEABLE_MATCH_CONNECTOR_QUERY_PARAM: &str = "use_malleable_match_connector";
 
 /// A builder for an [`ExternalOrder`]
 #[derive(Debug, Clone, Default)]

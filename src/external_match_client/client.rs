@@ -9,7 +9,7 @@ use crate::{
     api_types::{
         exchange_metadata::ExchangeMetadataResponse,
         order_book::{GetDepthByMintResponse, GetDepthForAllPairsResponse, PriceAndDepth},
-        GenericMalleableExternalMatchResponse, ORDER_BOOK_DEPTH_ROUTE,
+        AssemblyType, ExternalMatchResponse, ASSEMBLE_MATCH_BUNDLE_ROUTE, ORDER_BOOK_DEPTH_ROUTE,
     },
     ARBITRUM_ONE_RELAYER_BASE_URL, ARBITRUM_SEPOLIA_RELAYER_BASE_URL,
     BASE_MAINNET_RELAYER_BASE_URL, BASE_SEPOLIA_RELAYER_BASE_URL,
@@ -24,9 +24,9 @@ use crate::{
 
 use super::{
     api_types::{
-        ApiSignedQuote, AssembleExternalMatchRequest, ExternalMatchRequest, ExternalMatchResponse,
-        ExternalOrder, ExternalQuoteRequest, ExternalQuoteResponse, GetSupportedTokensResponse,
-        SignedExternalQuote, GET_EXCHANGE_METADATA_ROUTE, GET_SUPPORTED_TOKENS_ROUTE,
+        ApiSignedQuote, AssembleExternalMatchRequest, ExternalOrder, ExternalQuoteRequest,
+        ExternalQuoteResponse, GetSupportedTokensResponse, SignedExternalQuote,
+        GET_EXCHANGE_METADATA_ROUTE, GET_SUPPORTED_TOKENS_ROUTE,
     },
     error::ExternalMatchClientError,
 };
@@ -271,68 +271,51 @@ impl ExternalMatchClient {
     pub async fn assemble_quote_with_options(
         &self,
         quote: SignedExternalQuote,
-        options: AssembleQuoteOptions<false /* USE_CONNECTOR */>,
+        options: AssembleQuoteOptions,
     ) -> Result<Option<ExternalMatchResponse>, ExternalMatchClientError> {
-        let path = options.build_request_path();
+        let path = ASSEMBLE_MATCH_BUNDLE_ROUTE;
+
         let signed_quote = ApiSignedQuote::from(quote);
+        let assembly =
+            AssemblyType::QuotedOrder { signed_quote, updated_order: options.updated_order };
+
         let request = AssembleExternalMatchRequest {
-            signed_quote,
             receiver_address: options.receiver_address,
             do_gas_estimation: options.do_gas_estimation,
-            allow_shared: options.allow_shared,
-            updated_order: options.updated_order,
+            assembly,
         };
-        let headers = self.get_headers()?;
 
-        let resp =
-            self.auth_http_client.post_with_headers_raw(path.as_str(), request, headers).await?;
+        let headers = self.get_headers()?;
+        let resp = self.auth_http_client.post_with_headers_raw(path, request, headers).await?;
+
         let match_resp = Self::handle_optional_response::<ExternalMatchResponse>(resp).await?;
         Ok(match_resp)
     }
 
     /// Assemble a quote into a malleable match bundle, ready for settlement
+    #[deprecated(
+        since = "2.0.0",
+        note = "Use assemble_quote instead, all matches are now malleable"
+    )]
     pub async fn assemble_malleable_quote(
         &self,
         quote: SignedExternalQuote,
-    ) -> Result<
-        Option<GenericMalleableExternalMatchResponse<false /* USE_CONNECTOR */>>,
-        ExternalMatchClientError,
-    > {
-        self.assemble_malleable_quote_with_options(
-            quote,
-            AssembleQuoteOptions::<false /* USE_CONNECTOR */>::default(),
-        )
-        .await
+    ) -> Result<Option<ExternalMatchResponse>, ExternalMatchClientError> {
+        self.assemble_quote(quote).await
     }
 
     /// Assemble a quote into a malleable match bundle, ready for settlement,
     /// with options
-    pub async fn assemble_malleable_quote_with_options<const USE_CONNECTOR: bool>(
+    #[deprecated(
+        since = "2.0.0",
+        note = "Use assemble_quote_with_options instead, all matches are now malleable"
+    )]
+    pub async fn assemble_malleable_quote_with_options(
         &self,
         quote: SignedExternalQuote,
-        options: AssembleQuoteOptions<USE_CONNECTOR>,
-    ) -> Result<
-        Option<GenericMalleableExternalMatchResponse<USE_CONNECTOR>>,
-        ExternalMatchClientError,
-    > {
-        let path = options.build_malleable_request_path();
-        let signed_quote = ApiSignedQuote::from(quote);
-        let request = AssembleExternalMatchRequest {
-            signed_quote,
-            receiver_address: options.receiver_address.clone(),
-            do_gas_estimation: options.do_gas_estimation,
-            allow_shared: options.allow_shared,
-            updated_order: options.updated_order.clone(),
-        };
-        let headers = self.get_headers()?;
-
-        let resp =
-            self.auth_http_client.post_with_headers_raw(path.as_str(), request, headers).await?;
-        let match_resp = Self::handle_optional_response::<
-            GenericMalleableExternalMatchResponse<USE_CONNECTOR>,
-        >(resp)
-        .await?;
-        Ok(match_resp)
+        options: AssembleQuoteOptions,
+    ) -> Result<Option<ExternalMatchResponse>, ExternalMatchClientError> {
+        self.assemble_quote_with_options(quote, options).await
     }
 
     /// Request an external match
@@ -350,57 +333,47 @@ impl ExternalMatchClient {
         options: ExternalMatchOptions,
     ) -> Result<Option<ExternalMatchResponse>, ExternalMatchClientError> {
         let path = options.build_request_path();
-        let do_gas_estimation = options.do_gas_estimation;
-        let request = ExternalMatchRequest {
-            external_order: order,
-            do_gas_estimation,
-            receiver_address: options.receiver_address,
-        };
-        let headers = self.get_headers()?;
 
+        let assembly = AssemblyType::NewOrder { external_order: order };
+
+        let request = AssembleExternalMatchRequest {
+            receiver_address: options.receiver_address,
+            do_gas_estimation: options.do_gas_estimation,
+            assembly,
+        };
+
+        let headers = self.get_headers()?;
         let resp =
             self.auth_http_client.post_with_headers_raw(path.as_str(), request, headers).await?;
+
         let match_resp = Self::handle_optional_response::<ExternalMatchResponse>(resp).await?;
         Ok(match_resp)
     }
 
     /// Request a malleable external match
+    #[deprecated(
+        since = "2.0.0",
+        note = "Use request_external_match instead, all matches are now malleable"
+    )]
     pub async fn request_malleable_external_match(
         &self,
         order: ExternalOrder,
-    ) -> Result<
-        Option<GenericMalleableExternalMatchResponse<false /* USE_CONNECTOR */>>,
-        ExternalMatchClientError,
-    > {
-        self.request_malleable_external_match_with_options(order, Default::default()).await
+    ) -> Result<Option<ExternalMatchResponse>, ExternalMatchClientError> {
+        self.request_external_match(order).await
     }
 
     /// Request a malleable external match and specify any options for the
     /// request
+    #[deprecated(
+        since = "2.0.0",
+        note = "Use request_external_match_with_options instead, all matches are now malleable"
+    )]
     pub async fn request_malleable_external_match_with_options(
         &self,
         order: ExternalOrder,
         options: ExternalMatchOptions,
-    ) -> Result<
-        Option<GenericMalleableExternalMatchResponse<false /* USE_CONNECTOR */>>,
-        ExternalMatchClientError,
-    > {
-        let path = options.build_malleable_request_path();
-        let do_gas_estimation = options.do_gas_estimation;
-        let request = ExternalMatchRequest {
-            external_order: order,
-            do_gas_estimation,
-            receiver_address: options.receiver_address,
-        };
-        let headers = self.get_headers()?;
-
-        let resp =
-            self.auth_http_client.post_with_headers_raw(path.as_str(), request, headers).await?;
-        let match_resp = Self::handle_optional_response::<
-            GenericMalleableExternalMatchResponse<false /* USE_CONNECTOR */>,
-        >(resp)
-        .await?;
-        Ok(match_resp)
+    ) -> Result<Option<ExternalMatchResponse>, ExternalMatchClientError> {
+        self.request_external_match_with_options(order, options).await
     }
 
     /// Helper function to handle response that might be NO_CONTENT, OK with
