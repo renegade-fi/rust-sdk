@@ -4,13 +4,11 @@ use std::sync::Arc;
 use std::{collections::HashMap, time::Duration};
 
 use futures_util::{Sink, SinkExt, StreamExt};
-use renegade_api::auth::add_expiring_auth_to_headers;
 use renegade_api::types::ApiHistoricalTask;
 use renegade_api::{
     bus_message::{SystemBusMessage, SystemBusMessageWithTopic as ServerMessage},
     websocket::{ClientWebsocketMessage, WebsocketMessage},
 };
-use renegade_common::types::hmac::HmacKey;
 use renegade_common::types::tasks::TaskIdentifier;
 use renegade_common::types::wallet::WalletIdentifier;
 use reqwest::header::HeaderMap;
@@ -20,10 +18,13 @@ use tokio::sync::{
 };
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 use tracing::{error, warn};
+use uuid::Uuid;
 
 use crate::{
     renegade_wallet_client::config::RenegadeClientConfig,
-    websocket::task_waiter::TaskStatusNotification, RenegadeClientError,
+    util::{add_expiring_auth_to_headers, HmacKey},
+    websocket::task_waiter::TaskStatusNotification,
+    RenegadeClientError,
 };
 
 // -------------
@@ -86,10 +87,10 @@ fn construct_task_history_topic(wallet_id: WalletIdentifier) -> String {
 pub struct RenegadeWebsocketClient {
     /// The base url of the websocket server
     base_url: String,
-    /// The wallet ID
-    wallet_id: WalletIdentifier,
-    /// The wallet's symmetric key
-    wallet_symmetric_key: HmacKey,
+    /// The account ID
+    account_id: Uuid,
+    /// The account's HMAC key
+    auth_hmac_key: HmacKey,
     /// The notifications map
     notifications: NotificationMap,
     /// A guard used to ensure that the websocket connection is only ever
@@ -109,8 +110,8 @@ impl RenegadeWebsocketClient {
 
         Self {
             base_url,
-            wallet_id,
-            wallet_symmetric_key,
+            account_id: wallet_id,
+            auth_hmac_key: wallet_symmetric_key,
             notifications: create_notification_map(),
             connection_guard: Arc::new(OnceCell::new()),
         }
@@ -200,7 +201,7 @@ impl RenegadeWebsocketClient {
         &self,
         ws_tx: &mut W,
     ) -> Result<(), RenegadeClientError> {
-        let topic = construct_task_history_topic(self.wallet_id);
+        let topic = construct_task_history_topic(self.account_id);
 
         let body = WebsocketMessage::Subscribe { topic: topic.clone() };
 
@@ -210,7 +211,7 @@ impl RenegadeWebsocketClient {
             &topic,
             &mut headers,
             &body_ser,
-            &self.wallet_symmetric_key,
+            &self.auth_hmac_key,
             AUTH_EXPIRATION,
         );
 
