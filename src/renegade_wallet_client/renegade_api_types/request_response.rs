@@ -6,7 +6,10 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::{
-    renegade_api_types::account::{ApiPoseidonCSPRNG, ApiSchnorrPrivateKey},
+    renegade_api_types::{
+        account::{ApiPoseidonCSPRNG, ApiSchnorrPrivateKey},
+        orders::ApiOrder,
+    },
     HmacKey,
 };
 
@@ -41,4 +44,33 @@ pub struct GetAccountSeedsResponse {
     pub recovery_seed_csprng: ApiPoseidonCSPRNG,
     /// The current state of the share stream seeds CSPRNG
     pub share_seed_csprng: ApiPoseidonCSPRNG,
+}
+
+// # === Orders === #
+
+/// The query parameters used when fetching all account orders
+#[derive(Debug, Default, Serialize)]
+pub struct GetOrdersQueryParameters {
+    /// Whether to include historic (inactive) orders in the response
+    pub include_historic_orders: Option<bool>,
+    /// The number of orders to return per page
+    pub page_size: Option<usize>,
+    /// The page token to use for pagination
+    pub page_token: Option<usize>,
+}
+
+/// A response containing a page of orders
+#[derive(Debug, Deserialize)]
+pub struct GetOrdersResponse {
+    /// The orders
+    pub orders: Vec<ApiOrder>,
+    /// The next page token to use for pagination, if more orders are available
+    pub next_page_token: Option<usize>,
+}
+
+/// A response containing a single order
+#[derive(Debug, Deserialize)]
+pub struct GetOrderByIdResponse {
+    /// The order
+    pub order: ApiOrder,
 }

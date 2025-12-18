@@ -6,6 +6,7 @@ pub mod deposit;
 pub mod get_account_seeds;
 pub mod get_balance_by_mint;
 pub mod get_order;
+pub mod get_orders;
 pub mod get_task_history;
 pub mod get_task_queue;
 pub mod lookup_wallet;
