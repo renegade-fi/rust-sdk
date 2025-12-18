@@ -1,9 +1,18 @@
 //! API types for the Renegade client
 
+use uuid::Uuid;
+
 mod account;
 pub mod orders;
 pub mod request_response;
 mod serde_helpers;
+
+// ----------------
+// | Type Aliases |
+// ----------------
+
+/// A type alias for a task identifier
+pub type TaskIdentifier = Uuid;
 
 // ---------------
 // | HTTP Routes |
@@ -20,3 +29,6 @@ pub const GET_ORDERS_ROUTE: &str = "/v2/account/:account_id/orders";
 
 /// The route for getting an order by its ID
 pub const GET_ORDER_BY_ID_ROUTE: &str = "/v2/account/:account_id/orders/:order_id";
+
+/// The route for creating an order
+pub const CREATE_ORDER_ROUTE: &str = "/v2/account/:account_id/orders";

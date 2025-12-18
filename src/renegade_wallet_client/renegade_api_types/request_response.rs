@@ -2,13 +2,13 @@
 
 use alloy::primitives::Address;
 use renegade_constants::Scalar;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use uuid::Uuid;
 
 use crate::{
     renegade_api_types::{
         account::{ApiPoseidonCSPRNG, ApiSchnorrPrivateKey},
-        orders::ApiOrder,
+        orders::{ApiOrder, ApiOrderCore, OrderAuth},
     },
     HmacKey,
 };
@@ -73,4 +73,80 @@ pub struct GetOrdersResponse {
 pub struct GetOrderByIdResponse {
     /// The order
     pub order: ApiOrder,
+}
+
+/// The query parameters used when creating an order
+#[derive(Debug, Default, Serialize)]
+pub struct CreateOrderQueryParameters {
+    /// Whether to block on the completion of the order creation task before
+    /// receiving a response
+    pub non_blocking: Option<bool>,
+}
+
+/// A request to create an order
+#[derive(Debug, Serialize)]
+pub struct CreateOrderRequest {
+    /// The order to create
+    pub order: ApiOrderCore,
+    /// The authorization of the order creation
+    pub auth: OrderAuth,
+    /// Whether to precompute a cancellation proof for the order
+    pub precompute_cancellation_proof: bool,
+}
+
+/// The response received after creating an order
+#[derive(Debug, Deserialize)]
+pub struct CreateOrderResponse {
+    /// The ID of the order creation task spawned in the relayer
+    pub task_id: Uuid,
+    /// The order that was created
+    pub order: ApiOrder,
+    /// Whether the order creation task has completed
+    pub completed: bool,
+}
+
+// --------
+// | Misc |
+// --------
+
+/// An empty request/response type
+// TODO: Remove once the relayer's external API crate builds
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct EmptyRequestResponse {}
+
+/// Serialize an empty request/response
+impl Serialize for EmptyRequestResponse {
+    fn serialize<S>(&self, s: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        s.serialize_none()
+    }
+}
+
+/// Deserialize an empty request/response
+impl<'de> Deserialize<'de> for EmptyRequestResponse {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_unit(EmptyRequestResponseVisitor)
+    }
+}
+
+/// Visitor for deserializing an empty request/response
+struct EmptyRequestResponseVisitor;
+impl serde::de::Visitor<'_> for EmptyRequestResponseVisitor {
+    type Value = EmptyRequestResponse;
+
+    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+        formatter.write_str("null")
+    }
+
+    fn visit_unit<E>(self) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        Ok(EmptyRequestResponse {})
+    }
 }

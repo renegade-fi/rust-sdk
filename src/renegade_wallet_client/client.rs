@@ -6,14 +6,15 @@ use alloy::primitives::{keccak256, Address};
 use alloy::signers::local::PrivateKeySigner;
 use alloy::signers::SignerSync;
 use ark_ff::PrimeField;
-use renegade_circuit_types::schnorr::SchnorrPrivateKey;
-use renegade_common::types::hmac::HmacKey;
-use renegade_common::types::tasks::TaskIdentifier;
+use renegade_circuit_types::schnorr::{SchnorrPrivateKey, SchnorrPublicKey, SchnorrSignature};
+use renegade_circuit_types::traits::BaseType;
 use renegade_constants::{EmbeddedScalarField, Scalar};
 use uuid::Uuid;
 
+use crate::renegade_api_types::TaskIdentifier;
 use crate::util::get_env_agnostic_chain;
 use crate::websocket::{TaskWaiter, TaskWaiterBuilder};
+use crate::HmacKey;
 use crate::{
     http::RelayerHttpClient, renegade_wallet_client::config::RenegadeClientConfig,
     websocket::RenegadeWebsocketClient, RenegadeClientError, BASE_MAINNET_CHAIN_ID,
@@ -162,10 +163,45 @@ impl RenegadeClient {
     // | Misc Utils |
     // --------------
 
+    /// Get the ID of the account
+    pub fn get_account_id(&self) -> Uuid {
+        self.secrets.account_id
+    }
+
+    /// Get the signing key client is configured with
+    pub fn get_account_signer(&self) -> &PrivateKeySigner {
+        &self.config.key
+    }
+
     /// Get the address of the account associated with the private key the
     /// client is configured with
     pub fn get_account_address(&self) -> Address {
         self.config.key.address()
+    }
+
+    /// Get the Schnorr private key client is configured with
+    pub fn schnorr_sign<T: BaseType>(
+        &self,
+        message: &T,
+    ) -> Result<SchnorrSignature, RenegadeClientError> {
+        self.secrets.schnorr_key.sign(message).map_err(RenegadeClientError::signing)
+    }
+
+    /// Get the public key associated with the Schnorr private key the client is
+    /// configured with
+    pub fn get_schnorr_public_key(&self) -> SchnorrPublicKey {
+        self.secrets.schnorr_key.public_key()
+    }
+
+    /// Get the relayer's executor address, which it uses to sign public order
+    /// settlement obligations
+    pub fn get_executor_address(&self) -> Address {
+        self.config.executor_address
+    }
+
+    /// Get the relayer's fee recipient address
+    pub fn get_relayer_fee_recipient(&self) -> Address {
+        self.config.relayer_fee_recipient
     }
 }
 

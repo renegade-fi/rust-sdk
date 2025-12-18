@@ -4,14 +4,11 @@ use std::sync::Arc;
 use std::{collections::HashMap, time::Duration};
 
 use futures_util::{Sink, SinkExt, StreamExt};
-use renegade_api::auth::add_expiring_auth_to_headers;
-use renegade_api::types::ApiHistoricalTask;
 use renegade_api::{
     bus_message::{SystemBusMessage, SystemBusMessageWithTopic as ServerMessage},
+    types::ApiHistoricalTask,
     websocket::{ClientWebsocketMessage, WebsocketMessage},
 };
-use renegade_common::types::hmac::HmacKey;
-use renegade_common::types::tasks::TaskIdentifier;
 use reqwest::header::HeaderMap;
 use tokio::sync::{
     mpsc::{self, UnboundedReceiver, UnboundedSender},
@@ -21,6 +18,8 @@ use tokio_tungstenite::{connect_async, tungstenite::Message};
 use tracing::{error, warn};
 use uuid::Uuid;
 
+use crate::renegade_api_types::TaskIdentifier;
+use crate::{add_expiring_auth_to_headers, HmacKey};
 use crate::{
     renegade_wallet_client::config::RenegadeClientConfig,
     websocket::task_waiter::TaskStatusNotification, RenegadeClientError,
@@ -73,7 +72,7 @@ pub fn create_notification_channel() -> (TaskNotificationTx, TaskNotificationRx)
 }
 
 /// Construct a websocket topic from a wallet's task history
-fn construct_task_history_topic(wallet_id: WalletIdentifier) -> String {
+fn construct_task_history_topic(wallet_id: Uuid) -> String {
     format!("/v0/wallet/{wallet_id}/task-history")
 }
 

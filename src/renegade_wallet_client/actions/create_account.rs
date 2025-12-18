@@ -2,7 +2,10 @@
 
 use crate::{
     client::{AccountSecrets, RenegadeClient},
-    renegade_api_types::{request_response::CreateAccountRequest, CREATE_ACCOUNT_ROUTE},
+    renegade_api_types::{
+        request_response::{CreateAccountRequest, EmptyRequestResponse},
+        CREATE_ACCOUNT_ROUTE,
+    },
     RenegadeClientError,
 };
 
@@ -22,11 +25,11 @@ impl RenegadeClient {
             account_id,
             address,
             master_view_seed,
-            schnorr_key,
+            schnorr_key: schnorr_key.into(),
             auth_hmac_key,
         };
 
-        self.relayer_client.post(CREATE_ACCOUNT_ROUTE, request).await?;
+        self.relayer_client.post::<_, EmptyRequestResponse>(CREATE_ACCOUNT_ROUTE, request).await?;
 
         Ok(())
     }

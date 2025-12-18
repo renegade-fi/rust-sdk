@@ -1,8 +1,6 @@
 //! The renegade wallet client manages Renegade wallet operations
 
-use renegade_common::types::tasks::TaskIdentifier;
-
-use crate::http::RelayerHttpClientError;
+use crate::{http::RelayerHttpClientError, renegade_api_types::TaskIdentifier};
 
 pub mod actions;
 pub mod client;
@@ -22,6 +20,9 @@ pub enum RenegadeClientError {
     /// An invalid order was provided
     #[error("invalid order: {0}")]
     InvalidOrder(String),
+    /// An error signing a message
+    #[error("failed to sign message: {0}")]
+    Signing(String),
     /// A relayer error
     #[error("relayer error: {0}")]
     Relayer(RelayerHttpClientError),
@@ -67,6 +68,12 @@ impl RenegadeClientError {
     #[allow(clippy::needless_pass_by_value)]
     pub fn invalid_order<T: ToString>(msg: T) -> Self {
         Self::InvalidOrder(msg.to_string())
+    }
+
+    /// Create a new signing error
+    #[allow(clippy::needless_pass_by_value)]
+    pub fn signing<T: ToString>(msg: T) -> Self {
+        Self::Signing(msg.to_string())
     }
 
     /// Create a new setup error

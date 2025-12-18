@@ -9,9 +9,10 @@ use std::{
 };
 
 use futures_util::{future::BoxFuture, FutureExt};
-use renegade_common::types::tasks::TaskIdentifier;
 
-use crate::{websocket::RenegadeWebsocketClient, RenegadeClientError};
+use crate::{
+    renegade_api_types::TaskIdentifier, websocket::RenegadeWebsocketClient, RenegadeClientError,
+};
 
 /// The timeout for a task to complete
 const DEFAULT_TASK_TIMEOUT: Duration = Duration::from_secs(60);
