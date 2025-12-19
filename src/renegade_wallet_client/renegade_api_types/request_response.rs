@@ -105,6 +105,20 @@ pub struct CreateOrderResponse {
     pub completed: bool,
 }
 
+/// A request to update an order
+#[derive(Debug, Serialize)]
+pub struct UpdateOrderRequest {
+    /// The updated order
+    pub order: ApiOrderCore,
+}
+
+/// The response received after updating an order
+#[derive(Debug, Deserialize)]
+pub struct UpdateOrderResponse {
+    /// The updated order
+    pub order: ApiOrder,
+}
+
 // --------
 // | Misc |
 // --------

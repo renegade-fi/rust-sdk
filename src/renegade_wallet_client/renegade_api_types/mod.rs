@@ -32,3 +32,6 @@ pub const GET_ORDER_BY_ID_ROUTE: &str = "/v2/account/:account_id/orders/:order_i
 
 /// The route for creating an order
 pub const CREATE_ORDER_ROUTE: &str = "/v2/account/:account_id/orders";
+
+/// The route for updating an order
+pub const UPDATE_ORDER_ROUTE: &str = "/v2/account/:account_id/orders/:order_id/update";

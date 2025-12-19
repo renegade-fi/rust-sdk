@@ -80,8 +80,24 @@ pub struct ApiOrder {
     pub created: u64,
 }
 
+impl From<ApiOrder> for ApiOrderCore {
+    fn from(value: ApiOrder) -> Self {
+        Self {
+            id: value.id,
+            in_token: value.in_token,
+            out_token: value.out_token,
+            owner: value.owner,
+            min_price: value.min_price,
+            amount_in: value.amount_in,
+            min_fill_size: value.min_fill_size,
+            order_type: value.order_type,
+            allow_external_matches: value.allow_external_matches,
+        }
+    }
+}
+
 /// The different types of orders that can be placed in Renegade
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum OrderType {
     /// A public order

@@ -20,6 +20,9 @@ pub enum RenegadeClientError {
     /// An invalid order was provided
     #[error("invalid order: {0}")]
     InvalidOrder(String),
+    /// An invalid order update was provided
+    #[error("invalid order update: {0}")]
+    InvalidOrderUpdate(String),
     /// An error signing a message
     #[error("failed to sign message: {0}")]
     Signing(String),
@@ -68,6 +71,12 @@ impl RenegadeClientError {
     #[allow(clippy::needless_pass_by_value)]
     pub fn invalid_order<T: ToString>(msg: T) -> Self {
         Self::InvalidOrder(msg.to_string())
+    }
+
+    /// Create a new invalid order update error
+    #[allow(clippy::needless_pass_by_value)]
+    pub fn invalid_order_update<T: ToString>(msg: T) -> Self {
+        Self::InvalidOrderUpdate(msg.to_string())
     }
 
     /// Create a new signing error

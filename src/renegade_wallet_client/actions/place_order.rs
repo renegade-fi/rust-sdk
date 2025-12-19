@@ -1,4 +1,4 @@
-//! Places an order in the wallet
+//! Places an order
 
 use std::str::FromStr;
 
