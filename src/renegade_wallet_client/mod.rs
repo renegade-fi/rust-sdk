@@ -40,6 +40,9 @@ pub enum RenegadeClientError {
         /// The error message
         message: String,
     },
+    /// An error subscribing/unsubscribing to a websocket topic
+    #[error("websocket topic subscription error: {0}")]
+    Subscription(String),
     /// A websocket error
     #[error("websocket error: {0}")]
     Websocket(String),
@@ -86,6 +89,12 @@ impl RenegadeClientError {
     #[allow(clippy::needless_pass_by_value)]
     pub fn task<T: ToString>(task_id: TaskIdentifier, msg: T) -> Self {
         Self::Task { task_id, message: msg.to_string() }
+    }
+
+    /// Create a new websocket topic subscription error
+    #[allow(clippy::needless_pass_by_value)]
+    pub fn subscription<T: ToString>(msg: T) -> Self {
+        Self::Subscription(msg.to_string())
     }
 
     /// Create a new websocket error

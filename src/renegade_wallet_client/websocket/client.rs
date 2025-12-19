@@ -1,23 +1,28 @@
 //! The websocket client for listening to Renegade events
 
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 use std::{collections::HashMap, time::Duration};
 
-use futures_util::{Sink, SinkExt, StreamExt};
+use futures_util::{Sink, SinkExt};
 use renegade_api::{
     bus_message::{SystemBusMessage, SystemBusMessageWithTopic as ServerMessage},
     websocket::{ClientWebsocketMessage, WebsocketMessage},
 };
 use reqwest::header::HeaderMap;
+use tokio::net::TcpStream;
 use tokio::sync::{
     mpsc::{self, UnboundedReceiver, UnboundedSender},
-    OnceCell, RwLock,
+    RwLock,
 };
 use tokio_tungstenite::{connect_async, tungstenite::Message};
+use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 use tracing::{error, warn};
 use uuid::Uuid;
 
 use crate::renegade_api_types::tasks::{ApiTask, TaskIdentifier};
+use crate::websocket::subscriptions::{
+    SubscriptionManager, SubscriptionRx, SubscriptionTx, TopicRx,
+};
 use crate::{add_expiring_auth_to_headers, HmacKey};
 use crate::{
     renegade_wallet_client::config::RenegadeClientConfig,
@@ -41,6 +46,8 @@ const AUTH_EXPIRATION: Duration = Duration::from_secs(10);
 // | Types |
 // ---------
 
+/// A websocket stream
+pub type WsStream = WebSocketStream<MaybeTlsStream<TcpStream>>;
 /// A notification channel
 ///
 /// TODO: Add a type for the notification
@@ -70,6 +77,11 @@ pub fn create_notification_channel() -> (TaskNotificationTx, TaskNotificationRx)
     mpsc::unbounded_channel()
 }
 
+/// Create a new subscription channel
+pub fn create_subscription_channel() -> (SubscriptionTx, SubscriptionRx) {
+    mpsc::unbounded_channel()
+}
+
 /// Construct a websocket topic from a wallet's task history
 fn construct_task_history_topic(wallet_id: Uuid) -> String {
     format!("/v0/wallet/{wallet_id}/task-history")
@@ -90,9 +102,10 @@ pub struct RenegadeWebsocketClient {
     auth_hmac_key: HmacKey,
     /// The notifications map
     notifications: NotificationMap,
-    /// A guard used to ensure that the websocket connection is only ever
-    /// initialized once
-    connection_guard: Arc<OnceCell<()>>,
+    /// The topic subscription manager. This is lazily initialized along with
+    /// the underlying websocket connection when the first subscription
+    /// request is made.
+    subscriptions: OnceLock<Arc<SubscriptionManager>>,
 }
 
 impl RenegadeWebsocketClient {
@@ -106,7 +119,7 @@ impl RenegadeWebsocketClient {
             account_id,
             auth_hmac_key,
             notifications: create_notification_map(),
-            connection_guard: Arc::new(OnceCell::new()),
+            subscriptions: OnceLock::new(),
         }
     }
 
@@ -119,7 +132,7 @@ impl RenegadeWebsocketClient {
         &self,
         task_id: TaskIdentifier,
     ) -> Result<TaskNotificationRx, RenegadeClientError> {
-        self.ensure_connected().await;
+        self.ensure_connected();
 
         // Add a notification channel to the map and create a task waiter
         let (tx, rx) = create_notification_channel();
@@ -127,19 +140,32 @@ impl RenegadeWebsocketClient {
         Ok(rx)
     }
 
-    /// Connect to the websocket server
+    /// Subscribe to a new websocket topic
+    async fn subscribe_to_topic(&self, topic: String) -> Result<TopicRx, RenegadeClientError> {
+        self.ensure_connected();
+
+        let subscriptions = self.subscriptions.get().unwrap();
+        subscriptions.subscribe_to_topic(topic).await
+    }
+
+    /// Connect to the websocket server & initialize the subscription manager.
     ///
     /// This will ensure that the websocket connection is only ever initialized
-    /// once if it is needed. The initialization spawns a thread to watch
-    /// subscribed topics and forward them to threads watching for
-    /// notifications.
-    pub async fn ensure_connected(&self) {
-        self.connection_guard
-            .get_or_init(|| async {
-                let self_clone = self.clone();
-                tokio::spawn(self_clone.ws_reconnection_loop());
-            })
-            .await;
+    /// once if it is needed. The initialization spawns a thread which handles
+    /// websocket reconnection & subscription management.
+    fn ensure_connected(&self) {
+        self.subscriptions.get_or_init(|| {
+            let (subscriptions_tx, subscriptions_rx) = create_subscription_channel();
+            let subscriptions = Arc::new(SubscriptionManager::new(subscriptions_tx));
+
+            tokio::spawn(Self::ws_reconnection_loop(
+                self.base_url.clone(),
+                subscriptions.clone(),
+                subscriptions_rx,
+            ));
+
+            subscriptions
+        });
     }
 
     // ----------------------
@@ -147,46 +173,26 @@ impl RenegadeWebsocketClient {
     // ----------------------
 
     /// Websocket reconnection loop. Re-establishes the websocket connection
-    /// if there is an error in handling it.
-    async fn ws_reconnection_loop(self) {
+    /// if it could not be established or was closed for any reason.
+    async fn ws_reconnection_loop(
+        base_url: String,
+        subscriptions: Arc<SubscriptionManager>,
+        mut subscriptions_rx: SubscriptionRx,
+    ) {
         loop {
-            if let Err(e) = self.handle_ws_connection().await {
-                error!("Error handling websocket connection: {e}");
+            let maybe_ws_stream = connect_async(&base_url).await;
+            match maybe_ws_stream {
+                Ok((ws_stream, _)) => {
+                    subscriptions.manage_subscriptions(ws_stream, &mut subscriptions_rx).await;
+                },
+                Err(e) => {
+                    error!("Error connecting to websocket: {e}");
+                },
             }
 
-            warn!("Re-establishing websocket connection & re-subscribing to task updates...");
+            warn!("Re-establishing websocket connection...");
             tokio::time::sleep(WS_RECONNECTION_DELAY).await;
         }
-    }
-
-    /// Connection handler loop
-    async fn handle_ws_connection(&self) -> Result<(), RenegadeClientError> {
-        let (ws_stream, _response) = connect_async(&self.base_url).await.map_err(|e| {
-            RenegadeClientError::custom(format!("Failed to connect to websocket: {e}"))
-        })?;
-
-        // Split the websocket stream into sink and stream
-        let (mut ws_tx, mut ws_rx) = ws_stream.split();
-
-        self.subscribe_to_task_history(&mut ws_tx).await?;
-
-        while let Some(Ok(msg)) = ws_rx.next().await {
-            let txt = match msg {
-                Message::Text(txt) => txt,
-                Message::Close(_) => {
-                    warn!("Websocket connection closed");
-                    break;
-                },
-                _ => continue,
-            };
-
-            // Handle the incoming message
-            if let Err(e) = self.handle_incoming_message(txt).await {
-                error!("Failed to handle incoming websocket message: {e}");
-            }
-        }
-
-        Ok(())
     }
 
     /// Subscribe to the task history of the given wallet

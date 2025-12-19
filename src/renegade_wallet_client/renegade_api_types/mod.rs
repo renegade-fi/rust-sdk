@@ -6,6 +6,7 @@ pub mod orders;
 pub mod request_response;
 mod serde_helpers;
 pub mod tasks;
+pub mod websocket;
 
 // ---------------
 // | HTTP Routes |
