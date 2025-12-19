@@ -11,7 +11,7 @@ use renegade_circuit_types::traits::BaseType;
 use renegade_constants::{EmbeddedScalarField, Scalar};
 use uuid::Uuid;
 
-use crate::renegade_api_types::TaskIdentifier;
+use crate::renegade_api_types::tasks::TaskIdentifier;
 use crate::util::get_env_agnostic_chain;
 use crate::websocket::{TaskWaiter, TaskWaiterBuilder};
 use crate::HmacKey;
@@ -166,6 +166,16 @@ impl RenegadeClient {
     /// Get the ID of the account
     pub fn get_account_id(&self) -> Uuid {
         self.secrets.account_id
+    }
+
+    /// Get the master view seed
+    pub fn get_master_view_seed(&self) -> Scalar {
+        self.secrets.master_view_seed
+    }
+
+    /// Get the HMAC key used to authenticate account API actions
+    pub fn get_auth_hmac_key(&self) -> HmacKey {
+        self.secrets.auth_hmac_key
     }
 
     /// Get the signing key client is configured with

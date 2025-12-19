@@ -11,7 +11,8 @@ use std::{
 use futures_util::{future::BoxFuture, FutureExt};
 
 use crate::{
-    renegade_api_types::TaskIdentifier, websocket::RenegadeWebsocketClient, RenegadeClientError,
+    renegade_api_types::tasks::TaskIdentifier, websocket::RenegadeWebsocketClient,
+    RenegadeClientError,
 };
 
 /// The timeout for a task to complete

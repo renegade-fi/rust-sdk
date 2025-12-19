@@ -17,6 +17,21 @@ pub const CREATE_ACCOUNT_ROUTE: &str = "/v2/account";
 /// The route for getting an account's seed CSPRNG states
 pub const GET_ACCOUNT_SEEDS_ROUTE: &str = "/v2/account/:account_id/seeds";
 
+/// The route for syncing an account
+pub const SYNC_ACCOUNT_ROUTE: &str = "/v2/account/:account_id/sync";
+
+/// The route for getting all balances for an account
+pub const GET_BALANCES_ROUTE: &str = "/v2/account/:account_id/balances";
+
+/// The route for getting a balance by mint
+pub const GET_BALANCE_BY_MINT_ROUTE: &str = "/v2/account/:account_id/balances/:mint";
+
+/// The route for depositing a balance
+pub const DEPOSIT_BALANCE_ROUTE: &str = "/v2/account/:account_id/balances/:mint/deposit";
+
+/// The route for withdrawing a balance
+pub const WITHDRAW_BALANCE_ROUTE: &str = "/v2/account/:account_id/balances/:mint/withdraw";
+
 /// The route for getting all orders for an account
 pub const GET_ORDERS_ROUTE: &str = "/v2/account/:account_id/orders";
 
@@ -31,18 +46,6 @@ pub const UPDATE_ORDER_ROUTE: &str = "/v2/account/:account_id/orders/:order_id/u
 
 /// The route for cancelling an order
 pub const CANCEL_ORDER_ROUTE: &str = "/v2/account/:account_id/orders/:order_id/cancel";
-
-/// The route for getting all balances for an account
-pub const GET_BALANCES_ROUTE: &str = "/v2/account/:account_id/balances";
-
-/// The route for getting a balance by mint
-pub const GET_BALANCE_BY_MINT_ROUTE: &str = "/v2/account/:account_id/balances/:mint";
-
-/// The route for depositing a balance
-pub const DEPOSIT_BALANCE_ROUTE: &str = "/v2/account/:account_id/balances/:mint/deposit";
-
-/// The route for withdrawing a balance
-pub const WITHDRAW_BALANCE_ROUTE: &str = "/v2/account/:account_id/balances/:mint/withdraw";
 
 /// The route for getting all tasks for an account
 pub const GET_TASKS_ROUTE: &str = "/v2/account/:account_id/tasks";

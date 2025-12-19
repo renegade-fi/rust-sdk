@@ -8,7 +8,7 @@ use uuid::Uuid;
 
 use crate::{
     renegade_api_types::{
-        account::{ApiPoseidonCSPRNG, ApiSchnorrPrivateKey},
+        account::ApiPoseidonCSPRNG,
         balances::{ApiBalance, ApiDepositPermit, ApiSchnorrPublicKey},
         orders::{ApiOrder, ApiOrderCore, OrderAuth},
         tasks::ApiTask,
@@ -32,8 +32,6 @@ pub struct CreateAccountRequest {
     /// The master view seed
     #[serde(with = "scalar_string_serde")]
     pub master_view_seed: Scalar,
-    /// The Schnorr private key
-    pub schnorr_key: ApiSchnorrPrivateKey,
     /// The HMAC key for API authentication
     #[serde(serialize_with = "serialize_hmac_key")]
     pub auth_hmac_key: HmacKey,
@@ -47,6 +45,36 @@ pub struct GetAccountSeedsResponse {
     pub recovery_seed_csprng: ApiPoseidonCSPRNG,
     /// The current state of the share stream seeds CSPRNG
     pub share_seed_csprng: ApiPoseidonCSPRNG,
+}
+
+/// The query parameters used when syncing an account
+#[derive(Debug, Default, Serialize)]
+pub struct SyncAccountQueryParameters {
+    /// Whether to block on the completion of the account sync task before
+    /// receiving a response
+    pub non_blocking: Option<bool>,
+}
+
+/// A request to sync an account
+#[derive(Debug, Serialize)]
+pub struct SyncAccountRequest {
+    /// The account ID
+    pub account_id: Uuid,
+    /// The master view seed
+    #[serde(with = "scalar_string_serde")]
+    pub master_view_seed: Scalar,
+    /// The HMAC key for API authentication
+    #[serde(serialize_with = "serialize_hmac_key")]
+    pub auth_hmac_key: HmacKey,
+}
+
+/// The response received after syncing an account
+#[derive(Debug, Deserialize)]
+pub struct SyncAccountResponse {
+    /// The ID of the account sync task spawned in the relayer
+    pub task_id: Uuid,
+    /// Whether the account sync task has completed
+    pub completed: bool,
 }
 
 // # === Orders === #
