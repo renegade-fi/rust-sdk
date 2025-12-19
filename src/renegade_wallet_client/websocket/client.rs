@@ -6,7 +6,6 @@ use std::{collections::HashMap, time::Duration};
 use futures_util::{Sink, SinkExt, StreamExt};
 use renegade_api::{
     bus_message::{SystemBusMessage, SystemBusMessageWithTopic as ServerMessage},
-    types::ApiHistoricalTask,
     websocket::{ClientWebsocketMessage, WebsocketMessage},
 };
 use reqwest::header::HeaderMap;
@@ -18,7 +17,7 @@ use tokio_tungstenite::{connect_async, tungstenite::Message};
 use tracing::{error, warn};
 use uuid::Uuid;
 
-use crate::renegade_api_types::TaskIdentifier;
+use crate::renegade_api_types::tasks::{ApiTask, TaskIdentifier};
 use crate::{add_expiring_auth_to_headers, HmacKey};
 use crate::{
     renegade_wallet_client::config::RenegadeClientConfig,
@@ -240,7 +239,7 @@ impl RenegadeWebsocketClient {
 
         // Handle the message
         match msg.event {
-            SystemBusMessage::TaskHistoryUpdate { task: ApiHistoricalTask { id, state, .. } } => {
+            SystemBusMessage::TaskHistoryUpdate { task: ApiTask { id, state, .. } } => {
                 let state = state.to_lowercase();
                 if state.contains("completed") {
                     self.handle_completed_task(id).await?;

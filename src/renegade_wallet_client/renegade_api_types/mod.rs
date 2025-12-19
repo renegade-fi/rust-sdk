@@ -1,19 +1,11 @@
 //! API types for the Renegade client
 
-use uuid::Uuid;
-
 mod account;
 pub mod balances;
 pub mod orders;
 pub mod request_response;
 mod serde_helpers;
-
-// ----------------
-// | Type Aliases |
-// ----------------
-
-/// A type alias for a task identifier
-pub type TaskIdentifier = Uuid;
+pub mod tasks;
 
 // ---------------
 // | HTTP Routes |
@@ -51,3 +43,9 @@ pub const DEPOSIT_BALANCE_ROUTE: &str = "/v2/account/:account_id/balances/:mint/
 
 /// The route for withdrawing a balance
 pub const WITHDRAW_BALANCE_ROUTE: &str = "/v2/account/:account_id/balances/:mint/withdraw";
+
+/// The route for getting all tasks for an account
+pub const GET_TASKS_ROUTE: &str = "/v2/account/:account_id/tasks";
+
+/// The route for getting a task by its ID
+pub const GET_TASK_BY_ID_ROUTE: &str = "/v2/account/:account_id/tasks/:task_id";

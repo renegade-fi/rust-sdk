@@ -1,6 +1,6 @@
 //! The renegade wallet client manages Renegade wallet operations
 
-use crate::{http::RelayerHttpClientError, renegade_api_types::TaskIdentifier};
+use crate::{http::RelayerHttpClientError, renegade_api_types::tasks::TaskIdentifier};
 
 pub mod actions;
 pub mod client;

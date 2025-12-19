@@ -11,6 +11,7 @@ use crate::{
         account::{ApiPoseidonCSPRNG, ApiSchnorrPrivateKey},
         balances::{ApiBalance, ApiDepositPermit, ApiSchnorrPublicKey},
         orders::{ApiOrder, ApiOrderCore, OrderAuth},
+        tasks::ApiTask,
     },
     HmacKey,
 };
@@ -229,6 +230,35 @@ pub struct WithdrawBalanceResponse {
     pub balance: ApiBalance,
     /// Whether the withdrawal task has completed
     pub completed: bool,
+}
+
+// # === Tasks === #
+
+/// The query parameters used when fetching all account tasks
+#[derive(Debug, Default, Serialize)]
+pub struct GetTasksQueryParameters {
+    /// Whether to include historic tasks in the response
+    pub include_historic_tasks: Option<bool>,
+    /// The number of tasks to return per page
+    pub page_size: Option<usize>,
+    /// The page token to use for pagination
+    pub page_token: Option<usize>,
+}
+
+/// A response containing a page of tasks
+#[derive(Debug, Deserialize)]
+pub struct GetTasksResponse {
+    /// The tasks
+    pub tasks: Vec<ApiTask>,
+    /// The next page token to use for pagination, if more tasks are available
+    pub next_page_token: Option<usize>,
+}
+
+/// A response containing a single task
+#[derive(Debug, Deserialize)]
+pub struct GetTaskByIdResponse {
+    /// The task
+    pub task: ApiTask,
 }
 
 // --------
