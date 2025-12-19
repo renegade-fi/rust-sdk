@@ -35,3 +35,6 @@ pub const CREATE_ORDER_ROUTE: &str = "/v2/account/:account_id/orders";
 
 /// The route for updating an order
 pub const UPDATE_ORDER_ROUTE: &str = "/v2/account/:account_id/orders/:order_id/update";
+
+/// The route for cancelling an order
+pub const CANCEL_ORDER_ROUTE: &str = "/v2/account/:account_id/orders/:order_id/cancel";

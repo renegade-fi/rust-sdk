@@ -119,6 +119,34 @@ pub struct UpdateOrderResponse {
     pub order: ApiOrder,
 }
 
+/// The query parameters used when cancelling an order
+#[derive(Debug, Default, Serialize)]
+pub struct CancelOrderQueryParameters {
+    /// Whether to block on the completion of the order cancellation task before
+    /// receiving a response
+    pub non_blocking: Option<bool>,
+}
+
+/// A request to cancel an order
+#[derive(Debug, Default, Serialize)]
+pub struct CancelOrderRequest {
+    /// The signature over the order's nullifier which authorizes its
+    /// cancellation
+    #[serde(serialize_with = "serialize_bytes_b64")]
+    pub signature: Vec<u8>,
+}
+
+/// The response received after cancelling an order
+#[derive(Debug, Deserialize)]
+pub struct CancelOrderResponse {
+    /// The ID of the order cancellation task spawned in the relayer
+    pub task_id: Uuid,
+    /// The order that was cancelled
+    pub order: ApiOrder,
+    /// Whether the order cancellation task has completed
+    pub completed: bool,
+}
+
 // --------
 // | Misc |
 // --------

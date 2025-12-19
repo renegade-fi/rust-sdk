@@ -1,35 +1,87 @@
 //! Cancels an order in the wallet
 
-use renegade_api::http::wallet::{CancelOrderRequest, CancelOrderResponse, CANCEL_ORDER_ROUTE};
+use alloy::{primitives::keccak256, signers::SignerSync};
+use renegade_circuit_types::intent::DarkpoolStateIntent;
 use uuid::Uuid;
 
 use crate::{
-    actions::{construct_http_path, prepare_wallet_update},
+    actions::construct_http_path,
     client::RenegadeClient,
+    renegade_api_types::{
+        orders::ApiOrder,
+        request_response::{CancelOrderQueryParameters, CancelOrderRequest, CancelOrderResponse},
+        CANCEL_ORDER_ROUTE,
+    },
     websocket::TaskWaiter,
     RenegadeClientError,
 };
 
+// --- Public Actions --- //
 impl RenegadeClient {
-    /// Cancels an order in the wallet
-    pub async fn cancel_order(&self, order_id: Uuid) -> Result<TaskWaiter, RenegadeClientError> {
-        let mut wallet = self.get_internal_wallet().await?;
-        if !wallet.contains_order(&order_id) {
-            return Err(RenegadeClientError::wallet(format!(
-                "Order {order_id} not found in wallet"
-            )));
-        }
+    /// Cancels the order with the given ID. Waits for the order cancellation
+    /// task to complete before returning the cancelled order.
+    pub async fn cancel_order(&self, order_id: Uuid) -> Result<ApiOrder, RenegadeClientError> {
+        let request = self.build_cancel_order_request(order_id).await?;
 
-        wallet.remove_order(&order_id).unwrap();
-        let update_auth = prepare_wallet_update(&mut wallet)?;
+        let query_params = CancelOrderQueryParameters { non_blocking: Some(false) };
+        let path = self.build_cancel_order_request_path(order_id, &query_params)?;
 
-        // Send the request
-        let route = construct_http_path!(CANCEL_ORDER_ROUTE, "wallet_id" => self.secrets.wallet_id, "order_id" => order_id);
-        let request = CancelOrderRequest { update_auth };
-        let response: CancelOrderResponse = self.relayer_client.post(&route, request).await?;
+        let response: CancelOrderResponse = self.relayer_client.post(&path, request).await?;
+
+        Ok(response.order)
+    }
+
+    /// Enqueues an order cancellation task in the relayer. Returns the
+    /// cancelled order, and a `TaskWaiter` that can be used to await task
+    /// completion.
+    pub async fn enqueue_order_cancellation(
+        &self,
+        order_id: Uuid,
+    ) -> Result<(ApiOrder, TaskWaiter), RenegadeClientError> {
+        let request = self.build_cancel_order_request(order_id).await?;
+
+        let query_params = CancelOrderQueryParameters { non_blocking: Some(true) };
+        let path = self.build_cancel_order_request_path(order_id, &query_params)?;
+
+        let response: CancelOrderResponse = self.relayer_client.post(&path, request).await?;
 
         // Create a task waiter for the task
         let task_id = response.task_id;
-        Ok(self.get_default_task_waiter(task_id))
+        Ok((response.order, self.get_default_task_waiter(task_id)))
+    }
+}
+
+// --- Private Helpers --- //
+impl RenegadeClient {
+    /// Builds the order cancellation request from the given order ID
+    async fn build_cancel_order_request(
+        &self,
+        order_id: Uuid,
+    ) -> Result<CancelOrderRequest, RenegadeClientError> {
+        let order = self.get_order(order_id).await?;
+        let intent: DarkpoolStateIntent = order.into();
+
+        let nullifier = intent.compute_nullifier();
+        let nullifier_hash = keccak256(nullifier.to_bytes_be());
+        let signature = self
+            .get_account_signer()
+            .sign_hash_sync(&nullifier_hash)
+            .map_err(RenegadeClientError::signing)?
+            .into();
+
+        Ok(CancelOrderRequest { signature })
+    }
+
+    /// Builds the request path for the cancel order endpoint
+    fn build_cancel_order_request_path(
+        &self,
+        order_id: Uuid,
+        query_params: &CancelOrderQueryParameters,
+    ) -> Result<String, RenegadeClientError> {
+        let path = construct_http_path!(CANCEL_ORDER_ROUTE, "account_id" => self.get_account_id(), "order_id" => order_id);
+        let query_string =
+            serde_urlencoded::to_string(query_params).map_err(RenegadeClientError::serde)?;
+
+        Ok(format!("{}?{}", path, query_string))
     }
 }

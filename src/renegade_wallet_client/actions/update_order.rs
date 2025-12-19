@@ -36,7 +36,7 @@ impl RenegadeClient {
     ) -> Result<UpdateOrderRequest, RenegadeClientError> {
         let mut order = match order_update_config.initial_order {
             Some(initial_order) => initial_order,
-            None => self.get_order(order_update_config.order_id).await?.into(),
+            None => self.get_order(order_update_config.order_id).await?.order,
         };
 
         if let Some(min_fill_size) = order_update_config.min_fill_size {
