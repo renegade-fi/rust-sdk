@@ -8,6 +8,7 @@ use uuid::Uuid;
 use crate::{
     renegade_api_types::{
         account::{ApiPoseidonCSPRNG, ApiSchnorrPrivateKey},
+        balances::ApiBalance,
         orders::{ApiOrder, ApiOrderCore, OrderAuth},
     },
     HmacKey,
@@ -145,6 +146,22 @@ pub struct CancelOrderResponse {
     pub order: ApiOrder,
     /// Whether the order cancellation task has completed
     pub completed: bool,
+}
+
+// # === Balances === #
+
+/// A response containing all balances for an account
+#[derive(Debug, Deserialize)]
+pub struct GetBalancesResponse {
+    /// The balances
+    pub balances: Vec<ApiBalance>,
+}
+
+/// A response containing a single balance
+#[derive(Debug, Deserialize)]
+pub struct GetBalanceByMintResponse {
+    /// The balance
+    pub balance: ApiBalance,
 }
 
 // --------

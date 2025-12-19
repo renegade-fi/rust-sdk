@@ -68,7 +68,7 @@ impl From<SchnorrSignature> for ApiSchnorrSignature {
 }
 
 /// A BabyJubJub point, with custom serialization
-#[derive(Copy, Clone, Debug, Serialize)]
+#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
 pub struct ApiBabyJubJubPoint {
     /// The x coordinate of the point
     #[serde(with = "scalar_string_serde")]

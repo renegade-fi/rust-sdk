@@ -3,6 +3,7 @@
 use uuid::Uuid;
 
 mod account;
+pub mod balances;
 pub mod orders;
 pub mod request_response;
 mod serde_helpers;
@@ -38,3 +39,9 @@ pub const UPDATE_ORDER_ROUTE: &str = "/v2/account/:account_id/orders/:order_id/u
 
 /// The route for cancelling an order
 pub const CANCEL_ORDER_ROUTE: &str = "/v2/account/:account_id/orders/:order_id/cancel";
+
+/// The route for getting all balances for an account
+pub const GET_BALANCES_ROUTE: &str = "/v2/account/:account_id/balances";
+
+/// The route for getting a balance by mint
+pub const GET_BALANCE_BY_MINT_ROUTE: &str = "/v2/account/:account_id/balances/:mint";
