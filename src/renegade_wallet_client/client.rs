@@ -203,6 +203,21 @@ impl RenegadeClient {
     pub fn get_relayer_fee_recipient(&self) -> Address {
         self.config.relayer_fee_recipient
     }
+
+    /// Get the chain ID the client is configured for
+    pub fn get_chain_id(&self) -> u64 {
+        self.config.chain_id
+    }
+
+    /// Get the permit2 address the client is configured for
+    pub fn get_permit2_address(&self) -> Address {
+        self.config.permit2_address
+    }
+
+    /// Get the darkpool address the client is configured for
+    pub fn get_darkpool_address(&self) -> Address {
+        self.config.darkpool_address
+    }
 }
 
 // -----------

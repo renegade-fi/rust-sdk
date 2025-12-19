@@ -182,7 +182,7 @@ renegade-circuit-types = { package = "circuit-types", git = "https://github.com/
 renegade-common = { package = "common", git = "https://github.com/renegade-fi/renegade.git", branch = "andrew/relayer-v2-patch", optional = true }
 renegade-constants = { package = "constants", git = "https://github.com/renegade-fi/renegade.git", branch = "andrew/relayer-v2-patch", optional = true }
 renegade-crypto = { package = "renegade-crypto", git = "https://github.com/renegade-fi/renegade.git", branch = "andrew/relayer-v2-patch", optional = true }
-renegade-solidity-abi = { package = "abi", git = "https://github.com/renegade-fi/renegade-contracts.git", branch = "andrew/contracts-v2-patch", features = ["v2", "v2-auth-helpers"], optional = true }
+renegade-solidity-abi = { package = "abi", git = "https://github.com/renegade-fi/renegade-contracts.git", branch = "andrew/contracts-v2-patch", features = ["v2", "v2-auth-helpers", "transfer-auth"], optional = true }
 
 # === Cryptography === #
 ark-ff = "0.4"

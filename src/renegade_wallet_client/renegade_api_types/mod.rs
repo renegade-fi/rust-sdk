@@ -45,3 +45,6 @@ pub const GET_BALANCES_ROUTE: &str = "/v2/account/:account_id/balances";
 
 /// The route for getting a balance by mint
 pub const GET_BALANCE_BY_MINT_ROUTE: &str = "/v2/account/:account_id/balances/:mint";
+
+/// The route for depositing a balance
+pub const DEPOSIT_BALANCE_ROUTE: &str = "/v2/account/:account_id/balances/:mint/deposit";

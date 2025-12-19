@@ -1,6 +1,7 @@
 //! Top-level API request / response types
 
 use alloy::primitives::Address;
+use renegade_circuit_types::Amount;
 use renegade_constants::Scalar;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use uuid::Uuid;
@@ -8,7 +9,7 @@ use uuid::Uuid;
 use crate::{
     renegade_api_types::{
         account::{ApiPoseidonCSPRNG, ApiSchnorrPrivateKey},
-        balances::ApiBalance,
+        balances::{ApiBalance, ApiDepositPermit, ApiSchnorrPublicKey},
         orders::{ApiOrder, ApiOrderCore, OrderAuth},
     },
     HmacKey,
@@ -162,6 +163,41 @@ pub struct GetBalancesResponse {
 pub struct GetBalanceByMintResponse {
     /// The balance
     pub balance: ApiBalance,
+}
+
+/// The query parameters used when depositing a balance
+#[derive(Debug, Default, Serialize)]
+pub struct DepositBalanceQueryParameters {
+    /// Whether to block on the completion of the deposit task before
+    /// receiving a response
+    pub non_blocking: Option<bool>,
+}
+
+/// A request to deposit a balance
+#[derive(Debug, Serialize)]
+pub struct DepositBalanceRequest {
+    /// The address from which to transfer funds into the darkpool for the
+    /// deposit
+    pub from_address: Address,
+    /// The amount of the token to deposit
+    #[serde(with = "amount_string_serde")]
+    pub amount: Amount,
+    /// The authority public key to use, in case a new balance needs to be
+    /// created
+    pub authority: ApiSchnorrPublicKey,
+    /// The permit authorizing the deposit
+    pub permit: ApiDepositPermit,
+}
+
+/// The response received after depositing a balance
+#[derive(Debug, Deserialize)]
+pub struct DepositBalanceResponse {
+    /// The ID of the deposit task spawned in the relayer
+    pub task_id: Uuid,
+    /// The balance that was deposited
+    pub balance: ApiBalance,
+    /// Whether the deposit task has completed
+    pub completed: bool,
 }
 
 // --------
