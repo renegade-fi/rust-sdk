@@ -200,6 +200,37 @@ pub struct DepositBalanceResponse {
     pub completed: bool,
 }
 
+/// The query parameters used when withdrawing from a balance
+#[derive(Debug, Default, Serialize)]
+pub struct WithdrawBalanceQueryParameters {
+    /// Whether to block on the completion of the withdrawal task before
+    /// receiving a response
+    pub non_blocking: Option<bool>,
+}
+
+/// A request to withdraw from a balance
+#[derive(Debug, Serialize)]
+pub struct WithdrawBalanceRequest {
+    /// The amount of the token to withdraw
+    #[serde(with = "amount_string_serde")]
+    pub amount: Amount,
+    /// The signature over the balance commitment which authorizes the
+    /// withdrawal
+    #[serde(serialize_with = "serialize_bytes_b64")]
+    pub signature: Vec<u8>,
+}
+
+/// The response received after withdrawing from a balance
+#[derive(Debug, Deserialize)]
+pub struct WithdrawBalanceResponse {
+    /// The ID of the withdrawal task spawned in the relayer
+    pub task_id: Uuid,
+    /// The balance that was withdrawn from
+    pub balance: ApiBalance,
+    /// Whether the withdrawal task has completed
+    pub completed: bool,
+}
+
 // --------
 // | Misc |
 // --------

@@ -27,7 +27,7 @@ use crate::{
 // --- Public Actions --- //
 impl RenegadeClient {
     /// Deposit funds into an account balance. Waits for the deposit task to
-    /// complete before returning the deposited balance.
+    /// complete before returning the post-deposit balance.
     pub async fn deposit(
         &self,
         mint: Address,
@@ -44,8 +44,9 @@ impl RenegadeClient {
         Ok(balance)
     }
 
-    /// Enqueues a deposit task in the relayer. Returns the deposited balance,
-    /// and a `TaskWaiter` that can be used to await task completion.
+    /// Enqueues a deposit task in the relayer. Returns the post-deposit
+    /// balance, and a `TaskWaiter` that can be used to await task
+    /// completion.
     pub async fn enqueue_deposit(
         &self,
         mint: Address,
@@ -89,14 +90,30 @@ impl RenegadeClient {
         let existing_balance = self.get_balance_by_mint(mint).await;
 
         let state_balance = if let Ok(balance) = existing_balance {
-            balance.into()
+            // If a balance already exists for the token being deposited,
+            // we update its amount, progressing its cryptographic state accordingly.
+
+            let mut state_balance: DarkpoolStateBalance = balance.into();
+
+            state_balance.inner.amount += amount;
+            let new_amount = state_balance.inner.amount;
+            let new_amount_public_share = state_balance.stream_cipher_encrypt(&new_amount);
+            state_balance.public_share.amount = new_amount_public_share;
+
+            state_balance.compute_recovery_id();
+
+            state_balance
         } else {
+            // If this is a deposit into a new balance, we create the balance state object &
+            // progress its cryptographic state accordingly.
+
             let balance = Balance::new(
                 mint,
                 self.get_account_address(),
                 self.get_relayer_fee_recipient(),
                 self.get_schnorr_public_key(),
-            );
+            )
+            .with_amount(amount);
 
             let (mut recovery_seed_csprng, mut share_seed_csprng) =
                 self.get_account_seeds().await?;
@@ -104,11 +121,15 @@ impl RenegadeClient {
             let balance_recovery_stream_seed = recovery_seed_csprng.next().unwrap();
             let balance_share_stream_seed = share_seed_csprng.next().unwrap();
 
-            DarkpoolStateBalance::new(
+            let mut state_balance = DarkpoolStateBalance::new(
                 balance,
                 balance_share_stream_seed,
                 balance_recovery_stream_seed,
-            )
+            );
+
+            state_balance.compute_recovery_id();
+
+            state_balance
         };
 
         let commitment = scalar_to_u256(&state_balance.compute_commitment());
@@ -136,6 +157,7 @@ impl RenegadeClient {
         })
     }
 
+    /// Builds the request path for the deposit balance endpoint
     fn build_deposit_request_path(
         &self,
         mint: Address,

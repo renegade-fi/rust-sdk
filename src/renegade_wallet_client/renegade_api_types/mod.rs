@@ -48,3 +48,6 @@ pub const GET_BALANCE_BY_MINT_ROUTE: &str = "/v2/account/:account_id/balances/:m
 
 /// The route for depositing a balance
 pub const DEPOSIT_BALANCE_ROUTE: &str = "/v2/account/:account_id/balances/:mint/deposit";
+
+/// The route for withdrawing a balance
+pub const WITHDRAW_BALANCE_ROUTE: &str = "/v2/account/:account_id/balances/:mint/withdraw";
