@@ -64,8 +64,7 @@ impl RenegadeClient {
         let WithdrawBalanceResponse { balance, task_id, .. } =
             self.relayer_client.post(&path, request).await?;
 
-        let task_waiter_builder = self.get_task_waiter_builder(task_id);
-        let task_waiter = task_waiter_builder.build();
+        let task_waiter = self.watch_task(task_id, TASK_WAITER_TIMEOUT).await?;
 
         Ok((balance, task_waiter))
     }

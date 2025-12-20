@@ -1,6 +1,7 @@
 //! The client for interacting with the Renegade darkpool API
 
 use std::sync::Arc;
+use std::time::Duration;
 
 use alloy::primitives::{keccak256, Address};
 use alloy::signers::local::PrivateKeySigner;
@@ -13,7 +14,7 @@ use uuid::Uuid;
 
 use crate::renegade_api_types::tasks::TaskIdentifier;
 use crate::util::get_env_agnostic_chain;
-use crate::websocket::{TaskWaiter, TaskWaiterBuilder};
+use crate::websocket::TaskWaiter;
 use crate::HmacKey;
 use crate::{
     http::RelayerHttpClient, renegade_wallet_client::config::RenegadeClientConfig,
@@ -149,14 +150,14 @@ impl RenegadeClient {
     // | Task Utils |
     // --------------
 
-    /// Get a task waiter builder for a task
-    pub fn get_task_waiter_builder(&self, task_id: TaskIdentifier) -> TaskWaiterBuilder {
-        TaskWaiterBuilder::new(task_id, self.websocket_client.clone())
-    }
-
-    /// Get a default-configured task waiter for a task
-    pub fn get_default_task_waiter(&self, task_id: TaskIdentifier) -> TaskWaiter {
-        self.get_task_waiter_builder(task_id).build()
+    /// Create a `TaskWaiter` which can be used to watch a task until it
+    /// completes or times out
+    pub async fn watch_task(
+        &self,
+        task_id: TaskIdentifier,
+        timeout: Duration,
+    ) -> Result<TaskWaiter, RenegadeClientError> {
+        self.websocket_client.watch_task(task_id, timeout).await
     }
 
     // --------------
