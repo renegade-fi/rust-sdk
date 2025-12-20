@@ -40,7 +40,7 @@ pub enum RenegadeClientError {
         /// The error message
         message: String,
     },
-    /// An error subscribing/unsubscribing to a websocket topic
+    /// An error managing a websocket topic subscription
     #[error("websocket topic subscription error: {0}")]
     Subscription(String),
     /// A websocket error

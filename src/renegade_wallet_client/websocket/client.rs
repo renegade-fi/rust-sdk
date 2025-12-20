@@ -3,6 +3,7 @@
 use std::sync::{Arc, OnceLock};
 use std::{collections::HashMap, time::Duration};
 
+use futures_util::stream::SplitSink;
 use futures_util::{Sink, SinkExt};
 use renegade_api::{
     bus_message::{SystemBusMessage, SystemBusMessageWithTopic as ServerMessage},
@@ -46,8 +47,10 @@ const AUTH_EXPIRATION: Duration = Duration::from_secs(10);
 // | Types |
 // ---------
 
-/// A websocket stream
+/// A read/write websocket stream
 pub type WsStream = WebSocketStream<MaybeTlsStream<TcpStream>>;
+/// A websocket sink (write end)
+pub type WsSink = SplitSink<WsStream, Message>;
 /// A notification channel
 ///
 /// TODO: Add a type for the notification
@@ -156,7 +159,8 @@ impl RenegadeWebsocketClient {
     fn ensure_connected(&self) {
         self.subscriptions.get_or_init(|| {
             let (subscriptions_tx, subscriptions_rx) = create_subscription_channel();
-            let subscriptions = Arc::new(SubscriptionManager::new(subscriptions_tx));
+            let subscriptions =
+                Arc::new(SubscriptionManager::new(self.auth_hmac_key, subscriptions_tx));
 
             tokio::spawn(Self::ws_reconnection_loop(
                 self.base_url.clone(),

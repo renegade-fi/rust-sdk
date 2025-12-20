@@ -36,6 +36,16 @@ pub enum ClientWebsocketMessageBody {
     },
 }
 
+impl ClientWebsocketMessageBody {
+    /// Get the topic associated with the message
+    pub fn topic(&self) -> &str {
+        match self {
+            Self::Subscribe { topic } => topic,
+            Self::Unsubscribe { topic } => topic,
+        }
+    }
+}
+
 /// The message type that is sent by the server to the client
 #[derive(Clone, Debug, Deserialize)]
 pub struct ServerWebsocketMessage {

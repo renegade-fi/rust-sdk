@@ -1,46 +1,64 @@
 //! The websocket client's subscriptions manager, which handles subscribing to
 //! different relayer topics and streaming them out separately
 
-use std::collections::HashMap;
+use std::{collections::HashMap, time::Duration};
 
-use futures_util::StreamExt;
+use futures_util::{SinkExt, StreamExt};
+use reqwest::header::HeaderMap;
 use tokio::sync::{
-    mpsc::{self, UnboundedReceiver, UnboundedSender},
+    broadcast::{self, Receiver as BroadcastReceiver, Sender as BroadcastSender},
+    mpsc::{UnboundedReceiver, UnboundedSender},
     RwLock,
 };
 use tokio_tungstenite::tungstenite::Message;
-use tracing::{error, warn};
+use tracing::{error, info, warn};
 
 use crate::{
-    renegade_api_types::websocket::{ClientWebsocketMessageBody, ServerWebsocketMessageBody},
-    websocket::WsStream,
-    RenegadeClientError,
+    add_expiring_auth_to_headers,
+    renegade_api_types::websocket::{
+        ClientWebsocketMessage, ClientWebsocketMessageBody, ServerWebsocketMessage,
+        ServerWebsocketMessageBody,
+    },
+    websocket::{WsSink, WsStream},
+    HmacKey, RenegadeClientError,
 };
 
-// ----------------
-// | Type Aliases |
-// ----------------
+// -------------
+// | Constants |
+// -------------
+
+/// The expiration duration for websocket subscription authentication
+const AUTH_EXPIRATION: Duration = Duration::from_secs(10);
+
+// ---------
+// | Types |
+// ---------
+
+/// A channel on which to forward server websocket messages for a given topic
+pub type TopicTx = BroadcastSender<ServerWebsocketMessageBody>;
+/// A channel on which to receive forwarded server websocket messages for a
+/// given topic
+pub type TopicRx = BroadcastReceiver<ServerWebsocketMessageBody>;
 
 /// A channel on which to send client subscribe/unsubscribe messages
 pub type SubscriptionTx = UnboundedSender<ClientWebsocketMessageBody>;
-/// A channel on which to receive client subscribe/unsubscribe messages, to
-/// forward to the server
+/// A channel on which to receive client subscribe/unsubscribe messages to be
+/// forwarded to the server
 pub type SubscriptionRx = UnboundedReceiver<ClientWebsocketMessageBody>;
-/// A channel on which to forward server websocket messages for a given topic
-pub type TopicTx = UnboundedSender<ServerWebsocketMessageBody>;
-/// A channel on which to receive forwarded server websocket messages for a
-/// given topic
-pub type TopicRx = UnboundedReceiver<ServerWebsocketMessageBody>;
+
 /// A map of topics to their corresponding forwarder channels
 pub type SubscriptionMap = RwLock<HashMap<String, TopicTx>>;
 
-// -----------
-// | Helpers |
-// -----------
+// -------------------
+// | Channel Helpers |
+// -------------------
 
-/// Create a new topic channel
+/// Create a new topic channel. We use a broadcast channel to allow multiple
+/// listeners to subscribe to the same topic. We use a buffer size of 100 to
+/// allow for some backpressure in case the listeners are not able to process
+/// messages fast enough.
 fn create_topic_channel() -> (TopicTx, TopicRx) {
-    mpsc::unbounded_channel()
+    broadcast::channel(100)
 }
 
 // ------------------------
@@ -49,6 +67,8 @@ fn create_topic_channel() -> (TopicTx, TopicRx) {
 
 /// Manages client subscriptions to websocket API topics
 pub struct SubscriptionManager {
+    /// The account's HMAC key
+    auth_hmac_key: HmacKey,
     /// The channel on which to enqueue subscription requests to be forwarded to
     /// the server
     subscriptions_tx: SubscriptionTx,
@@ -58,22 +78,41 @@ pub struct SubscriptionManager {
 
 impl SubscriptionManager {
     /// Create a new subscription manager
-    pub fn new(subscriptions_tx: SubscriptionTx) -> Self {
-        Self { subscriptions_tx, subscribed_topics: RwLock::new(HashMap::new()) }
+    pub fn new(auth_hmac_key: HmacKey, subscriptions_tx: SubscriptionTx) -> Self {
+        Self { auth_hmac_key, subscriptions_tx, subscribed_topics: RwLock::new(HashMap::new()) }
     }
 
     pub async fn subscribe_to_topic(&self, topic: String) -> Result<TopicRx, RenegadeClientError> {
-        // Create the channel on which to stream server messages for the given topic to
-        // the client
-        let (tx, rx) = create_topic_channel();
-        self.subscribed_topics.write().await.insert(topic.clone(), tx);
+        // If there is already an active subscription for the topic, return the existing
+        // topic channel
+        if let Some(tx) = self.try_get_subscription(&topic).await {
+            return Ok(tx.subscribe());
+        }
 
-        // Enqueue the topic subscription request to be forwarded to the server
-        self.subscriptions_tx
-            .send(ClientWebsocketMessageBody::Subscribe { topic })
-            .map_err(RenegadeClientError::subscription)?;
+        // Forward the subscription request to the server
+        self.request_subscribe(topic.clone()).await?;
 
-        Ok(rx)
+        // Optimistically insert a topic channel into the map for the new subscription.
+        // TODO: Have this method await a subscription response from the server before
+        // creating the topic channel
+        Ok(self.insert_new_subscription(topic).await)
+    }
+
+    pub async fn unsubscribe_from_topic(&self, topic: String) -> Result<(), RenegadeClientError> {
+        // If there is no active subscription for the topic, do nothing
+        if self.try_get_subscription(&topic).await.is_none() {
+            return Ok(());
+        }
+
+        // Forward the request to unsubscribe from the topic to the server
+        self.request_unsubscribe(topic.clone()).await?;
+
+        // Optimistically remove the subscription from the map
+        // TODO: Have this method await a subscription response from the server before
+        // removing the subscription from the map
+        self.remove_subscription(topic).await;
+
+        Ok(())
     }
 
     /// Persistent loop that manages client subscriptions to websocket API
@@ -93,26 +132,20 @@ impl SubscriptionManager {
     ) {
         let (mut ws_tx, mut ws_rx) = ws_stream.split();
 
-        // TODO: Check if there are already subscriptions in the map, which we must
-        // re-send subscription requests for
+        // Re-send subscription requests to the server for all active subscriptions
+        self.resubscribe_to_all_topics().await.unwrap();
 
         loop {
             tokio::select! {
-                // Handle incoming subscription requests from the client
-                maybe_client_msg = subscriptions_rx.recv() => {
-                    match maybe_client_msg {
-                        Some(msg) => {
-                            // Client subscription request received successfully
-                            todo!()
-                        }
-                        None => {
-                            // Client subscription request channel closed
-                            warn!("Client subscription request channel closed");
-
-                            // TODO: Clean up all subscriptions
-
-                            break;
-                        }
+                // Handle incoming subscription requests from the client.
+                // We don't handle the case where `subscriptions_rx.recv()` returns `None`,
+                // because we store the send handle of this channel directly on `self`,
+                // so we know it has not been dropped.
+                Some(msg) = subscriptions_rx.recv() => {
+                    // Client subscription request received successfully
+                    if let Err(e) = self.forward_client_subscription_request(msg, &mut ws_tx).await {
+                        error!("Error forwarding client subscription request: {e}");
+                        continue;
                     }
                 }
 
@@ -124,7 +157,10 @@ impl SubscriptionManager {
                             match msg {
                                 Message::Text(txt) => {
                                     // Handle incoming server message
-                                    todo!()
+                                    if let Err(e) = self.handle_server_message(txt).await {
+                                        error!("Error handling websocket server message: {e}");
+                                        continue;
+                                    }
                                 },
                                 Message::Close(frame) => {
                                     warn!("Websocket connection closed");
@@ -152,4 +188,112 @@ impl SubscriptionManager {
             }
         }
     }
+
+    /// Re-send subscription requests to the server for all active subscriptions
+    async fn resubscribe_to_all_topics(&self) -> Result<(), RenegadeClientError> {
+        let subscriptions = self.subscribed_topics.read().await;
+        let topics = subscriptions.keys();
+        if topics.len() == 0 {
+            return Ok(());
+        }
+
+        info!("Resubscribing to all topics");
+        for topic in topics {
+            self.request_subscribe(topic.clone()).await?;
+        }
+
+        Ok(())
+    }
+
+    /// Send a subscription request for the given topic on the manager's
+    /// subscription channel
+    async fn request_subscribe(&self, topic: String) -> Result<(), RenegadeClientError> {
+        self.subscriptions_tx
+            .send(ClientWebsocketMessageBody::Subscribe { topic })
+            .map_err(RenegadeClientError::subscription)
+    }
+
+    /// Send a request to unsubscribe from the given topic on the manager's
+    /// subscription channel
+    async fn request_unsubscribe(&self, topic: String) -> Result<(), RenegadeClientError> {
+        self.subscriptions_tx
+            .send(ClientWebsocketMessageBody::Unsubscribe { topic })
+            .map_err(RenegadeClientError::subscription)
+    }
+
+    /// Forward a subscription request from the client to the server
+    async fn forward_client_subscription_request(
+        &self,
+        body: ClientWebsocketMessageBody,
+        ws_tx: &mut WsSink,
+    ) -> Result<(), RenegadeClientError> {
+        let body_ser = serde_json::to_vec(&body).map_err(RenegadeClientError::serde)?;
+        let mut headers = HeaderMap::new();
+        add_expiring_auth_to_headers(
+            body.topic(),
+            &mut headers,
+            &body_ser,
+            &self.auth_hmac_key,
+            AUTH_EXPIRATION,
+        );
+
+        let headers = header_map_to_hash_map(headers);
+
+        let msg = ClientWebsocketMessage { headers, body };
+        let msg_txt = serde_json::to_string(&msg).map_err(RenegadeClientError::serde)?;
+
+        ws_tx.send(Message::Text(msg_txt)).await.map_err(RenegadeClientError::websocket)?;
+
+        Ok(())
+    }
+
+    /// Handle an incoming server message, routing it to the appropriate topic
+    /// channel
+    async fn handle_server_message(&self, txt: String) -> Result<(), RenegadeClientError> {
+        let msg: ServerWebsocketMessage =
+            serde_json::from_str(&txt).map_err(RenegadeClientError::serde)?;
+
+        if let Some(tx) = self.try_get_subscription(&msg.topic).await {
+            tx.send(msg.body).map_err(RenegadeClientError::subscription)?;
+        }
+
+        Ok(())
+    }
+
+    /// Get a handle to the topic channel for the given topic, if there is
+    /// already an active subscription for it
+    async fn try_get_subscription(&self, topic: &str) -> Option<TopicTx> {
+        self.subscribed_topics.read().await.get(topic).cloned()
+    }
+
+    /// Create a topic channel for the given topic and insert it into the map,
+    /// returning the read handle to the channel
+    async fn insert_new_subscription(&self, topic: String) -> TopicRx {
+        let (tx, rx) = create_topic_channel();
+        self.subscribed_topics.write().await.insert(topic, tx);
+        rx
+    }
+
+    /// Remove a subscription from the map
+    async fn remove_subscription(&self, topic: String) {
+        self.subscribed_topics.write().await.remove(&topic);
+    }
+}
+
+// -----------
+// | Helpers |
+// -----------
+
+/// Convert an `http::HeaderMap` to a `HashMap`
+fn header_map_to_hash_map(header_map: HeaderMap) -> HashMap<String, String> {
+    let mut headers = HashMap::new();
+    for (k, v) in header_map.into_iter() {
+        if let Some(k) = k
+            && let Ok(v) = v.to_str()
+        {
+            headers.insert(k.to_string(), v.to_string());
+        }
+    }
+
+    headers
 }
