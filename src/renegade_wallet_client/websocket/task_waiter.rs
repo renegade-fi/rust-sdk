@@ -10,20 +10,19 @@ use std::{
     time::Duration,
 };
 
-use futures_util::{future::BoxFuture, FutureExt};
+use futures_util::{future::BoxFuture, FutureExt, Stream};
 use tokio::sync::{
     oneshot::{self, Receiver as OneshotReceiver, Sender as OneshotSender},
     RwLock,
 };
 use tokio_stream::StreamExt;
-use tracing::{error, warn};
+use tracing::error;
 
 use crate::{
     renegade_api_types::{
         tasks::{ApiTask, TaskIdentifier},
-        websocket::ServerWebsocketMessageBody,
+        websocket::TaskUpdateWebsocketMessage,
     },
-    websocket::subscriptions::TopicStream,
     RenegadeClientError,
 };
 
@@ -96,7 +95,10 @@ pub struct TaskWaiterManager {
 
 impl TaskWaiterManager {
     /// Create a new task waiter manager
-    pub fn new(tasks_topic: TopicStream) -> Self {
+    pub fn new<S>(tasks_topic: S) -> Self
+    where
+        S: Stream<Item = TaskUpdateWebsocketMessage> + Unpin + Send + 'static,
+    {
         let this = Self { notifications: Arc::new(RwLock::new(HashMap::new())) };
 
         let this_clone = this.clone();
@@ -119,22 +121,12 @@ impl TaskWaiterManager {
     /// A persistent loop which watches for task updates and forward the task
     /// status notification to the appropriate receiver if the task's status
     /// is being awaited
-    async fn watch_task_updates(&self, mut tasks_topic: TopicStream) {
-        while let Some(message_res) = tasks_topic.next().await {
-            if let Err(e) = message_res {
-                error!("Error streaming task updates: {e}");
-                continue;
-            }
-
-            let message = message_res.unwrap();
-            match message {
-                ServerWebsocketMessageBody::TaskUpdate { task } => {
-                    self.handle_task_update(task).await;
-                },
-                _ => {
-                    warn!("Unexpected message type received in task update stream: {message:?}");
-                },
-            }
+    async fn watch_task_updates<S>(&self, mut tasks_topic: S)
+    where
+        S: Stream<Item = TaskUpdateWebsocketMessage> + Unpin,
+    {
+        while let Some(message) = tasks_topic.next().await {
+            self.handle_task_update(message.task).await;
         }
 
         error!("Task update stream closed");

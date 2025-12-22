@@ -7,12 +7,17 @@ use alloy::primitives::{keccak256, Address};
 use alloy::signers::local::PrivateKeySigner;
 use alloy::signers::SignerSync;
 use ark_ff::PrimeField;
+use futures_util::Stream;
 use renegade_circuit_types::schnorr::{SchnorrPrivateKey, SchnorrPublicKey, SchnorrSignature};
 use renegade_circuit_types::traits::BaseType;
 use renegade_constants::{EmbeddedScalarField, Scalar};
 use uuid::Uuid;
 
 use crate::renegade_api_types::tasks::TaskIdentifier;
+use crate::renegade_api_types::websocket::{
+    BalanceUpdateWebsocketMessage, FillWebsocketMessage, OrderUpdateWebsocketMessage,
+    TaskUpdateWebsocketMessage,
+};
 use crate::util::get_env_agnostic_chain;
 use crate::websocket::TaskWaiter;
 use crate::HmacKey;
@@ -147,7 +152,7 @@ impl RenegadeClient {
     }
 
     // --------------
-    // | Task Utils |
+    // | WS Methods |
     // --------------
 
     /// Create a `TaskWaiter` which can be used to watch a task until it
@@ -158,6 +163,34 @@ impl RenegadeClient {
         timeout: Duration,
     ) -> Result<TaskWaiter, RenegadeClientError> {
         self.websocket_client.watch_task(task_id, timeout).await
+    }
+
+    /// Subscribe to the account's task updates stream
+    pub async fn subscribe_task_updates(
+        &self,
+    ) -> Result<impl Stream<Item = TaskUpdateWebsocketMessage>, RenegadeClientError> {
+        self.websocket_client.subscribe_task_updates().await
+    }
+
+    /// Subscribe to the account's balance updates stream
+    pub async fn subscribe_balance_updates(
+        &self,
+    ) -> Result<impl Stream<Item = BalanceUpdateWebsocketMessage>, RenegadeClientError> {
+        self.websocket_client.subscribe_balance_updates().await
+    }
+
+    /// Subscribe to the account's order updates stream
+    pub async fn subscribe_order_updates(
+        &self,
+    ) -> Result<impl Stream<Item = OrderUpdateWebsocketMessage>, RenegadeClientError> {
+        self.websocket_client.subscribe_order_updates().await
+    }
+
+    /// Subscribe to the account's fills stream
+    pub async fn subscribe_fills(
+        &self,
+    ) -> Result<impl Stream<Item = FillWebsocketMessage>, RenegadeClientError> {
+        self.websocket_client.subscribe_fills().await
     }
 
     // --------------

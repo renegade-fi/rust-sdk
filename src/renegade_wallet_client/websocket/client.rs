@@ -4,17 +4,23 @@ use std::sync::{Arc, OnceLock};
 use std::{collections::HashMap, time::Duration};
 
 use futures_util::stream::SplitSink;
+use futures_util::Stream;
 use tokio::net::TcpStream;
 use tokio::sync::{
     mpsc::{self, UnboundedReceiver, UnboundedSender},
     OnceCell as AsyncOnceCell, RwLock,
 };
+use tokio_stream::StreamExt;
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 use tracing::{error, warn};
 use uuid::Uuid;
 
 use crate::renegade_api_types::tasks::TaskIdentifier;
+use crate::renegade_api_types::websocket::{
+    BalanceUpdateWebsocketMessage, FillWebsocketMessage, OrderUpdateWebsocketMessage,
+    ServerWebsocketMessageBody, TaskUpdateWebsocketMessage,
+};
 use crate::websocket::subscriptions::{
     SubscriptionManager, SubscriptionRx, SubscriptionTx, TopicStream,
 };
@@ -102,6 +108,110 @@ impl RenegadeWebsocketClient {
         }
     }
 
+    // -----------------
+    // | Subscriptions |
+    // -----------------
+
+    /// Subscribe to a new websocket topic
+    async fn subscribe_to_topic(&self, topic: String) -> Result<TopicStream, RenegadeClientError> {
+        self.ensure_subscriptions_initialized();
+
+        let subscriptions = self.subscriptions.get().unwrap();
+        subscriptions.subscribe_to_topic(topic).await
+    }
+
+    // --- Tasks --- //
+
+    /// Subscribe to the account's task updates stream
+    pub async fn subscribe_task_updates(
+        &self,
+    ) -> Result<impl Stream<Item = TaskUpdateWebsocketMessage>, RenegadeClientError> {
+        let stream = self.subscribe_to_topic(self.tasks_topic()).await?;
+
+        let filtered_stream = stream.filter_map(|maybe_ws_msg| {
+            maybe_ws_msg.ok().and_then(|ws_msg| match ws_msg {
+                ServerWebsocketMessageBody::TaskUpdate(update) => Some(update),
+                _ => None,
+            })
+        });
+
+        Ok(filtered_stream)
+    }
+
+    /// Construct the account's task updates topic name
+    fn tasks_topic(&self) -> String {
+        format!("/v2/account/{}/tasks", self.account_id)
+    }
+
+    // --- Balances --- //
+
+    /// Subscribe to the account's balance updates stream
+    pub async fn subscribe_balance_updates(
+        &self,
+    ) -> Result<impl Stream<Item = BalanceUpdateWebsocketMessage>, RenegadeClientError> {
+        let stream = self.subscribe_to_topic(self.balances_topic()).await?;
+
+        let filtered_stream = stream.filter_map(|maybe_ws_msg| {
+            maybe_ws_msg.ok().and_then(|ws_msg| match ws_msg {
+                ServerWebsocketMessageBody::BalanceUpdate(update) => Some(update),
+                _ => None,
+            })
+        });
+
+        Ok(filtered_stream)
+    }
+
+    /// Construct the account's balance updates topic name
+    fn balances_topic(&self) -> String {
+        format!("/v2/account/{}/balances", self.account_id)
+    }
+
+    // --- Orders --- //
+
+    /// Subscribe to the account's order updates stream
+    pub async fn subscribe_order_updates(
+        &self,
+    ) -> Result<impl Stream<Item = OrderUpdateWebsocketMessage>, RenegadeClientError> {
+        let stream = self.subscribe_to_topic(self.orders_topic()).await?;
+
+        let filtered_stream = stream.filter_map(|maybe_ws_msg| {
+            maybe_ws_msg.ok().and_then(|ws_msg| match ws_msg {
+                ServerWebsocketMessageBody::OrderUpdate(update) => Some(update),
+                _ => None,
+            })
+        });
+
+        Ok(filtered_stream)
+    }
+
+    /// Construct the account's order updates topic name
+    fn orders_topic(&self) -> String {
+        format!("/v2/account/{}/orders", self.account_id)
+    }
+
+    // --- Fills --- //
+
+    /// Subscribe to the account's fills stream
+    pub async fn subscribe_fills(
+        &self,
+    ) -> Result<impl Stream<Item = FillWebsocketMessage>, RenegadeClientError> {
+        let stream = self.subscribe_to_topic(self.fills_topic()).await?;
+
+        let filtered_stream = stream.filter_map(|maybe_ws_msg| {
+            maybe_ws_msg.ok().and_then(|ws_msg| match ws_msg {
+                ServerWebsocketMessageBody::Fill(update) => Some(update),
+                _ => None,
+            })
+        });
+
+        Ok(filtered_stream)
+    }
+
+    /// Construct the account's fills topic name
+    fn fills_topic(&self) -> String {
+        format!("/v2/account/{}/fills", self.account_id)
+    }
+
     // ----------------
     // | Task Waiters |
     // ----------------
@@ -124,27 +234,10 @@ impl RenegadeWebsocketClient {
     ) -> Result<&Arc<TaskWaiterManager>, RenegadeClientError> {
         self.task_waiter_manager
             .get_or_try_init(|| async {
-                let tasks_topic = self.subscribe_to_topic(self.tasks_topic()).await?;
+                let tasks_topic = self.subscribe_task_updates().await?;
                 Ok(Arc::new(TaskWaiterManager::new(tasks_topic)))
             })
             .await
-    }
-
-    /// Construct the account's task topic name
-    fn tasks_topic(&self) -> String {
-        format!("/v2/account/{}/tasks", self.account_id)
-    }
-
-    // -----------------
-    // | Subscriptions |
-    // -----------------
-
-    /// Subscribe to a new websocket topic
-    async fn subscribe_to_topic(&self, topic: String) -> Result<TopicStream, RenegadeClientError> {
-        self.ensure_subscriptions_initialized();
-
-        let subscriptions = self.subscriptions.get().unwrap();
-        subscriptions.subscribe_to_topic(topic).await
     }
 
     // ----------------------
