@@ -95,6 +95,8 @@ pub struct RenegadeClient {
     pub secrets: AccountSecrets,
     /// The relayer HTTP client
     pub relayer_client: RelayerHttpClient,
+    /// The admin relayer HTTP client
+    pub admin_relayer_client: Option<RelayerHttpClient>,
     /// The historical state HTTP client.
     ///
     /// Also a `RelayerHttpClient` as it mirrors the relayer's historical state
@@ -112,6 +114,10 @@ impl RenegadeClient {
         let relayer_client =
             RelayerHttpClient::new(config.relayer_base_url.clone(), secrets.auth_hmac_key);
 
+        let admin_relayer_client = config
+            .admin_hmac_key
+            .map(|key| RelayerHttpClient::new(config.relayer_base_url.clone(), key));
+
         let chain = get_env_agnostic_chain(config.chain_id);
         let historical_state_client = Arc::new(RelayerHttpClient::new(
             format!("{}/{chain}", config.historical_state_base_url),
@@ -121,7 +127,14 @@ impl RenegadeClient {
         let websocket_client =
             RenegadeWebsocketClient::new(&config, secrets.account_id, secrets.auth_hmac_key);
 
-        Ok(Self { config, secrets, relayer_client, historical_state_client, websocket_client })
+        Ok(Self {
+            config,
+            secrets,
+            relayer_client,
+            admin_relayer_client,
+            historical_state_client,
+            websocket_client,
+        })
     }
 
     /// Create a new wallet on Arbitrum Sepolia
@@ -196,6 +209,15 @@ impl RenegadeClient {
     // --------------
     // | Misc Utils |
     // --------------
+
+    /// Get a reference to the admin relayer client, returning an error if one
+    /// has not been configured.
+    pub fn get_admin_client(&self) -> Result<&RelayerHttpClient, RenegadeClientError> {
+        match self.admin_relayer_client.as_ref() {
+            Some(admin_client) => Ok(admin_client),
+            None => Err(RenegadeClientError::NotAdmin),
+        }
+    }
 
     /// Get the ID of the account
     pub fn get_account_id(&self) -> Uuid {
