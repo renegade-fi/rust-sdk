@@ -4,13 +4,12 @@
 #![deny(unsafe_code)]
 #![deny(clippy::needless_pass_by_ref_mut)]
 #![feature(let_chains)]
+#![feature(type_alias_impl_trait)]
 
 #[cfg(feature = "external-match-client")]
 pub(crate) mod external_match_client;
 mod http;
-pub mod types;
 mod util;
-pub mod v2;
 
 #[cfg(feature = "internal")]
 pub use http::*;
