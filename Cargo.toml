@@ -143,15 +143,14 @@ required-features = ["examples", "darkpool-client"]
 default = ["external-match-client", "darkpool-client"]
 external-match-client = []
 darkpool-client = [
-    "dep:darkpool-client",
     "dep:futures-util",
     "dep:renegade-circuit-types",
-    "dep:renegade-api",
     "dep:renegade-common",
     "dep:renegade-constants",
     "dep:renegade-crypto",
-    "dep:renegade-utils",
+    "dep:renegade-solidity-abi",
     "dep:tokio",
+    "dep:tokio-stream",
     "dep:tokio-tungstenite",
     "dep:tracing",
 ]
@@ -168,7 +167,9 @@ futures-util = { version = "0.3", optional = true }
 reqwest = { version = ">=0.12, <1.0", features = ["json"] }
 serde = { version = "^1.0.197" }
 serde_json = "1.0.64"
+serde_urlencoded = "0.7.1"
 tokio = { version = "1.30.0", features = ["full"], optional = true }
+tokio-stream = { version = "0.1.17", features = ["sync"], optional = true }
 tokio-tungstenite = { version = "0.20.0", features = [
     "native-tls",
 ], optional = true }
@@ -179,18 +180,14 @@ alloy-rpc-types-eth = { version = ">=0.12, <2.0" }
 k256 = { version = "0.13", features = ["ecdsa"] }
 
 # === Renegade Dependencies === #
-darkpool-client = { git = "https://github.com/renegade-fi/renegade.git", features = [
-    "all-chains",
-    "transfer-auth",
-], optional = true }
-renegade-circuit-types = { package = "circuit-types", git = "https://github.com/renegade-fi/renegade.git", optional = true }
-renegade-api = { package = "external-api", git = "https://github.com/renegade-fi/renegade.git", features = [
-    "auth",
-], optional = true }
-renegade-common = { package = "common", git = "https://github.com/renegade-fi/renegade.git", optional = true }
-renegade-constants = { package = "constants", git = "https://github.com/renegade-fi/renegade.git", optional = true }
-renegade-crypto = { package = "renegade-crypto", git = "https://github.com/renegade-fi/renegade.git", optional = true }
-renegade-utils = { package = "util", git = "https://github.com/renegade-fi/renegade.git", optional = true }
+renegade-circuit-types = { package = "circuit-types", git = "https://github.com/renegade-fi/renegade.git", branch = "andrew/relayer-v2-patch", optional = true }
+renegade-common = { package = "common", git = "https://github.com/renegade-fi/renegade.git", branch = "andrew/relayer-v2-patch", optional = true }
+renegade-constants = { package = "constants", git = "https://github.com/renegade-fi/renegade.git", branch = "andrew/relayer-v2-patch", optional = true }
+renegade-crypto = { package = "renegade-crypto", git = "https://github.com/renegade-fi/renegade.git", branch = "andrew/relayer-v2-patch", optional = true }
+renegade-solidity-abi = { package = "abi", git = "https://github.com/renegade-fi/renegade-contracts.git", branch = "andrew/contracts-v2-patch", features = ["v2", "v2-auth-helpers", "transfer-auth"], optional = true }
+
+# === Cryptography === #
+ark-ff = "0.4"
 
 # === Misc === #
 base64 = "0.22"

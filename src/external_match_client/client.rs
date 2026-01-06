@@ -7,26 +7,22 @@ use reqwest::{
 
 use crate::{
     api_types::{
-        exchange_metadata::ExchangeMetadataResponse,
-        order_book::{GetDepthByMintResponse, GetDepthForAllPairsResponse, PriceAndDepth},
-        AssemblyType, ExternalMatchResponse, ASSEMBLE_MATCH_BUNDLE_ROUTE, ORDER_BOOK_DEPTH_ROUTE,
+        exchange_metadata::ExchangeMetadataResponse, AssemblyType, ExternalMatchResponse,
+        GetMarketDepthByMintResponse, GetMarketDepthsResponse, GetMarketsResponse,
+        ASSEMBLE_MATCH_BUNDLE_ROUTE, GET_MARKETS_DEPTH_ROUTE, GET_MARKETS_ROUTE,
+        GET_MARKET_DEPTH_BY_MINT_ROUTE,
     },
-    ARBITRUM_ONE_RELAYER_BASE_URL, ARBITRUM_SEPOLIA_RELAYER_BASE_URL,
-    BASE_MAINNET_RELAYER_BASE_URL, BASE_SEPOLIA_RELAYER_BASE_URL,
-};
-
-use crate::{
-    api_types::{GetTokenPricesResponse, GET_TOKEN_PRICES_ROUTE},
     http::RelayerHttpClient,
     util::HmacKey,
-    AssembleQuoteOptions, ExternalMatchOptions, RequestQuoteOptions,
+    AssembleQuoteOptions, ExternalMatchOptions, RequestQuoteOptions, ARBITRUM_ONE_RELAYER_BASE_URL,
+    ARBITRUM_SEPOLIA_RELAYER_BASE_URL, BASE_MAINNET_RELAYER_BASE_URL,
+    BASE_SEPOLIA_RELAYER_BASE_URL,
 };
 
 use super::{
     api_types::{
         ApiSignedQuote, AssembleExternalMatchRequest, ExternalOrder, ExternalQuoteRequest,
-        ExternalQuoteResponse, GetSupportedTokensResponse, SignedExternalQuote,
-        GET_EXCHANGE_METADATA_ROUTE, GET_SUPPORTED_TOKENS_ROUTE,
+        ExternalQuoteResponse, SignedExternalQuote, GET_EXCHANGE_METADATA_ROUTE,
     },
     error::ExternalMatchClientError,
 };
@@ -170,35 +166,58 @@ impl ExternalMatchClient {
         )
     }
 
-    // --------------------
-    // | Orderbook Routes |
-    // --------------------
+    // ------------------
+    // | Markets Routes |
+    // ------------------
 
-    /// Get a list of supported tokens for external matches
-    pub async fn get_supported_tokens(
-        &self,
-    ) -> Result<GetSupportedTokensResponse, ExternalMatchClientError> {
-        let path = GET_SUPPORTED_TOKENS_ROUTE;
+    /// Get a list of tradable markets. Includes the tokens pair, current price,
+    /// and fee rates for each market.
+    pub async fn get_markets(&self) -> Result<GetMarketsResponse, ExternalMatchClientError> {
+        let path = GET_MARKETS_ROUTE;
         let resp = self.relayer_http_client.get(path).await?;
 
         Ok(resp)
+    }
+
+    /// Get a list of supported tokens for external matches
+    #[deprecated(
+        since = "2.0.0",
+        note = "Use get_markets instead, which returns all supported tokens along with their current price"
+    )]
+    pub async fn get_supported_tokens(
+        &self,
+    ) -> Result<GetMarketsResponse, ExternalMatchClientError> {
+        self.get_markets().await
     }
 
     /// Get token prices for all supported tokens
-    pub async fn get_token_prices(
+    #[deprecated(
+        since = "2.0.0",
+        note = "Use get_markets instead, which returns all supported tokens along with their current price"
+    )]
+    pub async fn get_token_prices(&self) -> Result<GetMarketsResponse, ExternalMatchClientError> {
+        self.get_markets().await
+    }
+
+    /// Get the market depth for the given token.
+    ///
+    /// The address is the address of the token
+    pub async fn get_market_depth(
         &self,
-    ) -> Result<GetTokenPricesResponse, ExternalMatchClientError> {
-        let path = GET_TOKEN_PRICES_ROUTE;
-        let resp = self.relayer_http_client.get(path).await?;
+        address: &str,
+    ) -> Result<GetMarketDepthByMintResponse, ExternalMatchClientError> {
+        let path = GET_MARKET_DEPTH_BY_MINT_ROUTE.replace(":mint", address);
+        let headers = self.get_headers()?;
+        let resp = self.auth_http_client.get_with_headers(&path, headers).await?;
 
         Ok(resp)
     }
 
-    /// Get metadata about the Renegade exchange
-    pub async fn get_exchange_metadata(
+    /// Get the market depths for all supported pairs
+    pub async fn get_market_depths_all_pairs(
         &self,
-    ) -> Result<ExchangeMetadataResponse, ExternalMatchClientError> {
-        let path = GET_EXCHANGE_METADATA_ROUTE;
+    ) -> Result<GetMarketDepthsResponse, ExternalMatchClientError> {
+        let path = GET_MARKETS_DEPTH_ROUTE;
         let headers = self.get_headers()?;
         let resp = self.auth_http_client.get_with_headers(path, headers).await?;
 
@@ -208,27 +227,20 @@ impl ExternalMatchClient {
     /// Get the order book depth for a token
     ///
     /// The address is the address of the token
+    #[deprecated(since = "2.0.0", note = "Use get_market_depth instead")]
     pub async fn get_order_book_depth(
         &self,
         address: &str,
-    ) -> Result<GetDepthByMintResponse, ExternalMatchClientError> {
-        let path = format!("{ORDER_BOOK_DEPTH_ROUTE}/{address}");
-        let headers = self.get_headers()?;
-        let resp: PriceAndDepth =
-            self.auth_http_client.get_with_headers(path.as_str(), headers).await?;
-
-        Ok(GetDepthByMintResponse { depth: resp })
+    ) -> Result<GetMarketDepthByMintResponse, ExternalMatchClientError> {
+        self.get_market_depth(address).await
     }
 
     /// Get the order book depth for all supported tokens
+    #[deprecated(since = "2.0.0", note = "Use get_market_depths_all_pairs instead")]
     pub async fn get_order_book_depth_all_pairs(
         &self,
-    ) -> Result<GetDepthForAllPairsResponse, ExternalMatchClientError> {
-        let path = ORDER_BOOK_DEPTH_ROUTE;
-        let headers = self.get_headers()?;
-        let resp = self.auth_http_client.get_with_headers(path, headers).await?;
-
-        Ok(resp)
+    ) -> Result<GetMarketDepthsResponse, ExternalMatchClientError> {
+        self.get_market_depths_all_pairs().await
     }
 
     // -------------------------
@@ -375,6 +387,25 @@ impl ExternalMatchClient {
     ) -> Result<Option<ExternalMatchResponse>, ExternalMatchClientError> {
         self.request_external_match_with_options(order, options).await
     }
+
+    // -------------------
+    // | Metadata Routes |
+    // -------------------
+
+    /// Get metadata about the Renegade exchange
+    pub async fn get_exchange_metadata(
+        &self,
+    ) -> Result<ExchangeMetadataResponse, ExternalMatchClientError> {
+        let path = GET_EXCHANGE_METADATA_ROUTE;
+        let headers = self.get_headers()?;
+        let resp = self.auth_http_client.get_with_headers(path, headers).await?;
+
+        Ok(resp)
+    }
+
+    // -----------
+    // | Helpers |
+    // -----------
 
     /// Helper function to handle response that might be NO_CONTENT, OK with
     /// json, or an error

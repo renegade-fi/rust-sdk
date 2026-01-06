@@ -2,29 +2,33 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::api_types::token::TokenPrice;
+use crate::api_types::markets::{MarketDepth, MarketInfo};
 
-use super::{
-    token::ApiToken, ApiSignedQuote, ExternalOrder, GasSponsorshipInfo,
-    MalleableAtomicMatchApiBundle,
-};
+use super::{ApiSignedQuote, ExternalOrder, GasSponsorshipInfo, MalleableAtomicMatchApiBundle};
 
 // -------------------------------
 // | HTTP Requests and Responses |
 // -------------------------------
 
-/// The response type to fetch the supported token list
+/// The response type for fetching all tradable markets
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct GetSupportedTokensResponse {
-    /// The supported tokens
-    pub tokens: Vec<ApiToken>,
+pub struct GetMarketsResponse {
+    /// The tradable markets
+    pub markets: Vec<MarketInfo>,
 }
 
-/// The response type to fetch the token prices
+/// The response type for fetching the market depths for all supported pairs
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct GetTokenPricesResponse {
-    /// The token prices
-    pub token_prices: Vec<TokenPrice>,
+pub struct GetMarketDepthsResponse {
+    /// The market depth for all supported pairs
+    pub market_depths: Vec<MarketDepth>,
+}
+
+/// The response type for fetching the market depth for a given mint
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct GetMarketDepthByMintResponse {
+    /// The market depth for the given mint
+    pub market_depth: MarketDepth,
 }
 
 /// The request type for a quote on an external order

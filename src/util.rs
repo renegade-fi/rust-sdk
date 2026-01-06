@@ -34,6 +34,11 @@ impl HmacKey {
             .map_err(|_| ExternalMatchClientError::InvalidApiSecret)?;
         Ok(Self(bytes.try_into().unwrap()))
     }
+
+    /// Convert the HMAC key to a base64 string
+    pub fn to_base64_string(&self) -> String {
+        b64_general_purpose::STANDARD.encode(self.0)
+    }
 }
 
 /// Add an auth expiration and signature to a set of headers
