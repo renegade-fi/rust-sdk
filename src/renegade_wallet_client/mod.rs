@@ -23,6 +23,9 @@ pub enum RenegadeClientError {
     /// An error signing a message
     #[error("failed to sign message: {0}")]
     Signing(String),
+    /// Attempted to invoke admin API with a non-admin client
+    #[error("not admin client")]
+    NotAdmin,
     /// A relayer error
     #[error("relayer error: {0}")]
     Relayer(RelayerHttpClientError),

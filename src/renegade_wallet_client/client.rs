@@ -7,12 +7,17 @@ use alloy::primitives::{keccak256, Address};
 use alloy::signers::local::PrivateKeySigner;
 use alloy::signers::SignerSync;
 use ark_ff::PrimeField;
+use futures_util::Stream;
 use renegade_circuit_types::schnorr::{SchnorrPrivateKey, SchnorrPublicKey, SchnorrSignature};
 use renegade_circuit_types::traits::BaseType;
 use renegade_constants::{EmbeddedScalarField, Scalar};
 use uuid::Uuid;
 
 use crate::renegade_api_types::tasks::TaskIdentifier;
+use crate::renegade_api_types::websocket::{
+    BalanceUpdateWebsocketMessage, FillWebsocketMessage, OrderUpdateWebsocketMessage,
+    TaskUpdateWebsocketMessage,
+};
 use crate::util::get_env_agnostic_chain;
 use crate::websocket::TaskWaiter;
 use crate::HmacKey;
@@ -90,6 +95,8 @@ pub struct RenegadeClient {
     pub secrets: AccountSecrets,
     /// The relayer HTTP client
     pub relayer_client: RelayerHttpClient,
+    /// The admin relayer HTTP client
+    pub admin_relayer_client: Option<RelayerHttpClient>,
     /// The historical state HTTP client.
     ///
     /// Also a `RelayerHttpClient` as it mirrors the relayer's historical state
@@ -107,6 +114,10 @@ impl RenegadeClient {
         let relayer_client =
             RelayerHttpClient::new(config.relayer_base_url.clone(), secrets.auth_hmac_key);
 
+        let admin_relayer_client = config
+            .admin_hmac_key
+            .map(|key| RelayerHttpClient::new(config.relayer_base_url.clone(), key));
+
         let chain = get_env_agnostic_chain(config.chain_id);
         let historical_state_client = Arc::new(RelayerHttpClient::new(
             format!("{}/{chain}", config.historical_state_base_url),
@@ -116,7 +127,14 @@ impl RenegadeClient {
         let websocket_client =
             RenegadeWebsocketClient::new(&config, secrets.account_id, secrets.auth_hmac_key);
 
-        Ok(Self { config, secrets, relayer_client, historical_state_client, websocket_client })
+        Ok(Self {
+            config,
+            secrets,
+            relayer_client,
+            admin_relayer_client,
+            historical_state_client,
+            websocket_client,
+        })
     }
 
     /// Create a new wallet on Arbitrum Sepolia
@@ -147,7 +165,7 @@ impl RenegadeClient {
     }
 
     // --------------
-    // | Task Utils |
+    // | WS Methods |
     // --------------
 
     /// Create a `TaskWaiter` which can be used to watch a task until it
@@ -160,9 +178,46 @@ impl RenegadeClient {
         self.websocket_client.watch_task(task_id, timeout).await
     }
 
+    /// Subscribe to the account's task updates stream
+    pub async fn subscribe_task_updates(
+        &self,
+    ) -> Result<impl Stream<Item = TaskUpdateWebsocketMessage>, RenegadeClientError> {
+        self.websocket_client.subscribe_task_updates().await
+    }
+
+    /// Subscribe to the account's balance updates stream
+    pub async fn subscribe_balance_updates(
+        &self,
+    ) -> Result<impl Stream<Item = BalanceUpdateWebsocketMessage>, RenegadeClientError> {
+        self.websocket_client.subscribe_balance_updates().await
+    }
+
+    /// Subscribe to the account's order updates stream
+    pub async fn subscribe_order_updates(
+        &self,
+    ) -> Result<impl Stream<Item = OrderUpdateWebsocketMessage>, RenegadeClientError> {
+        self.websocket_client.subscribe_order_updates().await
+    }
+
+    /// Subscribe to the account's fills stream
+    pub async fn subscribe_fills(
+        &self,
+    ) -> Result<impl Stream<Item = FillWebsocketMessage>, RenegadeClientError> {
+        self.websocket_client.subscribe_fills().await
+    }
+
     // --------------
     // | Misc Utils |
     // --------------
+
+    /// Get a reference to the admin relayer client, returning an error if one
+    /// has not been configured.
+    pub fn get_admin_client(&self) -> Result<&RelayerHttpClient, RenegadeClientError> {
+        match self.admin_relayer_client.as_ref() {
+            Some(admin_client) => Ok(admin_client),
+            None => Err(RenegadeClientError::NotAdmin),
+        }
+    }
 
     /// Get the ID of the account
     pub fn get_account_id(&self) -> Uuid {
