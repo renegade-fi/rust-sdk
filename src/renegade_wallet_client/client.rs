@@ -142,9 +142,25 @@ impl RenegadeClient {
         Self::new(RenegadeClientConfig::new_arbitrum_sepolia(key))
     }
 
+    /// Create a new admin wallet on Arbitrum Sepolia
+    pub fn new_arbitrum_sepolia_admin(
+        key: &PrivateKeySigner,
+        admin_hmac_key: HmacKey,
+    ) -> Result<Self, RenegadeClientError> {
+        Self::new(RenegadeClientConfig::new_arbitrum_sepolia_admin(key, admin_hmac_key))
+    }
+
     /// Create a new wallet on Arbitrum One
     pub fn new_arbitrum_one(key: &PrivateKeySigner) -> Result<Self, RenegadeClientError> {
         Self::new(RenegadeClientConfig::new_arbitrum_one(key))
+    }
+
+    /// Create a new admin wallet on Arbitrum One
+    pub fn new_arbitrum_one_admin(
+        key: &PrivateKeySigner,
+        admin_hmac_key: HmacKey,
+    ) -> Result<Self, RenegadeClientError> {
+        Self::new(RenegadeClientConfig::new_arbitrum_one_admin(key, admin_hmac_key))
     }
 
     /// Create a new wallet on Base Sepolia
@@ -152,20 +168,26 @@ impl RenegadeClient {
         Self::new(RenegadeClientConfig::new_base_sepolia(key))
     }
 
+    /// Create a new admin wallet on Base Sepolia
+    pub fn new_base_sepolia_admin(
+        key: &PrivateKeySigner,
+        admin_hmac_key: HmacKey,
+    ) -> Result<Self, RenegadeClientError> {
+        Self::new(RenegadeClientConfig::new_base_sepolia_admin(key, admin_hmac_key))
+    }
+
     /// Create a new wallet on Base Mainnet
     pub fn new_base_mainnet(key: &PrivateKeySigner) -> Result<Self, RenegadeClientError> {
         Self::new(RenegadeClientConfig::new_base_mainnet(key))
     }
 
-     /// Create a new wallet on Ethereum Sepolia
-     pub fn new_ethereum_sepolia(key: &PrivateKeySigner) -> Result<Self, RenegadeClientError> {
-         Self::new(RenegadeClientConfig::new_ethereum_sepolia(key))
-     }
- 
-     ///// Create a new wallet on Ethereum Mainnet
-     //pub fn new_ethereum_mainnet(key: &PrivateKeySigner) -> Result<Self, RenegadeClientError> {
-         //Self::new(RenegadeClientConfig::new_ethereum_mainnet(key))
-     //}
+    /// Create a new admin wallet on Base Mainnet
+    pub fn new_base_mainnet_admin(
+        key: &PrivateKeySigner,
+        admin_hmac_key: HmacKey,
+    ) -> Result<Self, RenegadeClientError> {
+        Self::new(RenegadeClientConfig::new_base_mainnet_admin(key, admin_hmac_key))
+    }
 
     /// Whether the client is on a chain in which Renegade is deployed as a
     /// solidity contract
