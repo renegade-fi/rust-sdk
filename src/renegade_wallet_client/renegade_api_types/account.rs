@@ -68,7 +68,7 @@ impl From<SchnorrSignature> for ApiSchnorrSignature {
 }
 
 /// A BabyJubJub point, with custom serialization
-#[derive(Copy, Clone, Debug, Serialize)]
+#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
 pub struct ApiBabyJubJubPoint {
     /// The x coordinate of the point
     #[serde(with = "scalar_string_serde")]
@@ -81,5 +81,11 @@ pub struct ApiBabyJubJubPoint {
 impl From<BabyJubJubPoint> for ApiBabyJubJubPoint {
     fn from(value: BabyJubJubPoint) -> Self {
         Self { x: value.x, y: value.y }
+    }
+}
+
+impl From<ApiBabyJubJubPoint> for BabyJubJubPoint {
+    fn from(value: ApiBabyJubJubPoint) -> Self {
+        BabyJubJubPoint { x: value.x, y: value.y }
     }
 }

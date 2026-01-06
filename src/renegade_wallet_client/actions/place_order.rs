@@ -20,7 +20,7 @@ use crate::{
         request_response::{CreateOrderQueryParameters, CreateOrderRequest, CreateOrderResponse},
         CREATE_ORDER_ROUTE,
     },
-    websocket::TaskWaiter,
+    websocket::{TaskWaiter, DEFAULT_TASK_TIMEOUT},
     RenegadeClientError,
 };
 
@@ -41,9 +41,9 @@ impl RenegadeClient {
         let query_params = CreateOrderQueryParameters { non_blocking: Some(false) };
         let path = self.build_create_order_request_path(&query_params)?;
 
-        let response: CreateOrderResponse = self.relayer_client.post(&path, request).await?;
+        let CreateOrderResponse { order, .. } = self.relayer_client.post(&path, request).await?;
 
-        Ok(response.order)
+        Ok(order)
     }
 
     /// Enqueues an order placement task in the relayer. Returns the expected
@@ -62,11 +62,13 @@ impl RenegadeClient {
         let query_params = CreateOrderQueryParameters { non_blocking: Some(true) };
         let path = self.build_create_order_request_path(&query_params)?;
 
-        let response: CreateOrderResponse = self.relayer_client.post(&path, request).await?;
+        let CreateOrderResponse { task_id, order, .. } =
+            self.relayer_client.post(&path, request).await?;
 
         // Create a task waiter for the task
-        let task_id = response.task_id;
-        Ok((response.order, self.get_default_task_waiter(task_id)))
+        let task_waiter = self.watch_task(task_id, DEFAULT_TASK_TIMEOUT).await?;
+
+        Ok((order, task_waiter))
     }
 }
 

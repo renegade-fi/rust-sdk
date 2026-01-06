@@ -12,7 +12,7 @@ use crate::{
         request_response::{CancelOrderQueryParameters, CancelOrderRequest, CancelOrderResponse},
         CANCEL_ORDER_ROUTE,
     },
-    websocket::TaskWaiter,
+    websocket::{TaskWaiter, DEFAULT_TASK_TIMEOUT},
     RenegadeClientError,
 };
 
@@ -26,9 +26,9 @@ impl RenegadeClient {
         let query_params = CancelOrderQueryParameters { non_blocking: Some(false) };
         let path = self.build_cancel_order_request_path(order_id, &query_params)?;
 
-        let response: CancelOrderResponse = self.relayer_client.post(&path, request).await?;
+        let CancelOrderResponse { order, .. } = self.relayer_client.post(&path, request).await?;
 
-        Ok(response.order)
+        Ok(order)
     }
 
     /// Enqueues an order cancellation task in the relayer. Returns the
@@ -43,11 +43,13 @@ impl RenegadeClient {
         let query_params = CancelOrderQueryParameters { non_blocking: Some(true) };
         let path = self.build_cancel_order_request_path(order_id, &query_params)?;
 
-        let response: CancelOrderResponse = self.relayer_client.post(&path, request).await?;
+        let CancelOrderResponse { task_id, order, .. } =
+            self.relayer_client.post(&path, request).await?;
 
         // Create a task waiter for the task
-        let task_id = response.task_id;
-        Ok((response.order, self.get_default_task_waiter(task_id)))
+        let task_waiter = self.watch_task(task_id, DEFAULT_TASK_TIMEOUT).await?;
+
+        Ok((order, task_waiter))
     }
 }
 
