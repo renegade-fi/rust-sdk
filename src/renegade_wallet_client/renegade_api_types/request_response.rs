@@ -1,14 +1,18 @@
 //! Top-level API request / response types
 
 use alloy::primitives::Address;
+use renegade_circuit_types::Amount;
 use renegade_constants::Scalar;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use uuid::Uuid;
 
 use crate::{
     renegade_api_types::{
-        account::{ApiPoseidonCSPRNG, ApiSchnorrPrivateKey},
+        account::ApiPoseidonCSPRNG,
+        admin::ApiAdminOrder,
+        balances::{ApiBalance, ApiDepositPermit, ApiSchnorrPublicKey},
         orders::{ApiOrder, ApiOrderCore, OrderAuth},
+        tasks::ApiTask,
     },
     HmacKey,
 };
@@ -29,8 +33,6 @@ pub struct CreateAccountRequest {
     /// The master view seed
     #[serde(with = "scalar_string_serde")]
     pub master_view_seed: Scalar,
-    /// The Schnorr private key
-    pub schnorr_key: ApiSchnorrPrivateKey,
     /// The HMAC key for API authentication
     #[serde(serialize_with = "serialize_hmac_key")]
     pub auth_hmac_key: HmacKey,
@@ -44,6 +46,36 @@ pub struct GetAccountSeedsResponse {
     pub recovery_seed_csprng: ApiPoseidonCSPRNG,
     /// The current state of the share stream seeds CSPRNG
     pub share_seed_csprng: ApiPoseidonCSPRNG,
+}
+
+/// The query parameters used when syncing an account
+#[derive(Debug, Default, Serialize)]
+pub struct SyncAccountQueryParameters {
+    /// Whether to block on the completion of the account sync task before
+    /// receiving a response
+    pub non_blocking: Option<bool>,
+}
+
+/// A request to sync an account
+#[derive(Debug, Serialize)]
+pub struct SyncAccountRequest {
+    /// The account ID
+    pub account_id: Uuid,
+    /// The master view seed
+    #[serde(with = "scalar_string_serde")]
+    pub master_view_seed: Scalar,
+    /// The HMAC key for API authentication
+    #[serde(serialize_with = "serialize_hmac_key")]
+    pub auth_hmac_key: HmacKey,
+}
+
+/// The response received after syncing an account
+#[derive(Debug, Deserialize)]
+pub struct SyncAccountResponse {
+    /// The ID of the account sync task spawned in the relayer
+    pub task_id: Uuid,
+    /// Whether the account sync task has completed
+    pub completed: bool,
 }
 
 // # === Orders === #
@@ -117,6 +149,176 @@ pub struct UpdateOrderRequest {
 pub struct UpdateOrderResponse {
     /// The updated order
     pub order: ApiOrder,
+}
+
+/// The query parameters used when cancelling an order
+#[derive(Debug, Default, Serialize)]
+pub struct CancelOrderQueryParameters {
+    /// Whether to block on the completion of the order cancellation task before
+    /// receiving a response
+    pub non_blocking: Option<bool>,
+}
+
+/// A request to cancel an order
+#[derive(Debug, Default, Serialize)]
+pub struct CancelOrderRequest {
+    /// The signature over the order's nullifier which authorizes its
+    /// cancellation
+    #[serde(serialize_with = "serialize_bytes_b64")]
+    pub signature: Vec<u8>,
+}
+
+/// The response received after cancelling an order
+#[derive(Debug, Deserialize)]
+pub struct CancelOrderResponse {
+    /// The ID of the order cancellation task spawned in the relayer
+    pub task_id: Uuid,
+    /// The order that was cancelled
+    pub order: ApiOrder,
+    /// Whether the order cancellation task has completed
+    pub completed: bool,
+}
+
+// # === Balances === #
+
+/// A response containing all balances for an account
+#[derive(Debug, Deserialize)]
+pub struct GetBalancesResponse {
+    /// The balances
+    pub balances: Vec<ApiBalance>,
+}
+
+/// A response containing a single balance
+#[derive(Debug, Deserialize)]
+pub struct GetBalanceByMintResponse {
+    /// The balance
+    pub balance: ApiBalance,
+}
+
+/// The query parameters used when depositing a balance
+#[derive(Debug, Default, Serialize)]
+pub struct DepositBalanceQueryParameters {
+    /// Whether to block on the completion of the deposit task before
+    /// receiving a response
+    pub non_blocking: Option<bool>,
+}
+
+/// A request to deposit a balance
+#[derive(Debug, Serialize)]
+pub struct DepositBalanceRequest {
+    /// The address from which to transfer funds into the darkpool for the
+    /// deposit
+    pub from_address: Address,
+    /// The amount of the token to deposit
+    #[serde(with = "amount_string_serde")]
+    pub amount: Amount,
+    /// The authority public key to use, in case a new balance needs to be
+    /// created
+    pub authority: ApiSchnorrPublicKey,
+    /// The permit authorizing the deposit
+    pub permit: ApiDepositPermit,
+}
+
+/// The response received after depositing a balance
+#[derive(Debug, Deserialize)]
+pub struct DepositBalanceResponse {
+    /// The ID of the deposit task spawned in the relayer
+    pub task_id: Uuid,
+    /// The balance that was deposited
+    pub balance: ApiBalance,
+    /// Whether the deposit task has completed
+    pub completed: bool,
+}
+
+/// The query parameters used when withdrawing from a balance
+#[derive(Debug, Default, Serialize)]
+pub struct WithdrawBalanceQueryParameters {
+    /// Whether to block on the completion of the withdrawal task before
+    /// receiving a response
+    pub non_blocking: Option<bool>,
+}
+
+/// A request to withdraw from a balance
+#[derive(Debug, Serialize)]
+pub struct WithdrawBalanceRequest {
+    /// The amount of the token to withdraw
+    #[serde(with = "amount_string_serde")]
+    pub amount: Amount,
+    /// The signature over the balance commitment which authorizes the
+    /// withdrawal
+    #[serde(serialize_with = "serialize_bytes_b64")]
+    pub signature: Vec<u8>,
+}
+
+/// The response received after withdrawing from a balance
+#[derive(Debug, Deserialize)]
+pub struct WithdrawBalanceResponse {
+    /// The ID of the withdrawal task spawned in the relayer
+    pub task_id: Uuid,
+    /// The balance that was withdrawn from
+    pub balance: ApiBalance,
+    /// Whether the withdrawal task has completed
+    pub completed: bool,
+}
+
+// # === Tasks === #
+
+/// The query parameters used when fetching all account tasks
+#[derive(Debug, Default, Serialize)]
+pub struct GetTasksQueryParameters {
+    /// Whether to include historic tasks in the response
+    pub include_historic_tasks: Option<bool>,
+    /// The number of tasks to return per page
+    pub page_size: Option<usize>,
+    /// The page token to use for pagination
+    pub page_token: Option<usize>,
+}
+
+/// A response containing a page of tasks
+#[derive(Debug, Deserialize)]
+pub struct GetTasksResponse {
+    /// The tasks
+    pub tasks: Vec<ApiTask>,
+    /// The next page token to use for pagination, if more tasks are available
+    pub next_page_token: Option<usize>,
+}
+
+/// A response containing a single task
+#[derive(Debug, Deserialize)]
+pub struct GetTaskByIdResponse {
+    /// The task
+    pub task: ApiTask,
+}
+
+// -------------
+// | Admin API |
+// -------------
+
+/// The query parameters used when fetching all orders managed by the relayer
+#[derive(Debug, Default, Serialize)]
+pub struct GetOrdersAdminQueryParameters {
+    /// The matching pool from which to fetch orders
+    pub matching_pool: Option<String>,
+    /// The number of orders to return per page
+    pub page_size: Option<usize>,
+    /// The page token to use for pagination
+    pub page_token: Option<usize>,
+}
+
+/// A response containing a page of open orders w/ admin-level metadata
+#[derive(Debug, Deserialize)]
+pub struct GetOrdersAdminResponse {
+    /// The orders
+    pub orders: Vec<ApiAdminOrder>,
+    /// The next page token to use for pagination, if more orders are available
+    pub next_page_token: Option<usize>,
+}
+
+/// A response containing a single order w/ admin-level metadata
+#[derive(Debug, Deserialize)]
+pub struct GetOrderAdminResponse {
+    /// The order
+    pub order: ApiAdminOrder,
 }
 
 // --------

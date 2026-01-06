@@ -20,10 +20,11 @@ use crate::{
         request_response::{CreateOrderQueryParameters, CreateOrderRequest, CreateOrderResponse},
         CREATE_ORDER_ROUTE,
     },
-    websocket::TaskWaiter,
+    websocket::{TaskWaiter, DEFAULT_TASK_TIMEOUT},
     RenegadeClientError,
 };
 
+// --- Public Actions --- //
 impl RenegadeClient {
     /// Places an order via the relayer. Waits for the order creation task to
     /// complete before returning the created order.
@@ -35,20 +36,14 @@ impl RenegadeClient {
         &self,
         order_config: OrderConfig,
     ) -> Result<ApiOrder, RenegadeClientError> {
-        let precompute_cancellation_proof =
-            order_config.precompute_cancellation_proof.unwrap_or(false);
-
-        let order = self.build_order(order_config)?;
-        let auth = self.build_order_auth(&order).await?;
-
-        let request = CreateOrderRequest { order, auth, precompute_cancellation_proof };
+        let request = self.build_create_order_request(order_config).await?;
 
         let query_params = CreateOrderQueryParameters { non_blocking: Some(false) };
-        let path = self.build_request_path(&query_params)?;
+        let path = self.build_create_order_request_path(&query_params)?;
 
-        let response: CreateOrderResponse = self.relayer_client.post(&path, request).await?;
+        let CreateOrderResponse { order, .. } = self.relayer_client.post(&path, request).await?;
 
-        Ok(response.order)
+        Ok(order)
     }
 
     /// Enqueues an order placement task in the relayer. Returns the expected
@@ -62,22 +57,35 @@ impl RenegadeClient {
         &self,
         order_config: OrderConfig,
     ) -> Result<(ApiOrder, TaskWaiter), RenegadeClientError> {
+        let request = self.build_create_order_request(order_config).await?;
+
+        let query_params = CreateOrderQueryParameters { non_blocking: Some(true) };
+        let path = self.build_create_order_request_path(&query_params)?;
+
+        let CreateOrderResponse { task_id, order, .. } =
+            self.relayer_client.post(&path, request).await?;
+
+        // Create a task waiter for the task
+        let task_waiter = self.watch_task(task_id, DEFAULT_TASK_TIMEOUT).await?;
+
+        Ok((order, task_waiter))
+    }
+}
+
+// --- Private Helpers --- //
+impl RenegadeClient {
+    /// Builds the order creation request from the given order configuration
+    async fn build_create_order_request(
+        &self,
+        order_config: OrderConfig,
+    ) -> Result<CreateOrderRequest, RenegadeClientError> {
         let precompute_cancellation_proof =
             order_config.precompute_cancellation_proof.unwrap_or(false);
 
         let order = self.build_order(order_config)?;
         let auth = self.build_order_auth(&order).await?;
 
-        let request = CreateOrderRequest { order, auth, precompute_cancellation_proof };
-
-        let query_params = CreateOrderQueryParameters { non_blocking: Some(true) };
-        let path = self.build_request_path(&query_params)?;
-
-        let response: CreateOrderResponse = self.relayer_client.post(&path, request).await?;
-
-        // Create a task waiter for the task
-        let task_id = response.task_id;
-        Ok((response.order, self.get_default_task_waiter(task_id)))
+        Ok(CreateOrderRequest { order, auth, precompute_cancellation_proof })
     }
 
     /// Builds an ApiOrderCore from an OrderConfig, injecting the client's
@@ -185,7 +193,7 @@ impl RenegadeClient {
     }
 
     /// Builds the request path for the create order endpoint
-    fn build_request_path(
+    fn build_create_order_request_path(
         &self,
         query_params: &CreateOrderQueryParameters,
     ) -> Result<String, RenegadeClientError> {
