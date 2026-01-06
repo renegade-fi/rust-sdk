@@ -150,6 +150,7 @@ darkpool-client = [
     "dep:renegade-crypto",
     "dep:renegade-solidity-abi",
     "dep:tokio",
+    "dep:tokio-stream",
     "dep:tokio-tungstenite",
     "dep:tracing",
 ]
@@ -168,6 +169,7 @@ serde = { version = "^1.0.197" }
 serde_json = "1.0.64"
 serde_urlencoded = "0.7.1"
 tokio = { version = "1.30.0", features = ["full"], optional = true }
+tokio-stream = { version = "0.1.17", features = ["sync"], optional = true }
 tokio-tungstenite = { version = "0.20.0", features = [
     "native-tls",
 ], optional = true }

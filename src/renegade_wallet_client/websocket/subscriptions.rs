@@ -10,6 +10,7 @@ use tokio::sync::{
     mpsc::{UnboundedReceiver, UnboundedSender},
     RwLock,
 };
+use tokio_stream::wrappers::BroadcastStream;
 use tokio_tungstenite::tungstenite::Message;
 use tracing::{error, info, warn};
 
@@ -39,6 +40,8 @@ pub type TopicTx = BroadcastSender<ServerWebsocketMessageBody>;
 /// A channel on which to receive forwarded server websocket messages for a
 /// given topic
 pub type TopicRx = BroadcastReceiver<ServerWebsocketMessageBody>;
+/// A stream wrapper around the receiver end of a topic channel
+pub type TopicStream = BroadcastStream<ServerWebsocketMessageBody>;
 
 /// A channel on which to send client subscribe/unsubscribe messages
 pub type SubscriptionTx = UnboundedSender<ClientWebsocketMessageBody>;
@@ -82,11 +85,15 @@ impl SubscriptionManager {
         Self { auth_hmac_key, subscriptions_tx, subscribed_topics: RwLock::new(HashMap::new()) }
     }
 
-    pub async fn subscribe_to_topic(&self, topic: String) -> Result<TopicRx, RenegadeClientError> {
+    /// Subscribe to the given topic
+    pub async fn subscribe_to_topic(
+        &self,
+        topic: String,
+    ) -> Result<TopicStream, RenegadeClientError> {
         // If there is already an active subscription for the topic, return the existing
         // topic channel
         if let Some(tx) = self.try_get_subscription(&topic).await {
-            return Ok(tx.subscribe());
+            return Ok(tx.subscribe().into());
         }
 
         // Forward the subscription request to the server
@@ -95,13 +102,22 @@ impl SubscriptionManager {
         // Optimistically insert a topic channel into the map for the new subscription.
         // TODO: Have this method await a subscription response from the server before
         // creating the topic channel
-        Ok(self.insert_new_subscription(topic).await)
+        Ok(self.insert_new_subscription(topic).await.into())
     }
 
+    /// Unsubscribe from the given topic
     pub async fn unsubscribe_from_topic(&self, topic: String) -> Result<(), RenegadeClientError> {
-        // If there is no active subscription for the topic, do nothing
-        if self.try_get_subscription(&topic).await.is_none() {
-            return Ok(());
+        match self.try_get_subscription(&topic).await {
+            // If there are still listeners for the topic, do nothing
+            Some(tx) => {
+                let receiver_count = tx.receiver_count();
+                if receiver_count > 0 {
+                    warn!("There are still {receiver_count} listeners for topic {topic}, retaining subscription");
+                    return Ok(());
+                }
+            },
+            // If there is no active subscription for the topic, do nothing
+            None => return Ok(()),
         }
 
         // Forward the request to unsubscribe from the topic to the server
