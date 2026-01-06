@@ -1,20 +1,28 @@
 //! The client for interacting with the Renegade darkpool API
 
 use std::sync::Arc;
+use std::time::Duration;
 
 use alloy::primitives::{keccak256, Address};
 use alloy::signers::local::PrivateKeySigner;
 use alloy::signers::SignerSync;
 use ark_ff::PrimeField;
-use renegade_circuit_types::schnorr::SchnorrPrivateKey;
-use renegade_common::types::tasks::TaskIdentifier;
+use futures_util::Stream;
+use renegade_circuit_types::schnorr::{SchnorrPrivateKey, SchnorrPublicKey, SchnorrSignature};
+use renegade_circuit_types::traits::BaseType;
 use renegade_constants::{EmbeddedScalarField, Scalar};
 use uuid::Uuid;
 
+use crate::renegade_api_types::tasks::TaskIdentifier;
+use crate::renegade_api_types::websocket::{
+    BalanceUpdateWebsocketMessage, FillWebsocketMessage, OrderUpdateWebsocketMessage,
+    TaskUpdateWebsocketMessage,
+};
 use crate::util::get_env_agnostic_chain;
-use crate::websocket::{TaskWaiter, TaskWaiterBuilder};
+use crate::websocket::TaskWaiter;
+use crate::HmacKey;
 use crate::{
-    http::RelayerHttpClient, renegade_wallet_client::config::RenegadeClientConfig, util::HmacKey,
+    http::RelayerHttpClient, renegade_wallet_client::config::RenegadeClientConfig,
     websocket::RenegadeWebsocketClient, RenegadeClientError, BASE_MAINNET_CHAIN_ID,
     BASE_SEPOLIA_CHAIN_ID,
 };
@@ -44,7 +52,7 @@ const ACCOUNT_ID_BYTES: usize = 16;
 // -----------
 
 /// The secrets used to authenticate account actions
-#[derive(Clone)]
+#[derive(Copy, Clone)]
 pub struct AccountSecrets {
     /// The ID of the account
     pub account_id: Uuid,
@@ -87,6 +95,8 @@ pub struct RenegadeClient {
     pub secrets: AccountSecrets,
     /// The relayer HTTP client
     pub relayer_client: RelayerHttpClient,
+    /// The admin relayer HTTP client
+    pub admin_relayer_client: Option<RelayerHttpClient>,
     /// The historical state HTTP client.
     ///
     /// Also a `RelayerHttpClient` as it mirrors the relayer's historical state
@@ -104,6 +114,10 @@ impl RenegadeClient {
         let relayer_client =
             RelayerHttpClient::new(config.relayer_base_url.clone(), secrets.auth_hmac_key);
 
+        let admin_relayer_client = config
+            .admin_hmac_key
+            .map(|key| RelayerHttpClient::new(config.relayer_base_url.clone(), key));
+
         let chain = get_env_agnostic_chain(config.chain_id);
         let historical_state_client = Arc::new(RelayerHttpClient::new(
             format!("{}/{chain}", config.historical_state_base_url),
@@ -113,7 +127,14 @@ impl RenegadeClient {
         let websocket_client =
             RenegadeWebsocketClient::new(&config, secrets.account_id, secrets.auth_hmac_key);
 
-        Ok(Self { config, secrets, relayer_client, historical_state_client, websocket_client })
+        Ok(Self {
+            config,
+            secrets,
+            relayer_client,
+            admin_relayer_client,
+            historical_state_client,
+            websocket_client,
+        })
     }
 
     /// Create a new wallet on Arbitrum Sepolia
@@ -144,27 +165,124 @@ impl RenegadeClient {
     }
 
     // --------------
-    // | Task Utils |
+    // | WS Methods |
     // --------------
 
-    /// Get a task waiter builder for a task
-    pub fn get_task_waiter_builder(&self, task_id: TaskIdentifier) -> TaskWaiterBuilder {
-        TaskWaiterBuilder::new(task_id, self.websocket_client.clone())
+    /// Create a `TaskWaiter` which can be used to watch a task until it
+    /// completes or times out
+    pub async fn watch_task(
+        &self,
+        task_id: TaskIdentifier,
+        timeout: Duration,
+    ) -> Result<TaskWaiter, RenegadeClientError> {
+        self.websocket_client.watch_task(task_id, timeout).await
     }
 
-    /// Get a default-configured task waiter for a task
-    pub fn get_default_task_waiter(&self, task_id: TaskIdentifier) -> TaskWaiter {
-        self.get_task_waiter_builder(task_id).build()
+    /// Subscribe to the account's task updates stream
+    pub async fn subscribe_task_updates(
+        &self,
+    ) -> Result<impl Stream<Item = TaskUpdateWebsocketMessage>, RenegadeClientError> {
+        self.websocket_client.subscribe_task_updates().await
+    }
+
+    /// Subscribe to the account's balance updates stream
+    pub async fn subscribe_balance_updates(
+        &self,
+    ) -> Result<impl Stream<Item = BalanceUpdateWebsocketMessage>, RenegadeClientError> {
+        self.websocket_client.subscribe_balance_updates().await
+    }
+
+    /// Subscribe to the account's order updates stream
+    pub async fn subscribe_order_updates(
+        &self,
+    ) -> Result<impl Stream<Item = OrderUpdateWebsocketMessage>, RenegadeClientError> {
+        self.websocket_client.subscribe_order_updates().await
+    }
+
+    /// Subscribe to the account's fills stream
+    pub async fn subscribe_fills(
+        &self,
+    ) -> Result<impl Stream<Item = FillWebsocketMessage>, RenegadeClientError> {
+        self.websocket_client.subscribe_fills().await
     }
 
     // --------------
     // | Misc Utils |
     // --------------
 
+    /// Get a reference to the admin relayer client, returning an error if one
+    /// has not been configured.
+    pub fn get_admin_client(&self) -> Result<&RelayerHttpClient, RenegadeClientError> {
+        match self.admin_relayer_client.as_ref() {
+            Some(admin_client) => Ok(admin_client),
+            None => Err(RenegadeClientError::NotAdmin),
+        }
+    }
+
+    /// Get the ID of the account
+    pub fn get_account_id(&self) -> Uuid {
+        self.secrets.account_id
+    }
+
+    /// Get the master view seed
+    pub fn get_master_view_seed(&self) -> Scalar {
+        self.secrets.master_view_seed
+    }
+
+    /// Get the HMAC key used to authenticate account API actions
+    pub fn get_auth_hmac_key(&self) -> HmacKey {
+        self.secrets.auth_hmac_key
+    }
+
+    /// Get the signing key client is configured with
+    pub fn get_account_signer(&self) -> &PrivateKeySigner {
+        &self.config.key
+    }
+
     /// Get the address of the account associated with the private key the
     /// client is configured with
     pub fn get_account_address(&self) -> Address {
         self.config.key.address()
+    }
+
+    /// Get the Schnorr private key client is configured with
+    pub fn schnorr_sign<T: BaseType>(
+        &self,
+        message: &T,
+    ) -> Result<SchnorrSignature, RenegadeClientError> {
+        self.secrets.schnorr_key.sign(message).map_err(RenegadeClientError::signing)
+    }
+
+    /// Get the public key associated with the Schnorr private key the client is
+    /// configured with
+    pub fn get_schnorr_public_key(&self) -> SchnorrPublicKey {
+        self.secrets.schnorr_key.public_key()
+    }
+
+    /// Get the relayer's executor address, which it uses to sign public order
+    /// settlement obligations
+    pub fn get_executor_address(&self) -> Address {
+        self.config.executor_address
+    }
+
+    /// Get the relayer's fee recipient address
+    pub fn get_relayer_fee_recipient(&self) -> Address {
+        self.config.relayer_fee_recipient
+    }
+
+    /// Get the chain ID the client is configured for
+    pub fn get_chain_id(&self) -> u64 {
+        self.config.chain_id
+    }
+
+    /// Get the permit2 address the client is configured for
+    pub fn get_permit2_address(&self) -> Address {
+        self.config.permit2_address
+    }
+
+    /// Get the darkpool address the client is configured for
+    pub fn get_darkpool_address(&self) -> Address {
+        self.config.darkpool_address
     }
 }
 
