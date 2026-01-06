@@ -2,7 +2,7 @@
 pub mod exchange_metadata;
 mod fixed_point;
 mod malleable_match;
-pub mod order_book;
+pub mod markets;
 mod order_types;
 mod request_response;
 mod serde_helpers;
@@ -16,34 +16,20 @@ pub use request_response::*;
 // | HTTP Routes |
 // ---------------
 
-/// Returns the supported token list
-pub const GET_SUPPORTED_TOKENS_ROUTE: &str = "/v0/supported-tokens";
+/// The route for fetching all tradable markets
+pub const GET_MARKETS_ROUTE: &str = "/v2/markets";
 
-/// Get token prices for all supported tokens
-pub const GET_TOKEN_PRICES_ROUTE: &str = "/v0/token-prices";
+/// The route for fetching the depth of all marketse
+pub const GET_MARKETS_DEPTH_ROUTE: &str = "/v2/markets/depth";
+
+/// The route for fetching the depth of a specific market
+pub const GET_MARKET_DEPTH_BY_MINT_ROUTE: &str = "/v2/markets/:mint/depth";
 
 /// Returns metadata about the Renegade exchange
-pub const GET_EXCHANGE_METADATA_ROUTE: &str = "/v0/exchange-metadata";
+pub const GET_EXCHANGE_METADATA_ROUTE: &str = "/v2/metadata/exchange";
 
-/// The order book depth format string
-pub const ORDER_BOOK_DEPTH_ROUTE: &str = "/v0/order_book/depth";
-
-/// The route for requesting a quote on an external match
-#[deprecated(since = "2.0.0", note = "Use GET_QUOTE_ROUTE instead")]
-pub const REQUEST_EXTERNAL_QUOTE_ROUTE: &str = GET_QUOTE_ROUTE;
 /// The route for requesting a quote on an external match
 pub const GET_QUOTE_ROUTE: &str = "/v2/external-matches/get-quote";
 
-/// The route used to assemble an external match quote into a settlement bundle
-pub const ASSEMBLE_EXTERNAL_MATCH_ROUTE: &str = "/v0/matching-engine/assemble-external-match";
-
-/// The route used to assemble an external match into a malleable bundle
-pub const ASSEMBLE_EXTERNAL_MATCH_MALLEABLE_ROUTE: &str =
-    "/v0/matching-engine/assemble-malleable-external-match";
-
-/// The route for requesting an atomic match
-pub const REQUEST_EXTERNAL_MATCH_ROUTE: &str = "/v0/matching-engine/request-external-match";
-
-/// The route for requesting a malleable match
-pub const REQUEST_MALLEABLE_EXTERNAL_MATCH_ROUTE: &str =
-    "/v0/matching-engine/request-malleable-external-match";
+/// The route for assembling an external match bundle
+pub const ASSEMBLE_MATCH_BUNDLE_ROUTE: &str = "/v2/external-matches/assemble-match-bundle";
