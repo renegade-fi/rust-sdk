@@ -11,6 +11,7 @@ use crate::{
     RenegadeClientError,
 };
 
+// --- Public Actions --- //
 impl RenegadeClient {
     /// Fetches all orders in the account, optionally including historic
     /// (inactive) orders.
@@ -42,7 +43,10 @@ impl RenegadeClient {
 
         Ok(orders)
     }
+}
 
+// --- Private Helpers --- //
+impl RenegadeClient {
     /// Builds the request path for the get orders endpoint
     fn build_get_orders_request_path(
         &self,
