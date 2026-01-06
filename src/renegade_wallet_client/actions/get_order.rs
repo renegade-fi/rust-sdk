@@ -11,11 +11,9 @@ use crate::{
     RenegadeClientError,
 };
 
+// --- Public Actions --- //
 impl RenegadeClient {
     /// Look up an order by its ID
-    ///
-    /// This method will return the order if it exists in the relayer's current
-    /// view of the account.
     pub async fn get_order(&self, order_id: Uuid) -> Result<ApiOrder, RenegadeClientError> {
         let path = construct_http_path!(GET_ORDER_BY_ID_ROUTE, "account_id" => self.get_account_id(), "order_id" => order_id);
 
