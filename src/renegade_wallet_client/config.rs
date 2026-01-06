@@ -10,7 +10,7 @@ use alloy::{
 };
 
 use crate::{
-    ARBITRUM_ONE_CHAIN_ID, ARBITRUM_ONE_RELAYER_BASE_URL, ARBITRUM_SEPOLIA_CHAIN_ID,
+    HmacKey, ARBITRUM_ONE_CHAIN_ID, ARBITRUM_ONE_RELAYER_BASE_URL, ARBITRUM_SEPOLIA_CHAIN_ID,
     ARBITRUM_SEPOLIA_RELAYER_BASE_URL, BASE_MAINNET_CHAIN_ID, BASE_MAINNET_RELAYER_BASE_URL,
     BASE_SEPOLIA_CHAIN_ID, BASE_SEPOLIA_RELAYER_BASE_URL,
     ETHEREUM_SEPOLIA_CHAIN_ID, ETHEREUM_SEPOLIA_RELAYER_BASE_URL,
@@ -68,6 +68,34 @@ pub(crate) const ETHEREUM_SEPOLIA_PERMIT2_ADDRESS: Address =
 //pub(crate) const ETHEREUM_MAINNET_PERMIT2_ADDRESS: Address =
     //address!("0x000000000022D473030F116dDEE9F6B43aC78BA3");
 
+// --- Executor Addresses --- //
+
+pub(crate) const ARBITRUM_ONE_EXECUTOR_ADDRESS: Address =
+    address!("0x0000000000000000000000000000000000000000");
+/// The executor address on Arbitrum Sepolia
+pub(crate) const ARBITRUM_SEPOLIA_EXECUTOR_ADDRESS: Address =
+    address!("0x0000000000000000000000000000000000000000");
+/// The executor address on Base Mainnet
+pub(crate) const BASE_MAINNET_EXECUTOR_ADDRESS: Address =
+    address!("0x0000000000000000000000000000000000000000");
+/// The executor address on Base Sepolia
+pub(crate) const BASE_SEPOLIA_EXECUTOR_ADDRESS: Address =
+    address!("0x0000000000000000000000000000000000000000");
+
+// --- Relayer Fee Recipient Addresses --- //
+
+pub(crate) const ARBITRUM_ONE_RELAYER_FEE_RECIPIENT: Address =
+    address!("0x0000000000000000000000000000000000000000");
+/// The executor address on Arbitrum Sepolia
+pub(crate) const ARBITRUM_SEPOLIA_RELAYER_FEE_RECIPIENT: Address =
+    address!("0x0000000000000000000000000000000000000000");
+/// The executor address on Base Mainnet
+pub(crate) const BASE_MAINNET_RELAYER_FEE_RECIPIENT: Address =
+    address!("0x0000000000000000000000000000000000000000");
+/// The executor address on Base Sepolia
+pub(crate) const BASE_SEPOLIA_RELAYER_FEE_RECIPIENT: Address =
+    address!("0x0000000000000000000000000000000000000000");
+
 /// The client config
 #[derive(Debug, Clone)]
 pub struct RenegadeClientConfig {
@@ -81,8 +109,14 @@ pub struct RenegadeClientConfig {
     pub darkpool_address: Address,
     /// The permit2 contract address
     pub permit2_address: Address,
+    /// The relayer's executor address
+    pub executor_address: Address,
+    /// The relayer's fee recipient address
+    pub relayer_fee_recipient: Address,
     /// The private key from which to derive the wallet
     pub key: PrivateKeySigner,
+    /// The HMAC key used to authenticate admin API actions
+    pub admin_hmac_key: Option<HmacKey>,
 }
 
 impl RenegadeClientConfig {
@@ -94,7 +128,25 @@ impl RenegadeClientConfig {
             chain_id: ARBITRUM_ONE_CHAIN_ID,
             darkpool_address: ARBITRUM_ONE_DARKPOOL_ADDRESS,
             permit2_address: ARBITRUM_ONE_PERMIT2_ADDRESS,
+            executor_address: ARBITRUM_ONE_EXECUTOR_ADDRESS,
+            relayer_fee_recipient: ARBITRUM_ONE_RELAYER_FEE_RECIPIENT,
             key: key.clone(),
+            admin_hmac_key: None,
+        }
+    }
+
+    /// Create a new admin client config for Arbitrum One
+    pub fn new_arbitrum_one_admin(key: &PrivateKeySigner, admin_hmac_key: HmacKey) -> Self {
+        Self {
+            relayer_base_url: ARBITRUM_ONE_RELAYER_BASE_URL.to_string(),
+            historical_state_base_url: MAINNET_HISTORICAL_STATE_BASE_URL.to_string(),
+            chain_id: ARBITRUM_ONE_CHAIN_ID,
+            darkpool_address: ARBITRUM_ONE_DARKPOOL_ADDRESS,
+            permit2_address: ARBITRUM_ONE_PERMIT2_ADDRESS,
+            executor_address: ARBITRUM_ONE_EXECUTOR_ADDRESS,
+            relayer_fee_recipient: ARBITRUM_ONE_RELAYER_FEE_RECIPIENT,
+            key: key.clone(),
+            admin_hmac_key: Some(admin_hmac_key),
         }
     }
 
@@ -106,7 +158,25 @@ impl RenegadeClientConfig {
             chain_id: ARBITRUM_SEPOLIA_CHAIN_ID,
             darkpool_address: ARBITRUM_SEPOLIA_DARKPOOL_ADDRESS,
             permit2_address: ARBITRUM_SEPOLIA_PERMIT2_ADDRESS,
+            executor_address: ARBITRUM_SEPOLIA_EXECUTOR_ADDRESS,
+            relayer_fee_recipient: ARBITRUM_SEPOLIA_RELAYER_FEE_RECIPIENT,
             key: key.clone(),
+            admin_hmac_key: None,
+        }
+    }
+
+    /// Create a new admin client config for Arbitrum Sepolia
+    pub fn new_arbitrum_sepolia_admin(key: &PrivateKeySigner, admin_hmac_key: HmacKey) -> Self {
+        Self {
+            relayer_base_url: ARBITRUM_SEPOLIA_RELAYER_BASE_URL.to_string(),
+            historical_state_base_url: TESTNET_HISTORICAL_STATE_BASE_URL.to_string(),
+            chain_id: ARBITRUM_SEPOLIA_CHAIN_ID,
+            darkpool_address: ARBITRUM_SEPOLIA_DARKPOOL_ADDRESS,
+            permit2_address: ARBITRUM_SEPOLIA_PERMIT2_ADDRESS,
+            executor_address: ARBITRUM_SEPOLIA_EXECUTOR_ADDRESS,
+            relayer_fee_recipient: ARBITRUM_SEPOLIA_RELAYER_FEE_RECIPIENT,
+            key: key.clone(),
+            admin_hmac_key: Some(admin_hmac_key),
         }
     }
 
@@ -118,7 +188,25 @@ impl RenegadeClientConfig {
             chain_id: BASE_MAINNET_CHAIN_ID,
             darkpool_address: BASE_MAINNET_DARKPOOL_ADDRESS,
             permit2_address: BASE_MAINNET_PERMIT2_ADDRESS,
+            executor_address: BASE_MAINNET_EXECUTOR_ADDRESS,
+            relayer_fee_recipient: BASE_MAINNET_RELAYER_FEE_RECIPIENT,
             key: key.clone(),
+            admin_hmac_key: None,
+        }
+    }
+
+    /// Create a new admin client config for Base Mainnet
+    pub fn new_base_mainnet_admin(key: &PrivateKeySigner, admin_hmac_key: HmacKey) -> Self {
+        Self {
+            relayer_base_url: BASE_MAINNET_RELAYER_BASE_URL.to_string(),
+            historical_state_base_url: MAINNET_HISTORICAL_STATE_BASE_URL.to_string(),
+            chain_id: BASE_MAINNET_CHAIN_ID,
+            darkpool_address: BASE_MAINNET_DARKPOOL_ADDRESS,
+            permit2_address: BASE_MAINNET_PERMIT2_ADDRESS,
+            executor_address: BASE_MAINNET_EXECUTOR_ADDRESS,
+            relayer_fee_recipient: BASE_MAINNET_RELAYER_FEE_RECIPIENT,
+            key: key.clone(),
+            admin_hmac_key: Some(admin_hmac_key),
         }
     }
 
@@ -130,7 +218,25 @@ impl RenegadeClientConfig {
             chain_id: BASE_SEPOLIA_CHAIN_ID,
             darkpool_address: BASE_SEPOLIA_DARKPOOL_ADDRESS,
             permit2_address: BASE_SEPOLIA_PERMIT2_ADDRESS,
+            executor_address: BASE_SEPOLIA_EXECUTOR_ADDRESS,
+            relayer_fee_recipient: BASE_SEPOLIA_RELAYER_FEE_RECIPIENT,
             key: key.clone(),
+            admin_hmac_key: None,
+        }
+    }
+
+    /// Create a new admin client config for Base Sepolia
+    pub fn new_base_sepolia_admin(key: &PrivateKeySigner, admin_hmac_key: HmacKey) -> Self {
+        Self {
+            relayer_base_url: BASE_SEPOLIA_RELAYER_BASE_URL.to_string(),
+            historical_state_base_url: TESTNET_HISTORICAL_STATE_BASE_URL.to_string(),
+            chain_id: BASE_SEPOLIA_CHAIN_ID,
+            darkpool_address: BASE_SEPOLIA_DARKPOOL_ADDRESS,
+            permit2_address: BASE_SEPOLIA_PERMIT2_ADDRESS,
+            executor_address: BASE_SEPOLIA_EXECUTOR_ADDRESS,
+            relayer_fee_recipient: BASE_SEPOLIA_RELAYER_FEE_RECIPIENT,
+            key: key.clone(),
+            admin_hmac_key: Some(admin_hmac_key),
         }
     }
 

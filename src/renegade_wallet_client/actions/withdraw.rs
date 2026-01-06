@@ -1,27 +1,24 @@
-//! Withdraw funds from the wallet
+//! Withdraw funds from an account balance
 
 use std::time::Duration;
 
-use alloy::signers::local::PrivateKeySigner;
-use darkpool_client::{
-    conversion::address_to_biguint,
-    transfer_auth::{arbitrum as arbitrum_auth, base as base_auth},
+use alloy::primitives::Address;
+use renegade_circuit_types::{balance::DarkpoolStateBalance, Amount};
+use renegade_crypto::fields::scalar_to_u256;
+use renegade_solidity_abi::v2::{
+    transfer_auth::withdrawal::create_withdrawal_auth, IDarkpoolV2::WithdrawalAuth,
 };
-use k256::ecdsa::SigningKey;
-use num_bigint::BigUint;
-use renegade_api::http::wallet::{
-    WithdrawBalanceRequest, WithdrawBalanceResponse, WITHDRAW_BALANCE_ROUTE,
-};
-use renegade_circuit_types::transfers::{ExternalTransfer, ExternalTransferDirection};
-use renegade_common::types::{
-    transfer_auth::{TransferAuth, WithdrawalAuth},
-    wallet::Wallet,
-};
-use renegade_utils::hex::biguint_from_hex_string;
 
 use crate::{
-    actions::{construct_http_path, prepare_wallet_update},
+    actions::construct_http_path,
     client::RenegadeClient,
+    renegade_api_types::{
+        balances::ApiBalance,
+        request_response::{
+            WithdrawBalanceQueryParameters, WithdrawBalanceRequest, WithdrawBalanceResponse,
+        },
+        WITHDRAW_BALANCE_ROUTE,
+    },
     websocket::TaskWaiter,
     RenegadeClientError,
 };
@@ -32,96 +29,124 @@ use crate::{
 /// complete first.
 const TASK_WAITER_TIMEOUT: Duration = Duration::from_secs(120);
 
+// --- Public Actions --- //
 impl RenegadeClient {
-    /// Withdraw funds from the wallet
+    /// Withdraw funds from an account balance. Waits for the withdrawal task to
+    /// complete before returning the post-withdrawal balance.
     pub async fn withdraw(
         &self,
-        token_mint: &str,
-        amount: u128,
-        pkey: &PrivateKeySigner,
-    ) -> Result<TaskWaiter, RenegadeClientError> {
-        let mut wallet = self.get_internal_wallet().await?;
+        mint: Address,
+        amount: Amount,
+    ) -> Result<ApiBalance, RenegadeClientError> {
+        let request = self.build_withdrawal_request(mint, amount).await?;
 
-        // Zero out fees for all balances in the wallet
-        pay_all_fees(&mut wallet);
+        let query_params = WithdrawBalanceQueryParameters { non_blocking: Some(false) };
+        let path = self.build_withdrawal_request_path(mint, &query_params)?;
 
-        // Remove the balance from the wallet
-        let mint = biguint_from_hex_string(token_mint).map_err(RenegadeClientError::conversion)?;
-        wallet.withdraw(&mint, amount).map_err(RenegadeClientError::wallet)?;
+        let WithdrawBalanceResponse { balance, .. } =
+            self.relayer_client.post(&path, request).await?;
 
-        // Prepare wallet update and transfer authorization
-        let update_auth = prepare_wallet_update(&mut wallet)?;
-        let account_addr =
-            address_to_biguint(&pkey.address()).map_err(RenegadeClientError::conversion)?;
-        let transfer = ExternalTransfer {
-            account_addr: account_addr.clone(),
-            mint: mint.clone(),
-            amount,
-            direction: ExternalTransferDirection::Withdrawal,
-        };
-        let transfer_auth = self.build_withdraw_auth(transfer)?;
-
-        // Send the withdrawal request to the relayer
-        let wallet_id = self.secrets.wallet_id;
-        let route = construct_http_path!(WITHDRAW_BALANCE_ROUTE, "wallet_id" => wallet_id, "mint" => token_mint);
-        let request = WithdrawBalanceRequest {
-            destination_addr: account_addr,
-            amount: BigUint::from(amount),
-            update_auth,
-            external_transfer_sig: transfer_auth.external_transfer_signature,
-        };
-        let response: WithdrawBalanceResponse = self.relayer_client.post(&route, request).await?;
-
-        // Create a task waiter for the task
-        let task_id = response.task_id;
-        let task_waiter_builder = self.get_task_waiter_builder(task_id);
-        Ok(task_waiter_builder.with_timeout(TASK_WAITER_TIMEOUT).build())
+        Ok(balance)
     }
 
-    /// Build a withdraw permit for the connected chain
-    fn build_withdraw_auth(
+    /// Enqueues a withdrawal task in the relayer. Returns the post-withdrawal
+    /// balance, and a `TaskWaiter` that can be used to await task completion.
+    pub async fn enqueue_withdrawal(
         &self,
-        transfer: ExternalTransfer,
-    ) -> Result<WithdrawalAuth, RenegadeClientError> {
-        // Pull the root key from the keychain stored locally
-        let root_key = &self
-            .secrets
-            .keychain
-            .sk_root()
-            .ok_or_else(|| RenegadeClientError::wallet("No root key found in keychain"))?;
-        let signing_key: SigningKey = root_key.try_into().map_err(|_| {
-            RenegadeClientError::wallet("Failed to convert root key to signing key")
-        })?;
+        mint: Address,
+        amount: Amount,
+    ) -> Result<(ApiBalance, TaskWaiter), RenegadeClientError> {
+        let request = self.build_withdrawal_request(mint, amount).await?;
 
-        // Build the withdrawal auth
-        let transfer_with_auth = if self.is_solidity_chain() {
-            base_auth::build_withdrawal_auth(&signing_key.into(), transfer)
-                .map_err(RenegadeClientError::wallet)?
-        } else {
-            arbitrum_auth::build_withdrawal_auth(&signing_key.into(), transfer)
-                .map_err(RenegadeClientError::wallet)?
-        };
+        let query_params = WithdrawBalanceQueryParameters { non_blocking: Some(true) };
+        let path = self.build_withdrawal_request_path(mint, &query_params)?;
 
-        match transfer_with_auth.transfer_auth {
-            TransferAuth::Withdrawal(withdrawal_auth) => Ok(withdrawal_auth),
-            TransferAuth::Deposit(_) => unreachable!(),
-        }
+        let WithdrawBalanceResponse { balance, task_id, .. } =
+            self.relayer_client.post(&path, request).await?;
+
+        let task_waiter = self.watch_task(task_id, TASK_WAITER_TIMEOUT).await?;
+
+        Ok((balance, task_waiter))
     }
 }
 
-/// Replicate the effect of paying all fees in the wallet, zeroing them out and
-/// applying reblinds as expected.
-fn pay_all_fees(wallet: &mut Wallet) {
-    let balances = wallet.balances.clone();
-    for (mint, balance) in balances {
-        if balance.relayer_fee_balance > 0 {
-            wallet.get_balance_mut(&mint).unwrap().relayer_fee_balance = 0;
-            wallet.reblind_wallet();
-        }
-
-        if balance.protocol_fee_balance > 0 {
-            wallet.get_balance_mut(&mint).unwrap().protocol_fee_balance = 0;
-            wallet.reblind_wallet();
-        }
+// --- Private Helpers --- //
+impl RenegadeClient {
+    /// Builds the request to withdraw from a balance
+    async fn build_withdrawal_request(
+        &self,
+        mint: Address,
+        amount: Amount,
+    ) -> Result<WithdrawBalanceRequest, RenegadeClientError> {
+        let signature = self.build_withdrawal_auth(mint, amount).await?;
+        Ok(WithdrawBalanceRequest { amount, signature })
     }
+
+    /// Builds the signature over the balance commitment which authorizes the
+    /// withdrawal
+    async fn build_withdrawal_auth(
+        &self,
+        mint: Address,
+        amount: Amount,
+    ) -> Result<Vec<u8>, RenegadeClientError> {
+        let balance = self.get_balance_by_mint(mint).await?;
+        let mut state_balance: DarkpoolStateBalance = balance.into();
+
+        // First, we simulate fee payments on the balance.
+        // This is necessary because the withdrawal API handler will execute fee
+        // payments before executing the withdrawal.
+        // We need to ensure that the balance whose commitment we sign to authorize the
+        // withdrawal is correctly updated to reflect this.
+        simulate_fee_payments(&mut state_balance);
+
+        // Next, we update the balance's amount, progressing its cryptographic state
+        // accordingly.
+        state_balance.inner.amount -= amount;
+        let new_amount = state_balance.inner.amount;
+        let new_amount_public_share = state_balance.stream_cipher_encrypt(&new_amount);
+        state_balance.public_share.amount = new_amount_public_share;
+        state_balance.compute_recovery_id();
+
+        // Finally, we compute the commitment to the balance & sign it to authorize the
+        // withdrawal
+        let commitment = scalar_to_u256(&state_balance.compute_commitment());
+
+        let WithdrawalAuth { signature } =
+            create_withdrawal_auth(commitment, self.get_account_signer())
+                .map_err(RenegadeClientError::signing)?;
+
+        Ok(signature.to_vec())
+    }
+
+    /// Builds the request path for the withdrawal balance endpoint
+    fn build_withdrawal_request_path(
+        &self,
+        mint: Address,
+        query_params: &WithdrawBalanceQueryParameters,
+    ) -> Result<String, RenegadeClientError> {
+        let path = construct_http_path!(WITHDRAW_BALANCE_ROUTE, "account_id" => self.get_account_id(), "mint" => mint);
+        let query_string =
+            serde_urlencoded::to_string(query_params).map_err(RenegadeClientError::serde)?;
+
+        Ok(format!("{}?{}", path, query_string))
+    }
+}
+
+// ----------------------
+// | Non-Member Helpers |
+// ----------------------
+
+/// Simulates fee payments on the balance
+fn simulate_fee_payments(state_balance: &mut DarkpoolStateBalance) {
+    // First, we simulate the relayer fee payment
+    state_balance.pay_relayer_fee();
+    state_balance.reencrypt_relayer_fee();
+    state_balance.compute_recovery_id();
+
+    // Then, we simulate the protocol fee payment.
+    // We use a dummy address for the protocol fee receiver since we don't actually
+    // need a valid fee note.
+    state_balance.pay_protocol_fee(Address::ZERO);
+    state_balance.reencrypt_protocol_fee();
+    state_balance.compute_recovery_id();
 }
