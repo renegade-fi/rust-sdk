@@ -20,7 +20,7 @@ use crate::{
         },
         DEPOSIT_BALANCE_ROUTE,
     },
-    websocket::TaskWaiter,
+    websocket::{TaskWaiter, DEFAULT_TASK_TIMEOUT},
     RenegadeClientError,
 };
 
@@ -60,7 +60,9 @@ impl RenegadeClient {
         let DepositBalanceResponse { balance, task_id, .. } =
             self.relayer_client.post(&path, request).await?;
 
-        Ok((balance, self.get_default_task_waiter(task_id)))
+        let task_waiter = self.watch_task(task_id, DEFAULT_TASK_TIMEOUT).await?;
+
+        Ok((balance, task_waiter))
     }
 }
 
