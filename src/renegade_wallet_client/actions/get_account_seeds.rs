@@ -16,11 +16,12 @@ impl RenegadeClient {
     ///
     /// Returns a tuple of (recovery stream seeds CSPRNG, share stream seeds
     /// CSPRNG)
+    // TODO: Store the CSPRNGs in the client behind a Mutex
     pub async fn get_account_seeds(
         &self,
     ) -> Result<(PoseidonCSPRNG, PoseidonCSPRNG), RenegadeClientError> {
         let path =
-            construct_http_path!(GET_ACCOUNT_SEEDS_ROUTE, "account_id" => self.secrets.account_id);
+            construct_http_path!(GET_ACCOUNT_SEEDS_ROUTE, "account_id" => self.get_account_id());
 
         let GetAccountSeedsResponse { recovery_seed_csprng, share_seed_csprng } =
             self.relayer_client.get(&path).await?;
