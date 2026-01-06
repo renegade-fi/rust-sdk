@@ -9,6 +9,7 @@ use uuid::Uuid;
 use crate::{
     renegade_api_types::{
         account::ApiPoseidonCSPRNG,
+        admin::ApiAdminOrder,
         balances::{ApiBalance, ApiDepositPermit, ApiSchnorrPublicKey},
         orders::{ApiOrder, ApiOrderCore, OrderAuth},
         tasks::ApiTask,
@@ -287,6 +288,37 @@ pub struct GetTasksResponse {
 pub struct GetTaskByIdResponse {
     /// The task
     pub task: ApiTask,
+}
+
+// -------------
+// | Admin API |
+// -------------
+
+/// The query parameters used when fetching all orders managed by the relayer
+#[derive(Debug, Default, Serialize)]
+pub struct GetOrdersAdminQueryParameters {
+    /// The matching pool from which to fetch orders
+    pub matching_pool: Option<String>,
+    /// The number of orders to return per page
+    pub page_size: Option<usize>,
+    /// The page token to use for pagination
+    pub page_token: Option<usize>,
+}
+
+/// A response containing a page of open orders w/ admin-level metadata
+#[derive(Debug, Deserialize)]
+pub struct GetOrdersAdminResponse {
+    /// The orders
+    pub orders: Vec<ApiAdminOrder>,
+    /// The next page token to use for pagination, if more orders are available
+    pub next_page_token: Option<usize>,
+}
+
+/// A response containing a single order w/ admin-level metadata
+#[derive(Debug, Deserialize)]
+pub struct GetOrderAdminResponse {
+    /// The order
+    pub order: ApiAdminOrder,
 }
 
 // --------

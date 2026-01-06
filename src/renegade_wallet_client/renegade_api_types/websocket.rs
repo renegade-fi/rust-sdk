@@ -36,6 +36,16 @@ pub enum ClientWebsocketMessageBody {
     },
 }
 
+impl ClientWebsocketMessageBody {
+    /// Get the topic associated with the message
+    pub fn topic(&self) -> &str {
+        match self {
+            Self::Subscribe { topic } => topic,
+            Self::Unsubscribe { topic } => topic,
+        }
+    }
+}
+
 /// The message type that is sent by the server to the client
 #[derive(Clone, Debug, Deserialize)]
 pub struct ServerWebsocketMessage {
@@ -52,32 +62,54 @@ pub enum ServerWebsocketMessageBody {
     /// A message that is sent in response to a subscribe/unsubscribe message,
     /// notifies the client of the now active subscriptions after a
     /// subscribe/unsubscribe message is applied
-    Subscriptions {
-        /// The current set of topics to which the client is subscribed
-        subscriptions: Vec<String>,
-    },
+    Subscriptions(SubscriptionsWebsocketMessage),
     /// A message that is sent when a balance update occurs
-    BalanceUpdate {
-        /// The updated balance
-        balance: ApiBalance,
-    },
+    BalanceUpdate(BalanceUpdateWebsocketMessage),
     /// A message that is sent when an order update occurs
-    OrderUpdate {
-        /// The updated order
-        order: ApiOrder,
-    },
+    OrderUpdate(OrderUpdateWebsocketMessage),
     /// A message that is sent when a fill occurs on an order
-    Fill {
-        /// The fill
-        fill: ApiPartialOrderFill,
-        /// The order to which the fill pertains
-        order: ApiOrderCore,
-        /// Whether the order has been entirely filled
-        filled: bool,
-    },
+    Fill(FillWebsocketMessage),
     /// A message that is sent when a task update occurs
-    TaskUpdate {
-        /// The updated task
-        task: ApiTask,
-    },
+    TaskUpdate(TaskUpdateWebsocketMessage),
+}
+
+/// A message that is sent in response to a subscribe/unsubscribe message,
+/// notifies the client of the now active subscriptions after a
+/// subscribe/unsubscribe message is applied
+#[derive(Clone, Debug, Deserialize)]
+pub struct SubscriptionsWebsocketMessage {
+    /// The current set of topics to which the client is subscribed
+    pub subscriptions: Vec<String>,
+}
+
+/// A message that is sent when a balance update occurs
+#[derive(Clone, Debug, Deserialize)]
+pub struct BalanceUpdateWebsocketMessage {
+    /// The updated balance
+    pub balance: ApiBalance,
+}
+
+/// A message that is sent when an order update occurs
+#[derive(Clone, Debug, Deserialize)]
+pub struct OrderUpdateWebsocketMessage {
+    /// The updated order
+    pub order: ApiOrder,
+}
+
+/// A message that is sent when a fill occurs on an order
+#[derive(Clone, Debug, Deserialize)]
+pub struct FillWebsocketMessage {
+    /// The fill
+    pub fill: ApiPartialOrderFill,
+    /// The order to which the fill pertains
+    pub order: ApiOrderCore,
+    /// Whether the order has been entirely filled
+    pub filled: bool,
+}
+
+/// A message that is sent when a task update occurs
+#[derive(Clone, Debug, Deserialize)]
+pub struct TaskUpdateWebsocketMessage {
+    /// The updated task
+    pub task: ApiTask,
 }
