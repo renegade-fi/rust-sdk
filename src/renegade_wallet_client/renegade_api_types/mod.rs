@@ -1,11 +1,13 @@
 //! API types for the Renegade client
 
 mod account;
+pub mod admin;
 pub mod balances;
 pub mod orders;
 pub mod request_response;
 mod serde_helpers;
 pub mod tasks;
+pub mod websocket;
 
 // ---------------
 // | HTTP Routes |
@@ -52,3 +54,9 @@ pub const GET_TASKS_ROUTE: &str = "/v2/account/:account_id/tasks";
 
 /// The route for getting a task by its ID
 pub const GET_TASK_BY_ID_ROUTE: &str = "/v2/account/:account_id/tasks/:task_id";
+
+/// The route for getting all open orders w/ admin metadata
+pub const ADMIN_GET_ORDERS_ROUTE: &str = "/v2/relayer-admin/orders";
+
+/// The route for getting a given order w/ admin metadata
+pub const ADMIN_GET_ORDER_ROUTE: &str = "/v2/relayer-admin/orders/:order_id";

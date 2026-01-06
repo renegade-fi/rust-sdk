@@ -23,6 +23,9 @@ pub enum RenegadeClientError {
     /// An error signing a message
     #[error("failed to sign message: {0}")]
     Signing(String),
+    /// Attempted to invoke admin API with a non-admin client
+    #[error("not admin client")]
+    NotAdmin,
     /// A relayer error
     #[error("relayer error: {0}")]
     Relayer(RelayerHttpClientError),
@@ -40,6 +43,9 @@ pub enum RenegadeClientError {
         /// The error message
         message: String,
     },
+    /// An error managing a websocket topic subscription
+    #[error("websocket topic subscription error: {0}")]
+    Subscription(String),
     /// A websocket error
     #[error("websocket error: {0}")]
     Websocket(String),
@@ -86,6 +92,12 @@ impl RenegadeClientError {
     #[allow(clippy::needless_pass_by_value)]
     pub fn task<T: ToString>(task_id: TaskIdentifier, msg: T) -> Self {
         Self::Task { task_id, message: msg.to_string() }
+    }
+
+    /// Create a new websocket topic subscription error
+    #[allow(clippy::needless_pass_by_value)]
+    pub fn subscription<T: ToString>(msg: T) -> Self {
+        Self::Subscription(msg.to_string())
     }
 
     /// Create a new websocket error
