@@ -1,7 +1,12 @@
 //! Balance API types
 
-use alloy::primitives::Address;
-use renegade_circuit_types::Amount;
+use alloy::primitives::{Address, U256};
+use renegade_circuit_types::{
+    balance::{Balance, BalanceShare, DarkpoolStateBalance},
+    elgamal::BabyJubJubPointShare,
+    schnorr::{SchnorrPublicKey, SchnorrPublicKeyShare},
+    Amount,
+};
 use renegade_constants::Scalar;
 use serde::{Deserialize, Serialize};
 
@@ -37,6 +42,27 @@ pub struct ApiBalance {
     pub public_shares: ApiBalanceShare,
 }
 
+impl From<ApiBalance> for DarkpoolStateBalance {
+    fn from(value: ApiBalance) -> Self {
+        let balance = Balance {
+            mint: value.mint,
+            owner: value.owner,
+            relayer_fee_recipient: value.relayer_fee_recipient,
+            authority: value.authority.into(),
+            amount: value.amount,
+            protocol_fee_balance: value.protocol_fee_balance,
+            relayer_fee_balance: value.relayer_fee_balance,
+        };
+
+        let recovery_stream = value.recovery_stream.into();
+        let share_stream = value.share_stream.into();
+
+        let public_share: BalanceShare = value.public_shares.into();
+
+        DarkpoolStateBalance { recovery_stream, share_stream, inner: balance, public_share }
+    }
+}
+
 /// A public sharing of a balance
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ApiBalanceShare {
@@ -62,11 +88,37 @@ pub struct ApiBalanceShare {
     pub amount: Scalar,
 }
 
+impl From<ApiBalanceShare> for BalanceShare {
+    fn from(value: ApiBalanceShare) -> Self {
+        BalanceShare {
+            mint: value.mint,
+            owner: value.owner,
+            relayer_fee_recipient: value.relayer_fee_recipient,
+            authority: value.authority.into(),
+            relayer_fee_balance: value.relayer_fee_balance,
+            protocol_fee_balance: value.protocol_fee_balance,
+            amount: value.amount,
+        }
+    }
+}
+
 /// A Schnorr public key, with custom serialization
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ApiSchnorrPublicKey {
     /// The curve point representing the public key
     pub point: ApiBabyJubJubPoint,
+}
+
+impl From<ApiSchnorrPublicKey> for SchnorrPublicKey {
+    fn from(value: ApiSchnorrPublicKey) -> Self {
+        SchnorrPublicKey { point: value.point.into() }
+    }
+}
+
+impl From<SchnorrPublicKey> for ApiSchnorrPublicKey {
+    fn from(value: SchnorrPublicKey) -> Self {
+        ApiSchnorrPublicKey { point: value.point.into() }
+    }
 }
 
 /// A public sharing of a Schnorr public key, with custom serialization
@@ -78,4 +130,22 @@ pub struct ApiSchnorrPublicKeyShare {
     /// The y coordinate of the public key point
     #[serde(with = "scalar_string_serde")]
     pub y: Scalar,
+}
+
+impl From<ApiSchnorrPublicKeyShare> for SchnorrPublicKeyShare {
+    fn from(value: ApiSchnorrPublicKeyShare) -> Self {
+        SchnorrPublicKeyShare { point: BabyJubJubPointShare { x: value.x, y: value.y } }
+    }
+}
+
+/// The authorization for a deposit, with custom serialization
+#[derive(Clone, Debug, Serialize)]
+pub struct ApiDepositPermit {
+    /// The nonce that was used in the signature
+    pub nonce: U256,
+    /// The deadline of the permit
+    pub deadline: U256,
+    /// The signature bytes
+    #[serde(serialize_with = "serialize_bytes_b64")]
+    pub signature: Vec<u8>,
 }

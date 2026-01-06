@@ -83,3 +83,9 @@ impl From<BabyJubJubPoint> for ApiBabyJubJubPoint {
         Self { x: value.x, y: value.y }
     }
 }
+
+impl From<ApiBabyJubJubPoint> for BabyJubJubPoint {
+    fn from(value: ApiBabyJubJubPoint) -> Self {
+        BabyJubJubPoint { x: value.x, y: value.y }
+    }
+}
