@@ -1,7 +1,10 @@
 //! Helpers for serializing / deserializing API types
 
-use renegade_common::types::hmac::HmacKey;
+use base64::{prelude::BASE64_STANDARD_NO_PAD, Engine};
+use renegade_constants::EmbeddedScalarField;
 use serde::{Deserialize, Deserializer, Serializer};
+
+use crate::HmacKey;
 
 /// A module for serializing and deserializing a `Scalar` as a decimal string
 pub(crate) mod scalar_string_serde {
@@ -90,4 +93,13 @@ where
     S: Serializer,
 {
     serializer.serialize_str(&val.to_base64_string())
+}
+
+/// Serialize a `Vec<u8>` as a base64 string
+pub(crate) fn serialize_bytes_b64<S>(val: &Vec<u8>, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    let bytes_b64 = BASE64_STANDARD_NO_PAD.encode(val);
+    serializer.serialize_str(&bytes_b64)
 }
