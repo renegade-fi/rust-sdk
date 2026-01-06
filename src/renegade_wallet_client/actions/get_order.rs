@@ -11,16 +11,13 @@ use crate::{
     RenegadeClientError,
 };
 
+// --- Public Actions --- //
 impl RenegadeClient {
     /// Look up an order by its ID
-    ///
-    /// This method will return the order if it exists in the relayer's current
-    /// view of the account.
     pub async fn get_order(&self, order_id: Uuid) -> Result<ApiOrder, RenegadeClientError> {
-        let account_id = self.secrets.account_id;
-        let path = construct_http_path!(GET_ORDER_BY_ID_ROUTE, "account_id" => account_id, "order_id" => order_id);
+        let path = construct_http_path!(GET_ORDER_BY_ID_ROUTE, "account_id" => self.get_account_id(), "order_id" => order_id);
 
-        let response: GetOrderByIdResponse = self.relayer_client.get(&path).await?;
-        Ok(response.order)
+        let GetOrderByIdResponse { order } = self.relayer_client.get(&path).await?;
+        Ok(order)
     }
 }

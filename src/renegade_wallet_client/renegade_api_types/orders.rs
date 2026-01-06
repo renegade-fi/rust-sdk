@@ -1,12 +1,17 @@
 //! Order API types
 
 use alloy::primitives::{Address, TxHash, U256};
-use renegade_circuit_types::{fixed_point::FixedPoint, Amount};
+use renegade_circuit_types::{
+    fixed_point::{FixedPoint, FixedPointShare},
+    intent::{DarkpoolStateIntent, Intent, IntentShare},
+    Amount,
+};
+use renegade_constants::Scalar;
 use renegade_solidity_abi::v2::{relayer_types::u128_to_u256, IDarkpoolV2};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::renegade_api_types::account::ApiSchnorrSignature;
+use crate::renegade_api_types::account::{ApiPoseidonCSPRNG, ApiSchnorrSignature};
 
 use super::serde_helpers::*;
 
@@ -48,30 +53,29 @@ impl From<&ApiOrderCore> for IDarkpoolV2::Intent {
     }
 }
 
+impl From<ApiOrderCore> for Intent {
+    fn from(value: ApiOrderCore) -> Self {
+        Intent {
+            in_token: value.in_token,
+            out_token: value.out_token,
+            owner: value.owner,
+            min_price: value.min_price,
+            amount_in: value.amount_in,
+        }
+    }
+}
+
 /// A Renegade order, including metadata
 #[derive(Clone, Debug, Deserialize)]
 pub struct ApiOrder {
-    /// The order ID
-    pub id: Uuid,
-    /// The mint (erc20 address) of the input token
-    pub in_token: Address,
-    /// The mint (erc20 address) of the output token
-    pub out_token: Address,
-    /// The owner of the order
-    pub owner: Address,
-    /// The minimum price at which the order can be filled,
-    /// in units of `out_token/in_token`
-    pub min_price: FixedPoint,
-    /// The amount of the input token to trade
-    #[serde(with = "amount_string_serde")]
-    pub amount_in: Amount,
-    /// The minimum fill size for the order
-    #[serde(with = "amount_string_serde")]
-    pub min_fill_size: Amount,
-    /// The type of order
-    pub order_type: OrderType,
-    /// Whether to allow external matches on the order
-    pub allow_external_matches: bool,
+    /// The core order data
+    pub order: ApiOrderCore,
+    /// The recovery stream for the order
+    pub recovery_stream: ApiPoseidonCSPRNG,
+    /// The share stream for the order
+    pub share_stream: ApiPoseidonCSPRNG,
+    /// The public sharing of the order
+    pub public_shares: ApiOrderShare,
     /// The current state of the order
     pub state: OrderState,
     /// The fills on the order
@@ -80,8 +84,52 @@ pub struct ApiOrder {
     pub created: u64,
 }
 
-/// The different types of orders that can be placed in Renegade
+impl From<ApiOrder> for DarkpoolStateIntent {
+    fn from(value: ApiOrder) -> Self {
+        let intent: Intent = value.order.into();
+        let public_share: IntentShare = value.public_shares.into();
+
+        let recovery_stream = value.recovery_stream.into();
+        let share_stream = value.share_stream.into();
+
+        DarkpoolStateIntent { recovery_stream, share_stream, inner: intent, public_share }
+    }
+}
+
+/// A public sharing of an order
 #[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ApiOrderShare {
+    /// The public sharing of the input token mint
+    #[serde(with = "scalar_string_serde")]
+    pub in_token: Scalar,
+    /// The public sharing of the output token mint
+    #[serde(with = "scalar_string_serde")]
+    pub out_token: Scalar,
+    /// The public sharing of the owner address
+    #[serde(with = "scalar_string_serde")]
+    pub owner: Scalar,
+    /// The public sharing of the minimum fill price
+    #[serde(with = "scalar_string_serde")]
+    pub min_price: Scalar,
+    /// The public sharing of the input token amount
+    #[serde(with = "scalar_string_serde")]
+    pub amount_in: Scalar,
+}
+
+impl From<ApiOrderShare> for IntentShare {
+    fn from(value: ApiOrderShare) -> Self {
+        IntentShare {
+            in_token: value.in_token,
+            out_token: value.out_token,
+            owner: value.owner,
+            min_price: FixedPointShare { repr: value.min_price },
+            amount_in: value.amount_in,
+        }
+    }
+}
+
+/// The different types of orders that can be placed in Renegade
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum OrderType {
     /// A public order
