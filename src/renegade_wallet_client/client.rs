@@ -124,8 +124,12 @@ impl RenegadeClient {
             secrets.auth_hmac_key,
         ));
 
-        let websocket_client =
-            RenegadeWebsocketClient::new(&config, secrets.account_id, secrets.auth_hmac_key);
+        let websocket_client = RenegadeWebsocketClient::new(
+            &config,
+            secrets.account_id,
+            secrets.auth_hmac_key,
+            config.admin_hmac_key,
+        );
 
         Ok(Self {
             config,

@@ -3,6 +3,7 @@
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 use crate::renegade_api_types::{
     balances::ApiBalance,
@@ -71,6 +72,10 @@ pub enum ServerWebsocketMessageBody {
     Fill(FillWebsocketMessage),
     /// A message that is sent when a task update occurs
     TaskUpdate(TaskUpdateWebsocketMessage),
+    /// An admin message that is sent when a balance update occurs
+    AdminBalanceUpdate(AdminBalanceUpdateWebsocketMessage),
+    /// An admin message that is sent when an order update occurs
+    AdminOrderUpdate(AdminOrderUpdateWebsocketMessage),
 }
 
 /// A message that is sent in response to a subscribe/unsubscribe message,
@@ -112,4 +117,22 @@ pub struct FillWebsocketMessage {
 pub struct TaskUpdateWebsocketMessage {
     /// The updated task
     pub task: ApiTask,
+}
+
+/// An admin message that is sent when a balance update occurs
+#[derive(Clone, Debug, Deserialize)]
+pub struct AdminBalanceUpdateWebsocketMessage {
+    /// The ID of the account that owns the balance
+    pub account_id: Uuid,
+    /// The updated balance
+    pub balance: ApiBalance,
+}
+
+/// An admin message that is sent when an order update occurs
+#[derive(Clone, Debug, Deserialize)]
+pub struct AdminOrderUpdateWebsocketMessage {
+    /// The ID of the account that owns the order
+    pub account_id: Uuid,
+    /// The updated order
+    pub order: ApiOrder,
 }
