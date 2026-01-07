@@ -1,11 +1,9 @@
 //! Deposit into an account balance
 
 use alloy::primitives::Address;
-use renegade_circuit_types::{
-    balance::{Balance, DarkpoolStateBalance},
-    Amount,
-};
+use renegade_circuit_types::Amount;
 use renegade_crypto::fields::scalar_to_u256;
+use renegade_darkpool_types::balance::{Balance, DarkpoolStateBalance};
 use renegade_solidity_abi::v2::{
     relayer_types::u128_to_u256, transfer_auth::deposit::create_deposit_permit, IDarkpoolV2,
 };
@@ -169,6 +167,6 @@ impl RenegadeClient {
         let query_string =
             serde_urlencoded::to_string(query_params).map_err(RenegadeClientError::serde)?;
 
-        Ok(format!("{}?{}", path, query_string))
+        Ok(format!("{path}?{query_string}"))
     }
 }

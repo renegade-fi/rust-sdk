@@ -61,6 +61,6 @@ impl RenegadeClient {
         let query_string =
             serde_urlencoded::to_string(query_params).map_err(RenegadeClientError::serde)?;
 
-        Ok(format!("{}?{}", path, query_string))
+        Ok(format!("{path}?{query_string}"))
     }
 }

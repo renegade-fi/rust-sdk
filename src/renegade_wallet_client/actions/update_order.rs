@@ -24,7 +24,7 @@ impl RenegadeClient {
     ) -> Result<ApiOrder, RenegadeClientError> {
         let request = self.build_request(order_update_config).await?;
         let UpdateOrderResponse { order } =
-            self.relayer_client.post(&UPDATE_ORDER_ROUTE, request).await?;
+            self.relayer_client.post(UPDATE_ORDER_ROUTE, request).await?;
 
         Ok(order)
     }
