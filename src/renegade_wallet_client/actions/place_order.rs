@@ -107,7 +107,7 @@ impl RenegadeClient {
         let min_price = min_output_amount.ceil_div_int(amount_in).into();
 
         Ok(ApiOrderCore {
-            id: Uuid::new_v4(),
+            id: config.id.unwrap_or_else(Uuid::new_v4),
             in_token: unwrap_field!(input_mint),
             out_token: unwrap_field!(output_mint),
             owner: self.get_account_address(),
@@ -211,6 +211,9 @@ impl RenegadeClient {
 /// Container for order configuration options
 #[derive(Debug, Default)]
 pub struct OrderConfig {
+    /// The ID of the order to create. If not provided, a new UUID will be
+    /// generated.
+    id: Option<Uuid>,
     /// The input token mint address.
     input_mint: Option<Address>,
     /// The output token mint address.
@@ -236,6 +239,12 @@ impl OrderConfig {
     /// Create a new OrderConfig
     pub fn new() -> Self {
         Self::default()
+    }
+
+    /// Set the ID of the order to create
+    pub fn with_id(mut self, id: Uuid) -> Self {
+        self.id = Some(id);
+        self
     }
 
     /// Set the input mint address
