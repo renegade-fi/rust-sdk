@@ -15,6 +15,7 @@ use uuid::Uuid;
 
 use crate::renegade_api_types::tasks::TaskIdentifier;
 use crate::renegade_api_types::websocket::{
+    AdminBalanceUpdateWebsocketMessage, AdminOrderUpdateWebsocketMessage,
     BalanceUpdateWebsocketMessage, FillWebsocketMessage, OrderUpdateWebsocketMessage,
     TaskUpdateWebsocketMessage,
 };
@@ -240,6 +241,20 @@ impl RenegadeClient {
         &self,
     ) -> Result<impl Stream<Item = FillWebsocketMessage>, RenegadeClientError> {
         self.websocket_client.subscribe_fills().await
+    }
+
+    /// Subscribe to the admin balances updates stream
+    pub async fn subscribe_admin_balance_updates(
+        &self,
+    ) -> Result<impl Stream<Item = AdminBalanceUpdateWebsocketMessage>, RenegadeClientError> {
+        self.websocket_client.subscribe_admin_balance_updates().await
+    }
+
+    /// Subscribe to the admin order updates stream
+    pub async fn subscribe_admin_order_updates(
+        &self,
+    ) -> Result<impl Stream<Item = AdminOrderUpdateWebsocketMessage>, RenegadeClientError> {
+        self.websocket_client.subscribe_admin_order_updates().await
     }
 
     // --------------
