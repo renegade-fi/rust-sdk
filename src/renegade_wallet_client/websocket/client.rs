@@ -18,6 +18,7 @@ use uuid::Uuid;
 
 use crate::renegade_api_types::tasks::TaskIdentifier;
 use crate::renegade_api_types::websocket::{
+    AdminBalanceUpdateWebsocketMessage, AdminOrderUpdateWebsocketMessage,
     BalanceUpdateWebsocketMessage, FillWebsocketMessage, OrderUpdateWebsocketMessage,
     ServerWebsocketMessageBody, TaskUpdateWebsocketMessage,
 };
@@ -37,6 +38,12 @@ const DEFAULT_WS_PORT: u16 = 4000;
 
 /// The delay between websocket reconnection attempts
 const WS_RECONNECTION_DELAY: Duration = Duration::from_secs(1);
+
+/// The admin balances websocket topic
+pub const ADMIN_BALANCES_TOPIC: &str = "/v2/admin/balances";
+
+/// The admin orders websocket topic
+pub const ADMIN_ORDERS_TOPIC: &str = "/v2/admin/orders";
 
 // ---------
 // | Types |
@@ -76,6 +83,9 @@ pub struct RenegadeWebsocketClient {
     account_id: Uuid,
     /// The account's HMAC key
     auth_hmac_key: HmacKey,
+    /// The admin HMAC key used to authenticate admin websocket topic
+    /// subscriptions
+    admin_hmac_key: Option<HmacKey>,
     /// The topic subscription manager. This is lazily initialized along with
     /// the underlying websocket connection when the first subscription
     /// request is made.
@@ -87,7 +97,12 @@ pub struct RenegadeWebsocketClient {
 
 impl RenegadeWebsocketClient {
     /// Create a new websocket client
-    pub fn new(config: &RenegadeClientConfig, account_id: Uuid, auth_hmac_key: HmacKey) -> Self {
+    pub fn new(
+        config: &RenegadeClientConfig,
+        account_id: Uuid,
+        auth_hmac_key: HmacKey,
+        admin_hmac_key: Option<HmacKey>,
+    ) -> Self {
         let base_url = config.relayer_base_url.replace("http", "ws");
         let base_url = format!("{base_url}:{DEFAULT_WS_PORT}");
 
@@ -95,6 +110,7 @@ impl RenegadeWebsocketClient {
             base_url,
             account_id,
             auth_hmac_key,
+            admin_hmac_key,
             subscriptions: OnceLock::new(),
             task_waiter_manager: AsyncOnceCell::new(),
         }
@@ -204,6 +220,40 @@ impl RenegadeWebsocketClient {
         format!("/v2/account/{}/fills", self.account_id)
     }
 
+    // --- Admin --- //
+
+    /// Subscribe to the admin balances updates stream
+    pub async fn subscribe_admin_balance_updates(
+        &self,
+    ) -> Result<impl Stream<Item = AdminBalanceUpdateWebsocketMessage>, RenegadeClientError> {
+        let stream = self.subscribe_to_topic(ADMIN_BALANCES_TOPIC.to_string()).await?;
+
+        let filtered_stream = stream.filter_map(|maybe_ws_msg| {
+            maybe_ws_msg.ok().and_then(|ws_msg| match ws_msg {
+                ServerWebsocketMessageBody::AdminBalanceUpdate(update) => Some(update),
+                _ => None,
+            })
+        });
+
+        Ok(filtered_stream)
+    }
+
+    /// Subscribe to the admin order updates stream
+    pub async fn subscribe_admin_order_updates(
+        &self,
+    ) -> Result<impl Stream<Item = AdminOrderUpdateWebsocketMessage>, RenegadeClientError> {
+        let stream = self.subscribe_to_topic(ADMIN_ORDERS_TOPIC.to_string()).await?;
+
+        let filtered_stream = stream.filter_map(|maybe_ws_msg| {
+            maybe_ws_msg.ok().and_then(|ws_msg| match ws_msg {
+                ServerWebsocketMessageBody::AdminOrderUpdate(update) => Some(update),
+                _ => None,
+            })
+        });
+
+        Ok(filtered_stream)
+    }
+
     // ----------------
     // | Task Waiters |
     // ----------------
@@ -244,8 +294,11 @@ impl RenegadeWebsocketClient {
     fn ensure_subscriptions_initialized(&self) {
         self.subscriptions.get_or_init(|| {
             let (subscriptions_tx, subscriptions_rx) = create_subscription_channel();
-            let subscriptions =
-                Arc::new(SubscriptionManager::new(self.auth_hmac_key, subscriptions_tx));
+            let subscriptions = Arc::new(SubscriptionManager::new(
+                self.auth_hmac_key,
+                self.admin_hmac_key,
+                subscriptions_tx,
+            ));
 
             tokio::spawn(Self::ws_reconnection_loop(
                 self.base_url.clone(),

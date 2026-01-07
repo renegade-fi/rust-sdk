@@ -20,7 +20,7 @@ use crate::{
         ClientWebsocketMessage, ClientWebsocketMessageBody, ServerWebsocketMessage,
         ServerWebsocketMessageBody,
     },
-    websocket::{WsSink, WsStream},
+    websocket::{WsSink, WsStream, ADMIN_BALANCES_TOPIC, ADMIN_ORDERS_TOPIC},
     HmacKey, RenegadeClientError,
 };
 
@@ -72,6 +72,9 @@ fn create_topic_channel() -> (TopicTx, TopicRx) {
 pub struct SubscriptionManager {
     /// The account's HMAC key
     auth_hmac_key: HmacKey,
+    /// The admin HMAC key used to authenticate admin websocket topic
+    /// subscriptions
+    admin_hmac_key: Option<HmacKey>,
     /// The channel on which to enqueue subscription requests to be forwarded to
     /// the server
     subscriptions_tx: SubscriptionTx,
@@ -81,8 +84,17 @@ pub struct SubscriptionManager {
 
 impl SubscriptionManager {
     /// Create a new subscription manager
-    pub fn new(auth_hmac_key: HmacKey, subscriptions_tx: SubscriptionTx) -> Self {
-        Self { auth_hmac_key, subscriptions_tx, subscribed_topics: RwLock::new(HashMap::new()) }
+    pub fn new(
+        auth_hmac_key: HmacKey,
+        admin_hmac_key: Option<HmacKey>,
+        subscriptions_tx: SubscriptionTx,
+    ) -> Self {
+        Self {
+            auth_hmac_key,
+            admin_hmac_key,
+            subscriptions_tx,
+            subscribed_topics: RwLock::new(HashMap::new()),
+        }
     }
 
     /// Subscribe to the given topic
@@ -246,11 +258,19 @@ impl SubscriptionManager {
     ) -> Result<(), RenegadeClientError> {
         let body_ser = serde_json::to_vec(&body).map_err(RenegadeClientError::serde)?;
         let mut headers = HeaderMap::new();
+
+        // Determine which HMAC key to use based on whether this is an admin topic
+        let hmac_key = if self.is_admin_topic(body.topic()) {
+            self.admin_hmac_key.as_ref().ok_or(RenegadeClientError::NotAdmin)?
+        } else {
+            &self.auth_hmac_key
+        };
+
         add_expiring_auth_to_headers(
             body.topic(),
             &mut headers,
             &body_ser,
-            &self.auth_hmac_key,
+            hmac_key,
             AUTH_EXPIRATION,
         );
 
@@ -294,6 +314,11 @@ impl SubscriptionManager {
     /// Remove a subscription from the map
     async fn remove_subscription(&self, topic: String) {
         self.subscribed_topics.write().await.remove(&topic);
+    }
+
+    /// Check if the given topic is an admin topic
+    fn is_admin_topic(&self, topic: &str) -> bool {
+        topic == ADMIN_BALANCES_TOPIC || topic == ADMIN_ORDERS_TOPIC
     }
 }
 
