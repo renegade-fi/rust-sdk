@@ -83,8 +83,8 @@ impl RenegadeClient {
         let path =
             construct_http_path!(ADMIN_GET_ORDERS_ROUTE, "account_id" => self.get_account_id());
         let query_string =
-            serde_urlencoded::to_string(&query_params).map_err(RenegadeClientError::serde)?;
+            serde_urlencoded::to_string(query_params).map_err(RenegadeClientError::serde)?;
 
-        Ok(format!("{}?{}", path, query_string))
+        Ok(format!("{path}?{query_string}"))
     }
 }

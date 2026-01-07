@@ -87,6 +87,7 @@ impl TaskStatusNotification {
 // | Task Waiter Manager |
 // -----------------------
 
+/// Manages sending notifications to task waiters
 #[derive(Clone)]
 pub struct TaskWaiterManager {
     /// The notification map

@@ -38,9 +38,6 @@ const DEFAULT_WS_PORT: u16 = 4000;
 /// The delay between websocket reconnection attempts
 const WS_RECONNECTION_DELAY: Duration = Duration::from_secs(1);
 
-/// The expiration duration for websocket subscription authentication
-const AUTH_EXPIRATION: Duration = Duration::from_secs(10);
-
 // ---------
 // | Types |
 // ---------
@@ -64,11 +61,6 @@ pub type SharedMap<K, V> = Arc<RwLock<HashMap<K, V>>>;
 /// Create a new subscription channel
 pub fn create_subscription_channel() -> (SubscriptionTx, SubscriptionRx) {
     mpsc::unbounded_channel()
-}
-
-/// Construct a websocket topic from a wallet's task history
-fn construct_task_history_topic(wallet_id: Uuid) -> String {
-    format!("/v0/wallet/{wallet_id}/task-history")
 }
 
 // --------------------

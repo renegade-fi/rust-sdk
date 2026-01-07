@@ -3,11 +3,10 @@
 use std::str::FromStr;
 
 use alloy::primitives::Address;
-use renegade_circuit_types::{
+use renegade_circuit_types::{fixed_point::FixedPoint, Amount};
+use renegade_darkpool_types::{
     balance::{Balance, DarkpoolStateBalance},
-    fixed_point::FixedPoint,
     intent::DarkpoolStateIntent,
-    Amount,
 };
 use renegade_solidity_abi::v2::IDarkpoolV2::{self, PublicIntentPermit};
 use uuid::Uuid;
@@ -199,9 +198,9 @@ impl RenegadeClient {
     ) -> Result<String, RenegadeClientError> {
         let path = construct_http_path!(CREATE_ORDER_ROUTE, "account_id" => self.get_account_id());
         let query_string =
-            serde_urlencoded::to_string(&query_params).map_err(RenegadeClientError::serde)?;
+            serde_urlencoded::to_string(query_params).map_err(RenegadeClientError::serde)?;
 
-        Ok(format!("{}?{}", path, query_string))
+        Ok(format!("{path}?{query_string}"))
     }
 }
 
@@ -291,6 +290,7 @@ impl OrderConfig {
         self
     }
 
+    /// Set whether to precompute a cancellation proof for the order
     pub fn with_precompute_cancellation_proof(mut self, precompute: bool) -> Self {
         self.precompute_cancellation_proof = Some(precompute);
         self

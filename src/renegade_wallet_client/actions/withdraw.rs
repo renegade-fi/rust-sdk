@@ -3,8 +3,9 @@
 use std::time::Duration;
 
 use alloy::primitives::Address;
-use renegade_circuit_types::{balance::DarkpoolStateBalance, Amount};
+use renegade_circuit_types::Amount;
 use renegade_crypto::fields::scalar_to_u256;
+use renegade_darkpool_types::balance::DarkpoolStateBalance;
 use renegade_solidity_abi::v2::{
     transfer_auth::withdrawal::create_withdrawal_auth, IDarkpoolV2::WithdrawalAuth,
 };
@@ -128,7 +129,7 @@ impl RenegadeClient {
         let query_string =
             serde_urlencoded::to_string(query_params).map_err(RenegadeClientError::serde)?;
 
-        Ok(format!("{}?{}", path, query_string))
+        Ok(format!("{path}?{query_string}"))
     }
 }
 

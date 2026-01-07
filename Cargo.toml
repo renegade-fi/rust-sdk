@@ -145,7 +145,7 @@ external-match-client = []
 darkpool-client = [
     "dep:futures-util",
     "dep:renegade-circuit-types",
-    "dep:renegade-common",
+    "dep:renegade-darkpool-types",
     "dep:renegade-constants",
     "dep:renegade-crypto",
     "dep:renegade-solidity-abi",
@@ -180,11 +180,11 @@ alloy-rpc-types-eth = { version = ">=0.12, <2.0" }
 k256 = { version = "0.13", features = ["ecdsa"] }
 
 # === Renegade Dependencies === #
-renegade-circuit-types = { package = "circuit-types", git = "https://github.com/renegade-fi/renegade.git", branch = "andrew/relayer-v2-patch", optional = true }
-renegade-common = { package = "common", git = "https://github.com/renegade-fi/renegade.git", branch = "andrew/relayer-v2-patch", optional = true }
-renegade-constants = { package = "constants", git = "https://github.com/renegade-fi/renegade.git", branch = "andrew/relayer-v2-patch", optional = true }
-renegade-crypto = { package = "renegade-crypto", git = "https://github.com/renegade-fi/renegade.git", branch = "andrew/relayer-v2-patch", optional = true }
-renegade-solidity-abi = { package = "abi", git = "https://github.com/renegade-fi/renegade-contracts.git", branch = "andrew/contracts-v2-patch", features = ["v2", "v2-auth-helpers", "transfer-auth"], optional = true }
+renegade-circuit-types = { package = "circuit-types", git = "https://github.com/renegade-fi/renegade.git", branch = "joey/relayer-v2", optional = true, features = ["proof-system-types"] }
+renegade-darkpool-types = { package = "darkpool-types", git = "https://github.com/renegade-fi/renegade.git", branch = "joey/relayer-v2", optional = true, features = ["proof-system-types"] }
+renegade-constants = { package = "constants", git = "https://github.com/renegade-fi/renegade.git", branch = "joey/relayer-v2", optional = true }
+renegade-crypto = { package = "crypto", git = "https://github.com/renegade-fi/renegade.git", branch = "joey/relayer-v2", optional = true }
+renegade-solidity-abi = { package = "abi", git = "https://github.com/renegade-fi/renegade-contracts.git", features = ["v2", "v2-relayer-types", "v2-auth-helpers", "transfer-auth"], optional = true }
 
 # === Cryptography === #
 ark-ff = "0.4"
@@ -199,7 +199,7 @@ num-integer = "0.1"
 thiserror = "1.0.31"
 tracing = { version = "0.1.39", optional = true }
 url = "2.5.0"
-uuid = "1.13.0"
+uuid = { version = "1.13.0", features = ["serde", "v4"] }
 
 # === Example Dependencies === #
 [dev-dependencies]

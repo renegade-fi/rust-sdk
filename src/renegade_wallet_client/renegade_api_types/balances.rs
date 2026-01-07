@@ -2,12 +2,12 @@
 
 use alloy::primitives::{Address, U256};
 use renegade_circuit_types::{
-    balance::{Balance, BalanceShare, DarkpoolStateBalance},
-    elgamal::BabyJubJubPointShare,
+    baby_jubjub::BabyJubJubPointShare,
     schnorr::{SchnorrPublicKey, SchnorrPublicKeyShare},
     Amount,
 };
 use renegade_constants::Scalar;
+use renegade_darkpool_types::balance::{Balance, BalanceShare, DarkpoolStateBalance};
 use serde::{Deserialize, Serialize};
 
 use crate::renegade_api_types::account::{ApiBabyJubJubPoint, ApiPoseidonCSPRNG};

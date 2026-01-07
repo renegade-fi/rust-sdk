@@ -3,10 +3,10 @@
 use alloy::primitives::{Address, TxHash, U256};
 use renegade_circuit_types::{
     fixed_point::{FixedPoint, FixedPointShare},
-    intent::{DarkpoolStateIntent, Intent, IntentShare},
     Amount,
 };
 use renegade_constants::Scalar;
+use renegade_darkpool_types::intent::{DarkpoolStateIntent, Intent, IntentShare};
 use renegade_solidity_abi::v2::{relayer_types::u128_to_u256, IDarkpoolV2};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
