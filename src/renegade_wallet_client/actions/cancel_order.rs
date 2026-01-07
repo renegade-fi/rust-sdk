@@ -1,7 +1,7 @@
 //! Cancels an order in the wallet
 
 use alloy::{primitives::keccak256, signers::SignerSync};
-use renegade_circuit_types::intent::DarkpoolStateIntent;
+use renegade_darkpool_types::intent::DarkpoolStateIntent;
 use uuid::Uuid;
 
 use crate::{
@@ -84,6 +84,6 @@ impl RenegadeClient {
         let query_string =
             serde_urlencoded::to_string(query_params).map_err(RenegadeClientError::serde)?;
 
-        Ok(format!("{}?{}", path, query_string))
+        Ok(format!("{path}?{query_string}"))
     }
 }

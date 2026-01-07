@@ -56,6 +56,7 @@ pub(crate) const BASE_SEPOLIA_PERMIT2_ADDRESS: Address =
 
 // --- Executor Addresses --- //
 
+/// The executor address on Arbitrum One
 pub(crate) const ARBITRUM_ONE_EXECUTOR_ADDRESS: Address =
     address!("0x0000000000000000000000000000000000000000");
 /// The executor address on Arbitrum Sepolia
@@ -70,15 +71,16 @@ pub(crate) const BASE_SEPOLIA_EXECUTOR_ADDRESS: Address =
 
 // --- Relayer Fee Recipient Addresses --- //
 
+/// The relayer fee recipient address on Arbitrum One
 pub(crate) const ARBITRUM_ONE_RELAYER_FEE_RECIPIENT: Address =
     address!("0x0000000000000000000000000000000000000000");
-/// The executor address on Arbitrum Sepolia
+/// The relayer fee recipient address on Arbitrum Sepolia
 pub(crate) const ARBITRUM_SEPOLIA_RELAYER_FEE_RECIPIENT: Address =
     address!("0x0000000000000000000000000000000000000000");
-/// The executor address on Base Mainnet
+/// The relayer fee recipient address on Base Mainnet
 pub(crate) const BASE_MAINNET_RELAYER_FEE_RECIPIENT: Address =
     address!("0x0000000000000000000000000000000000000000");
-/// The executor address on Base Sepolia
+/// The relayer fee recipient address on Base Sepolia
 pub(crate) const BASE_SEPOLIA_RELAYER_FEE_RECIPIENT: Address =
     address!("0x0000000000000000000000000000000000000000");
 

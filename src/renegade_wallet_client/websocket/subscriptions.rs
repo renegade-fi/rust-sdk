@@ -106,6 +106,7 @@ impl SubscriptionManager {
     }
 
     /// Unsubscribe from the given topic
+    #[allow(dead_code)]
     pub async fn unsubscribe_from_topic(&self, topic: String) -> Result<(), RenegadeClientError> {
         match self.try_get_subscription(&topic).await {
             // If there are still listeners for the topic, do nothing

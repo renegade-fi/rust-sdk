@@ -21,7 +21,7 @@ pub struct ApiTask {
 
 /// A decription of a relayer task
 // TODO: Replace w/ actual relayer task types once implemented
-#[allow(clippy::missing_docs_in_private_items)]
+#[allow(missing_docs)]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ApiTaskDescription {

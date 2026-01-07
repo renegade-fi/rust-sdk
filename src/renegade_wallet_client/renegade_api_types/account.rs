@@ -1,8 +1,8 @@
 //! Account API types
 
 use renegade_circuit_types::{
+    baby_jubjub::BabyJubJubPoint,
     csprng::PoseidonCSPRNG,
-    elgamal::BabyJubJubPoint,
     schnorr::{SchnorrPrivateKey, SchnorrSignature},
 };
 use renegade_constants::{EmbeddedScalarField, Scalar};
