@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::renegade_api_types::{
+    admin::ApiAdminOrder,
     balances::ApiBalance,
     orders::{ApiOrder, ApiOrderCore, ApiPartialOrderFill},
     tasks::ApiTask,
@@ -99,6 +100,28 @@ pub struct BalanceUpdateWebsocketMessage {
 pub struct OrderUpdateWebsocketMessage {
     /// The updated order
     pub order: ApiOrder,
+    /// The type of order update
+    pub update_type: ApiOrderUpdateType,
+}
+
+/// The type of order update
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ApiOrderUpdateType {
+    /// The order has been created
+    Created,
+    /// The order received a fill from an internal match
+    InternalFill,
+    /// The order received a fill from an external match
+    ExternalFill,
+    /// The order's minimum fill size has been updated
+    MinFillSizeUpdated,
+    /// Whether the order allows external matches has been toggled
+    ExternalMatchesToggled,
+    /// The order has been assigned to a matching pool
+    MatchingPoolAssigned,
+    /// The order has been cancelled
+    Cancelled,
 }
 
 /// A message that is sent when a fill occurs on an order
@@ -134,5 +157,7 @@ pub struct AdminOrderUpdateWebsocketMessage {
     /// The ID of the account that owns the order
     pub account_id: Uuid,
     /// The updated order
-    pub order: ApiOrder,
+    pub order: ApiAdminOrder,
+    /// The type of order update
+    pub update_type: ApiOrderUpdateType,
 }
