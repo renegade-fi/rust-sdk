@@ -11,6 +11,7 @@ use futures_util::Stream;
 use renegade_circuit_types::schnorr::{SchnorrPrivateKey, SchnorrPublicKey, SchnorrSignature};
 use renegade_circuit_types::traits::BaseType;
 use renegade_constants::{EmbeddedScalarField, Scalar};
+use renegade_types_core::HmacKey;
 use uuid::Uuid;
 
 use crate::renegade_api_types::tasks::TaskIdentifier;
@@ -21,7 +22,6 @@ use crate::renegade_api_types::websocket::{
 };
 use crate::util::get_env_agnostic_chain;
 use crate::websocket::TaskWaiter;
-use crate::HmacKey;
 use crate::{
     http::RelayerHttpClient, renegade_wallet_client::config::RenegadeClientConfig,
     websocket::RenegadeWebsocketClient, RenegadeClientError, BASE_MAINNET_CHAIN_ID,

@@ -2,9 +2,8 @@
 
 use base64::{prelude::BASE64_STANDARD_NO_PAD, Engine};
 use renegade_constants::EmbeddedScalarField;
+use renegade_types_core::HmacKey;
 use serde::{Deserialize, Deserializer, Serializer};
-
-use crate::HmacKey;
 
 /// A module for serializing and deserializing a `Scalar` as a decimal string
 pub(crate) mod scalar_string_serde {

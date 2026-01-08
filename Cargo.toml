@@ -180,6 +180,8 @@ alloy-rpc-types-eth = { version = ">=0.12, <2.0" }
 k256 = { version = "0.13", features = ["ecdsa"] }
 
 # === Renegade Dependencies === #
+renegade-types-core = { package = "types-core", git = "https://github.com/renegade-fi/renegade.git", branch = "joey/relayer-v2", features = ["hmac"] }
+renegade-external-api = { package = "external-api", git = "https://github.com/renegade-fi/renegade.git", branch = "joey/relayer-v2", default-features = false, features = ["auth"] }
 renegade-circuit-types = { package = "circuit-types", git = "https://github.com/renegade-fi/renegade.git", branch = "joey/relayer-v2", optional = true, features = ["proof-system-types"] }
 renegade-darkpool-types = { package = "darkpool-types", git = "https://github.com/renegade-fi/renegade.git", branch = "joey/relayer-v2", optional = true, features = ["proof-system-types"] }
 renegade-constants = { package = "constants", git = "https://github.com/renegade-fi/renegade.git", branch = "joey/relayer-v2", optional = true }
