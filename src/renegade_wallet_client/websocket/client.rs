@@ -5,6 +5,7 @@ use std::{collections::HashMap, time::Duration};
 
 use futures_util::stream::SplitSink;
 use futures_util::Stream;
+use renegade_types_core::HmacKey;
 use tokio::net::TcpStream;
 use tokio::sync::{
     mpsc::{self, UnboundedReceiver, UnboundedSender},
@@ -26,7 +27,6 @@ use crate::websocket::subscriptions::{
     SubscriptionManager, SubscriptionRx, SubscriptionTx, TopicStream,
 };
 use crate::websocket::{TaskWaiter, TaskWaiterManager};
-use crate::HmacKey;
 use crate::{renegade_wallet_client::config::RenegadeClientConfig, RenegadeClientError};
 
 // -------------

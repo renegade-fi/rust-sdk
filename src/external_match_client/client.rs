@@ -1,5 +1,6 @@
 //! The client for requesting external matches
 
+use renegade_types_core::HmacKey;
 use reqwest::{
     header::{HeaderMap, HeaderValue},
     StatusCode,
@@ -13,7 +14,6 @@ use crate::{
         GET_MARKET_DEPTH_BY_MINT_ROUTE,
     },
     http::RelayerHttpClient,
-    util::HmacKey,
     AssembleQuoteOptions, ExternalMatchOptions, RequestQuoteOptions, ARBITRUM_ONE_RELAYER_BASE_URL,
     ARBITRUM_SEPOLIA_RELAYER_BASE_URL, BASE_MAINNET_RELAYER_BASE_URL,
     BASE_SEPOLIA_RELAYER_BASE_URL,
