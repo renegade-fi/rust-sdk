@@ -4,6 +4,8 @@
 use std::{collections::HashMap, time::Duration};
 
 use futures_util::{SinkExt, StreamExt};
+use renegade_external_api::auth::add_expiring_auth_to_headers;
+use renegade_types_core::HmacKey;
 use reqwest::header::HeaderMap;
 use tokio::sync::{
     broadcast::{self, Receiver as BroadcastReceiver, Sender as BroadcastSender},
@@ -15,13 +17,12 @@ use tokio_tungstenite::tungstenite::Message;
 use tracing::{error, info, warn};
 
 use crate::{
-    add_expiring_auth_to_headers,
     renegade_api_types::websocket::{
         ClientWebsocketMessage, ClientWebsocketMessageBody, ServerWebsocketMessage,
         ServerWebsocketMessageBody,
     },
     websocket::{WsSink, WsStream, ADMIN_BALANCES_TOPIC, ADMIN_ORDERS_TOPIC},
-    HmacKey, RenegadeClientError,
+    RenegadeClientError,
 };
 
 // -------------

@@ -3,18 +3,16 @@
 use alloy::primitives::Address;
 use renegade_circuit_types::Amount;
 use renegade_constants::Scalar;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use renegade_types_core::HmacKey;
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::{
-    renegade_api_types::{
-        account::ApiPoseidonCSPRNG,
-        admin::ApiAdminOrder,
-        balances::{ApiBalance, ApiDepositPermit, ApiSchnorrPublicKey},
-        orders::{ApiOrder, ApiOrderCore, OrderAuth},
-        tasks::ApiTask,
-    },
-    HmacKey,
+use crate::renegade_api_types::{
+    account::ApiPoseidonCSPRNG,
+    admin::ApiAdminOrder,
+    balances::{ApiBalance, ApiDepositPermit, ApiSchnorrPublicKey},
+    orders::{ApiOrder, ApiOrderCore, OrderAuth},
+    tasks::ApiTask,
 };
 
 use super::serde_helpers::*;
@@ -319,50 +317,4 @@ pub struct GetOrdersAdminResponse {
 pub struct GetOrderAdminResponse {
     /// The order
     pub order: ApiAdminOrder,
-}
-
-// --------
-// | Misc |
-// --------
-
-/// An empty request/response type
-// TODO: Remove once the relayer's external API crate builds
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct EmptyRequestResponse {}
-
-/// Serialize an empty request/response
-impl Serialize for EmptyRequestResponse {
-    fn serialize<S>(&self, s: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        s.serialize_none()
-    }
-}
-
-/// Deserialize an empty request/response
-impl<'de> Deserialize<'de> for EmptyRequestResponse {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        deserializer.deserialize_unit(EmptyRequestResponseVisitor)
-    }
-}
-
-/// Visitor for deserializing an empty request/response
-struct EmptyRequestResponseVisitor;
-impl serde::de::Visitor<'_> for EmptyRequestResponseVisitor {
-    type Value = EmptyRequestResponse;
-
-    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-        formatter.write_str("null")
-    }
-
-    fn visit_unit<E>(self) -> Result<Self::Value, E>
-    where
-        E: serde::de::Error,
-    {
-        Ok(EmptyRequestResponse {})
-    }
 }
