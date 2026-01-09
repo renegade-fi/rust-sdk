@@ -292,9 +292,10 @@ pub struct GetTaskByIdResponse {
 // | Admin API |
 // -------------
 
-/// The query parameters used when fetching all orders managed by the relayer
+/// The query parameters used when fetching all open orders managed by the
+/// relayer
 #[derive(Debug, Default, Serialize)]
-pub struct GetOrdersAdminQueryParameters {
+pub struct GetOpenOrdersAdminQueryParameters {
     /// The matching pool from which to fetch orders
     pub matching_pool: Option<String>,
     /// The number of orders to return per page
@@ -305,7 +306,27 @@ pub struct GetOrdersAdminQueryParameters {
 
 /// A response containing a page of open orders w/ admin-level metadata
 #[derive(Debug, Deserialize)]
-pub struct GetOrdersAdminResponse {
+pub struct GetOpenOrdersAdminResponse {
+    /// The orders
+    pub orders: Vec<ApiAdminOrder>,
+    /// The next page token to use for pagination, if more orders are available
+    pub next_page_token: Option<usize>,
+}
+
+/// The query parameters used when fetching all orders for a given account
+/// (admin)
+#[derive(Debug, Default, Serialize)]
+pub struct GetAccountOrdersAdminQueryParameters {
+    /// The number of orders to return per page
+    pub page_size: Option<usize>,
+    /// The page token to use for pagination
+    pub page_token: Option<usize>,
+}
+
+/// A response containing a page of orders for a given account w/ admin-level
+/// metadata
+#[derive(Debug, Deserialize)]
+pub struct GetAccountOrdersAdminResponse {
     /// The orders
     pub orders: Vec<ApiAdminOrder>,
     /// The next page token to use for pagination, if more orders are available
