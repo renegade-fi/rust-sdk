@@ -1,7 +1,9 @@
 //! Actions to update a Renegade wallet
 
+pub mod admin_assign_order_to_pool;
 pub mod admin_get_order;
 pub mod admin_get_orders;
+pub mod admin_place_order_in_pool;
 pub mod cancel_order;
 pub mod create_account;
 pub mod deposit;
