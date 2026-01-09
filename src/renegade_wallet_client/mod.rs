@@ -6,6 +6,7 @@ pub mod actions;
 pub mod client;
 pub mod config;
 pub mod renegade_api_types;
+pub(crate) mod utils;
 pub mod websocket;
 
 /// The error type for the renegade wallet client

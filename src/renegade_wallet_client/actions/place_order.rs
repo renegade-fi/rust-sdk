@@ -19,6 +19,7 @@ use crate::{
         request_response::{CreateOrderQueryParameters, CreateOrderRequest, CreateOrderResponse},
         CREATE_ORDER_ROUTE,
     },
+    utils::unwrap_field,
     websocket::{TaskWaiter, DEFAULT_TASK_TIMEOUT},
     RenegadeClientError,
 };
@@ -90,37 +91,26 @@ impl RenegadeClient {
     /// Builds an ApiOrderCore from an OrderConfig, injecting the client's
     /// address as the owner
     fn build_order(&self, config: OrderConfig) -> Result<ApiOrderCore, RenegadeClientError> {
-        macro_rules! unwrap_field {
-            ($field:ident) => {
-                config.$field.ok_or_else(|| {
-                    RenegadeClientError::invalid_order(format!(
-                        "{} is required for order",
-                        stringify!($field)
-                    ))
-                })?
-            };
-        }
-
-        let amount_in = unwrap_field!(amount_in);
+        let amount_in = unwrap_field!(config, amount_in);
 
         let min_output_amount: FixedPoint = config.min_output_amount.unwrap_or_default().into();
         let min_price = min_output_amount.ceil_div_int(amount_in).into();
 
         Ok(ApiOrderCore {
             id: config.id.unwrap_or_else(Uuid::new_v4),
-            in_token: unwrap_field!(input_mint),
-            out_token: unwrap_field!(output_mint),
+            in_token: unwrap_field!(config, input_mint),
+            out_token: unwrap_field!(config, output_mint),
             owner: self.get_account_address(),
-            amount_in: unwrap_field!(amount_in),
+            amount_in: unwrap_field!(config, amount_in),
             min_price,
             min_fill_size: config.min_fill_size.unwrap_or(0),
-            order_type: unwrap_field!(order_type),
+            order_type: unwrap_field!(config, order_type),
             allow_external_matches: config.allow_external_matches.unwrap_or(true),
         })
     }
 
     /// Builds the order authorization for the given order according to its type
-    async fn build_order_auth(
+    pub(crate) async fn build_order_auth(
         &self,
         order: &ApiOrderCore,
     ) -> Result<OrderAuth, RenegadeClientError> {

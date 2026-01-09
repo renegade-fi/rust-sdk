@@ -9,7 +9,7 @@ use uuid::Uuid;
 
 use crate::renegade_api_types::{
     account::ApiPoseidonCSPRNG,
-    admin::ApiAdminOrder,
+    admin::{ApiAdminOrder, ApiAdminOrderCore},
     balances::{ApiBalance, ApiDepositPermit, ApiSchnorrPublicKey},
     orders::{ApiOrder, ApiOrderCore, OrderAuth},
     tasks::ApiTask,
@@ -316,5 +316,49 @@ pub struct GetOrdersAdminResponse {
 #[derive(Debug, Deserialize)]
 pub struct GetOrderAdminResponse {
     /// The order
+    pub order: ApiAdminOrder,
+}
+
+/// The query parameters used when creating an order in a pool (admin)
+#[derive(Debug, Default, Serialize)]
+pub struct AdminCreateOrderInPoolQueryParameters {
+    /// Whether to block on the completion of the order creation task before
+    /// receiving a response
+    pub non_blocking: Option<bool>,
+}
+
+/// A request to create an order in a pool (admin)
+#[derive(Debug, Serialize)]
+pub struct AdminCreateOrderInPoolRequest {
+    /// The order to create
+    pub order: ApiAdminOrderCore,
+    /// The authorization of the order creation
+    pub auth: OrderAuth,
+    /// Whether to precompute a cancellation proof for the order
+    pub precompute_cancellation_proof: bool,
+}
+
+/// The response received after creating an order in a pool (admin)
+#[derive(Debug, Deserialize)]
+pub struct AdminCreateOrderInPoolResponse {
+    /// The ID of the order creation task spawned in the relayer
+    pub task_id: Uuid,
+    /// The order that was created
+    pub order: ApiAdminOrder,
+    /// Whether the order creation task has completed
+    pub completed: bool,
+}
+
+/// A request to assign an order to a pool (admin)
+#[derive(Debug, Serialize)]
+pub struct AdminAssignOrderToPoolRequest {
+    /// The matching pool to assign the order to
+    pub matching_pool: String,
+}
+
+/// The response received after assigning an order to a pool (admin)
+#[derive(Debug, Deserialize)]
+pub struct AdminAssignOrderToPoolResponse {
+    /// The order with updated pool assignment
     pub order: ApiAdminOrder,
 }
