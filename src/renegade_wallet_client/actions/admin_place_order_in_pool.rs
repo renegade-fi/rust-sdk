@@ -1,0 +1,240 @@
+//! Admin action to place an order in a specific matching pool
+
+use std::str::FromStr;
+
+use alloy::primitives::Address;
+use renegade_circuit_types::{fixed_point::FixedPoint, Amount};
+use uuid::Uuid;
+
+use crate::{
+    client::RenegadeClient,
+    renegade_api_types::{
+        admin::{ApiAdminOrder, ApiAdminOrderCore},
+        orders::{ApiOrderCore, OrderType},
+        request_response::{
+            AdminCreateOrderInPoolQueryParameters, AdminCreateOrderInPoolRequest,
+            AdminCreateOrderInPoolResponse,
+        },
+        ADMIN_CREATE_ORDER_IN_POOL_ROUTE,
+    },
+    utils::unwrap_field,
+    websocket::{TaskWaiter, DEFAULT_TASK_TIMEOUT},
+    RenegadeClientError,
+};
+
+// --- Public Actions --- //
+impl RenegadeClient {
+    /// Places an order in a specific matching pool via the admin API.
+    /// Waits for the order creation task to complete before returning.
+    ///
+    /// This is an admin action that requires the client to be configured with
+    /// an admin HMAC key.
+    pub async fn admin_place_order_in_pool(
+        &self,
+        order_config: AdminOrderConfig,
+    ) -> Result<ApiAdminOrder, RenegadeClientError> {
+        let admin_client = self.get_admin_client()?;
+
+        let request = self.build_admin_create_order_request(order_config).await?;
+
+        let query_params = AdminCreateOrderInPoolQueryParameters { non_blocking: Some(false) };
+        let path = build_admin_create_order_request_path(&query_params)?;
+
+        let AdminCreateOrderInPoolResponse { order, .. } =
+            admin_client.post(&path, request).await?;
+
+        Ok(order)
+    }
+
+    /// Enqueues an order placement task in a specific matching pool via the
+    /// admin API. Returns the expected order to be created, and a `TaskWaiter`
+    /// that can be used to await task completion.
+    ///
+    /// This is an admin action that requires the client to be configured with
+    /// an admin HMAC key.
+    pub async fn enqueue_admin_order_placement_in_pool(
+        &self,
+        order_config: AdminOrderConfig,
+    ) -> Result<(ApiAdminOrder, TaskWaiter), RenegadeClientError> {
+        let admin_client = self.get_admin_client()?;
+
+        let request = self.build_admin_create_order_request(order_config).await?;
+
+        let query_params = AdminCreateOrderInPoolQueryParameters { non_blocking: Some(true) };
+        let path = build_admin_create_order_request_path(&query_params)?;
+
+        let AdminCreateOrderInPoolResponse { task_id, order, .. } =
+            admin_client.post(&path, request).await?;
+
+        // Create a task waiter for the task
+        let task_waiter = self.watch_task(task_id, DEFAULT_TASK_TIMEOUT).await?;
+
+        Ok((order, task_waiter))
+    }
+}
+
+// --- Private Helpers --- //
+impl RenegadeClient {
+    /// Builds the admin order creation request from the given order
+    /// configuration
+    async fn build_admin_create_order_request(
+        &self,
+        order_config: AdminOrderConfig,
+    ) -> Result<AdminCreateOrderInPoolRequest, RenegadeClientError> {
+        let precompute_cancellation_proof =
+            order_config.precompute_cancellation_proof.unwrap_or(false);
+
+        let order = self.build_admin_order(order_config)?;
+        let auth = self.build_order_auth(&order.order_core).await?;
+
+        Ok(AdminCreateOrderInPoolRequest { order, auth, precompute_cancellation_proof })
+    }
+
+    /// Builds an ApiAdminOrderCore from an AdminOrderConfig, injecting the
+    /// client's address as the owner
+    fn build_admin_order(
+        &self,
+        config: AdminOrderConfig,
+    ) -> Result<ApiAdminOrderCore, RenegadeClientError> {
+        let amount_in = unwrap_field!(config, amount_in);
+
+        let min_output_amount: FixedPoint = config.min_output_amount.unwrap_or_default().into();
+        let min_price = min_output_amount.ceil_div_int(amount_in).into();
+
+        let order_core = ApiOrderCore {
+            id: config.id.unwrap_or_else(Uuid::new_v4),
+            in_token: unwrap_field!(config, input_mint),
+            out_token: unwrap_field!(config, output_mint),
+            owner: self.get_account_address(),
+            amount_in: unwrap_field!(config, amount_in),
+            min_price,
+            min_fill_size: config.min_fill_size.unwrap_or(0),
+            order_type: unwrap_field!(config, order_type),
+            allow_external_matches: config.allow_external_matches.unwrap_or(true),
+        };
+
+        let matching_pool = unwrap_field!(config, matching_pool);
+
+        Ok(ApiAdminOrderCore { order_core, matching_pool })
+    }
+}
+
+/// Builds the request path for the admin create order in pool endpoint
+fn build_admin_create_order_request_path(
+    query_params: &AdminCreateOrderInPoolQueryParameters,
+) -> Result<String, RenegadeClientError> {
+    let query_string =
+        serde_urlencoded::to_string(query_params).map_err(RenegadeClientError::serde)?;
+
+    Ok(format!("{ADMIN_CREATE_ORDER_IN_POOL_ROUTE}?{query_string}"))
+}
+
+// ----------------------
+// | Admin Order Config |
+// ----------------------
+
+/// Container for admin order configuration options
+#[derive(Debug, Default)]
+pub struct AdminOrderConfig {
+    /// The ID of the order to create. If not provided, a new UUID will be
+    /// generated.
+    id: Option<Uuid>,
+    /// The input token mint address.
+    input_mint: Option<Address>,
+    /// The output token mint address.
+    output_mint: Option<Address>,
+    /// The amount of the input token to trade.
+    amount_in: Option<Amount>,
+    /// The minimum output token amount that must be received from the order.
+    ///
+    /// This is used to compute a minimum price (in terms of output token per
+    /// input token) below which fills will not execute.
+    min_output_amount: Option<Amount>,
+    /// The minimum amount that must be filled for the order to execute.
+    min_fill_size: Option<Amount>,
+    /// The type of order to create.
+    order_type: Option<OrderType>,
+    /// Whether to allow external matches on the order
+    allow_external_matches: Option<bool>,
+    /// Whether to precompute a cancellation proof for the order.
+    precompute_cancellation_proof: Option<bool>,
+    /// The matching pool to assign the order to.
+    matching_pool: Option<String>,
+}
+
+impl AdminOrderConfig {
+    /// Create a new AdminOrderConfig
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Set the ID of the order to create
+    pub fn with_id(mut self, id: Uuid) -> Self {
+        self.id = Some(id);
+        self
+    }
+
+    /// Set the input mint address
+    pub fn with_input_mint(mut self, input_mint: &str) -> Result<Self, RenegadeClientError> {
+        let input_mint_address =
+            Address::from_str(input_mint).map_err(RenegadeClientError::invalid_order)?;
+
+        self.input_mint = Some(input_mint_address);
+        Ok(self)
+    }
+
+    /// Set the output mint address
+    pub fn with_output_mint(mut self, output_mint: &str) -> Result<Self, RenegadeClientError> {
+        let output_mint_address =
+            Address::from_str(output_mint).map_err(RenegadeClientError::invalid_order)?;
+
+        self.output_mint = Some(output_mint_address);
+        Ok(self)
+    }
+
+    /// Set the order input token amount
+    pub fn with_input_amount(mut self, amount: Amount) -> Self {
+        self.amount_in = Some(amount);
+        self
+    }
+
+    /// Set the minimum output token amount that must be received from the
+    /// order.
+    ///
+    /// This is used to compute a minimum price (in terms of output token per
+    /// input token) below which fills will not execute.
+    pub fn with_min_output_amount(mut self, amount: Amount) -> Self {
+        self.min_output_amount = Some(amount);
+        self
+    }
+
+    /// Set the minimum fill size
+    pub fn with_min_fill_size(mut self, min_fill: Amount) -> Self {
+        self.min_fill_size = Some(min_fill);
+        self
+    }
+
+    /// Set whether external matches are allowed
+    pub fn with_allow_external_matches(mut self, allow: bool) -> Self {
+        self.allow_external_matches = Some(allow);
+        self
+    }
+
+    /// Set the order type, i.e. which level of privacy to prescribe to it.
+    pub fn with_order_type(mut self, order_type: OrderType) -> Self {
+        self.order_type = Some(order_type);
+        self
+    }
+
+    /// Set whether to precompute a cancellation proof for the order
+    pub fn with_precompute_cancellation_proof(mut self, precompute: bool) -> Self {
+        self.precompute_cancellation_proof = Some(precompute);
+        self
+    }
+
+    /// Set the matching pool to assign the order to
+    pub fn with_matching_pool(mut self, matching_pool: String) -> Self {
+        self.matching_pool = Some(matching_pool);
+        self
+    }
+}

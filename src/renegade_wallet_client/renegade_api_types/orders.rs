@@ -129,7 +129,7 @@ impl From<ApiOrderShare> for IntentShare {
 }
 
 /// The different types of orders that can be placed in Renegade
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum OrderType {
     /// A public order

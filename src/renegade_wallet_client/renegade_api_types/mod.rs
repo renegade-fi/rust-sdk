@@ -60,3 +60,10 @@ pub const ADMIN_GET_ORDERS_ROUTE: &str = "/v2/relayer-admin/orders";
 
 /// The route for getting a given order w/ admin metadata
 pub const ADMIN_GET_ORDER_ROUTE: &str = "/v2/relayer-admin/orders/:order_id";
+
+/// The route for creating an order in a pool (admin)
+pub const ADMIN_CREATE_ORDER_IN_POOL_ROUTE: &str = "/v2/relayer-admin/orders/create-order-in-pool";
+
+/// The route for assigning an order to a pool (admin)
+pub const ADMIN_ASSIGN_ORDER_TO_POOL_ROUTE: &str =
+    "/v2/relayer-admin/orders/:order_id/assign-to-pool";
