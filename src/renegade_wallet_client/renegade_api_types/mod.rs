@@ -56,7 +56,7 @@ pub const GET_TASKS_ROUTE: &str = "/v2/account/:account_id/tasks";
 pub const GET_TASK_BY_ID_ROUTE: &str = "/v2/account/:account_id/tasks/:task_id";
 
 /// The route for getting all open orders w/ admin metadata
-pub const ADMIN_GET_ORDERS_ROUTE: &str = "/v2/relayer-admin/orders";
+pub const ADMIN_GET_OPEN_ORDERS_ROUTE: &str = "/v2/relayer-admin/orders/open";
 
 /// The route for getting a given order w/ admin metadata
 pub const ADMIN_GET_ORDER_ROUTE: &str = "/v2/relayer-admin/orders/:order_id";
@@ -67,3 +67,6 @@ pub const ADMIN_CREATE_ORDER_IN_POOL_ROUTE: &str = "/v2/relayer-admin/orders/cre
 /// The route for assigning an order to a pool (admin)
 pub const ADMIN_ASSIGN_ORDER_TO_POOL_ROUTE: &str =
     "/v2/relayer-admin/orders/:order_id/assign-to-pool";
+
+/// The route for getting all orders for a given account w/ admin metadata
+pub const ADMIN_GET_ACCOUNT_ORDERS_ROUTE: &str = "/v2/relayer-admin/orders/account/:account_id";
