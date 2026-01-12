@@ -383,3 +383,10 @@ pub struct AdminAssignOrderToPoolResponse {
     /// The order with updated pool assignment
     pub order: ApiAdminOrder,
 }
+
+/// A request to create a matching pool (admin)
+#[derive(Debug, Serialize)]
+pub struct AdminCreateMatchingPoolRequest {
+    /// The name of the matching pool to create
+    pub matching_pool: String,
+}

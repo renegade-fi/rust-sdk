@@ -70,3 +70,6 @@ pub const ADMIN_ASSIGN_ORDER_TO_POOL_ROUTE: &str =
 
 /// The route for getting all orders for a given account w/ admin metadata
 pub const ADMIN_GET_ACCOUNT_ORDERS_ROUTE: &str = "/v2/relayer-admin/orders/account/:account_id";
+
+/// The route for creating a matching pool (admin)
+pub const ADMIN_CREATE_MATCHING_POOL_ROUTE: &str = "/v2/relayer-admin/matching_pools";
