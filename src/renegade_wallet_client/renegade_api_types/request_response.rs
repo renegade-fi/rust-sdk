@@ -390,3 +390,10 @@ pub struct AdminCreateMatchingPoolRequest {
     /// The name of the matching pool to create
     pub matching_pool: String,
 }
+
+/// The response received after checking if a task queue is paused (admin)
+#[derive(Debug, Deserialize)]
+pub struct AdminTaskQueuePausedResponse {
+    /// Whether the task queue is paused
+    pub paused: bool,
+}
