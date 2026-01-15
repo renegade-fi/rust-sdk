@@ -73,3 +73,7 @@ pub const ADMIN_GET_ACCOUNT_ORDERS_ROUTE: &str = "/v2/relayer-admin/orders/accou
 
 /// The route for creating a matching pool (admin)
 pub const ADMIN_CREATE_MATCHING_POOL_ROUTE: &str = "/v2/relayer-admin/matching_pools";
+
+/// The route for checking if a task queue is paused (admin)
+pub const ADMIN_IS_TASK_QUEUE_PAUSED_ROUTE: &str =
+    "/v2/relayer-admin/account/:account_id/tasks/paused";
