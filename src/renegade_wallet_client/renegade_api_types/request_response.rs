@@ -129,8 +129,6 @@ pub struct CreateOrderRequest {
 pub struct CreateOrderResponse {
     /// The ID of the order creation task spawned in the relayer
     pub task_id: Uuid,
-    /// The order that was created
-    pub order: ApiOrder,
     /// Whether the order creation task has completed
     pub completed: bool,
 }

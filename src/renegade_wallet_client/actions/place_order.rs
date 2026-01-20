@@ -3,25 +3,25 @@
 use std::str::FromStr;
 
 use alloy::primitives::Address;
-use renegade_circuit_types::{fixed_point::FixedPoint, Amount};
+use renegade_circuit_types::{Amount, fixed_point::FixedPoint};
 use renegade_darkpool_types::{
-    balance::{Balance, DarkpoolStateBalance},
+    balance::{DarkpoolBalance, DarkpoolStateBalance},
     intent::DarkpoolStateIntent,
 };
 use renegade_solidity_abi::v2::IDarkpoolV2::{self, PublicIntentPermit};
 use uuid::Uuid;
 
 use crate::{
+    RenegadeClientError,
     actions::construct_http_path,
     client::RenegadeClient,
     renegade_api_types::{
-        orders::{ApiOrder, ApiOrderCore, OrderAuth, OrderType},
-        request_response::{CreateOrderQueryParameters, CreateOrderRequest, CreateOrderResponse},
         CREATE_ORDER_ROUTE,
+        orders::{ApiOrderCore, OrderAuth, OrderType},
+        request_response::{CreateOrderQueryParameters, CreateOrderRequest, CreateOrderResponse},
     },
     utils::unwrap_field,
-    websocket::{TaskWaiter, DEFAULT_TASK_TIMEOUT},
-    RenegadeClientError,
+    websocket::{DEFAULT_TASK_TIMEOUT, TaskWaiter},
 };
 
 // --- Public Actions --- //
@@ -32,18 +32,15 @@ impl RenegadeClient {
     /// Orders will only be committed to onchain state upon their first fill.
     /// As such, this method alone just registers this order as an intent to
     /// trade with the relayer.
-    pub async fn place_order(
-        &self,
-        order_config: OrderConfig,
-    ) -> Result<ApiOrder, RenegadeClientError> {
+    pub async fn place_order(&self, order_config: OrderConfig) -> Result<(), RenegadeClientError> {
         let request = self.build_create_order_request(order_config).await?;
 
         let query_params = CreateOrderQueryParameters { non_blocking: Some(false) };
         let path = self.build_create_order_request_path(&query_params)?;
 
-        let CreateOrderResponse { order, .. } = self.relayer_client.post(&path, request).await?;
+        self.relayer_client.post::<_, CreateOrderResponse>(&path, request).await?;
 
-        Ok(order)
+        Ok(())
     }
 
     /// Enqueues an order placement task in the relayer. Returns the expected
@@ -56,19 +53,17 @@ impl RenegadeClient {
     pub async fn enqueue_order_placement(
         &self,
         order_config: OrderConfig,
-    ) -> Result<(ApiOrder, TaskWaiter), RenegadeClientError> {
+    ) -> Result<TaskWaiter, RenegadeClientError> {
         let request = self.build_create_order_request(order_config).await?;
 
         let query_params = CreateOrderQueryParameters { non_blocking: Some(true) };
         let path = self.build_create_order_request_path(&query_params)?;
 
-        let CreateOrderResponse { task_id, order, .. } =
-            self.relayer_client.post(&path, request).await?;
+        let CreateOrderResponse { task_id, .. } = self.relayer_client.post(&path, request).await?;
 
         // Create a task waiter for the task
         let task_waiter = self.watch_task(task_id, DEFAULT_TASK_TIMEOUT).await?;
-
-        Ok((order, task_waiter))
+        Ok(task_waiter)
     }
 }
 
@@ -120,8 +115,9 @@ impl RenegadeClient {
         // address
         if matches!(order.order_type, OrderType::PublicOrder) {
             let permit = PublicIntentPermit { intent, executor: self.get_executor_address() };
+            let chain_id = self.get_chain_id();
             let intent_signature = permit
-                .sign(self.get_account_signer())
+                .sign(chain_id, self.get_account_signer())
                 .map_err(RenegadeClientError::signing)?
                 .into();
 
@@ -153,7 +149,7 @@ impl RenegadeClient {
                 // Renegade-settled orders *may* require the creation of a new output balance,
                 // which we authorize optimistically by generating a Schnorr signature over a
                 // commitment to the new balance state object.
-                let new_output_balance = Balance::new(
+                let new_output_balance = DarkpoolBalance::new(
                     order.out_token,
                     order.owner,
                     self.get_relayer_fee_recipient(),

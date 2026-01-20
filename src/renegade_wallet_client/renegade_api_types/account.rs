@@ -2,10 +2,10 @@
 
 use renegade_circuit_types::{
     baby_jubjub::BabyJubJubPoint,
-    csprng::PoseidonCSPRNG,
     schnorr::{SchnorrPrivateKey, SchnorrSignature},
 };
 use renegade_constants::{EmbeddedScalarField, Scalar};
+use renegade_darkpool_types::csprng::PoseidonCSPRNG;
 use serde::{Deserialize, Serialize};
 
 use super::serde_helpers::*;

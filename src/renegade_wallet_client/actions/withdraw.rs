@@ -111,9 +111,10 @@ impl RenegadeClient {
         // Finally, we compute the commitment to the balance & sign it to authorize the
         // withdrawal
         let commitment = scalar_to_u256(&state_balance.compute_commitment());
+        let chain_id = self.get_chain_id();
 
         let WithdrawalAuth { signature } =
-            create_withdrawal_auth(commitment, self.get_account_signer())
+            create_withdrawal_auth(commitment, chain_id, self.get_account_signer())
                 .map_err(RenegadeClientError::signing)?;
 
         Ok(signature.to_vec())
