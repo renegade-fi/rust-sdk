@@ -2,8 +2,8 @@
 
 use renegade_external_api::auth::add_expiring_auth_to_headers;
 use renegade_types_core::HmacKey;
-use reqwest::{header::HeaderMap, Client};
-use serde::{de::DeserializeOwned, Serialize};
+use reqwest::{Client, header::HeaderMap};
+use serde::{Serialize, de::DeserializeOwned};
 use std::time::Duration;
 use url::Url;
 

@@ -1,6 +1,6 @@
 //! Get an account's seed CSPRNG states from the relayer
 
-use renegade_circuit_types::csprng::PoseidonCSPRNG;
+use renegade_darkpool_types::csprng::PoseidonCSPRNG;
 
 use crate::{
     actions::construct_http_path,

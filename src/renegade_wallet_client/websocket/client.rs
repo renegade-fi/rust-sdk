@@ -3,17 +3,17 @@
 use std::sync::{Arc, OnceLock};
 use std::{collections::HashMap, time::Duration};
 
-use futures_util::stream::SplitSink;
 use futures_util::Stream;
+use futures_util::stream::SplitSink;
 use renegade_types_core::HmacKey;
 use tokio::net::TcpStream;
 use tokio::sync::{
-    mpsc::{self, UnboundedReceiver, UnboundedSender},
     OnceCell as AsyncOnceCell, RwLock,
+    mpsc::{self, UnboundedReceiver, UnboundedSender},
 };
 use tokio_stream::StreamExt;
-use tokio_tungstenite::{connect_async, tungstenite::Message};
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
+use tokio_tungstenite::{connect_async, tungstenite::Message};
 use tracing::{error, warn};
 use uuid::Uuid;
 
@@ -27,7 +27,7 @@ use crate::websocket::subscriptions::{
     SubscriptionManager, SubscriptionRx, SubscriptionTx, TopicStream,
 };
 use crate::websocket::{TaskWaiter, TaskWaiterManager};
-use crate::{renegade_wallet_client::config::RenegadeClientConfig, RenegadeClientError};
+use crate::{RenegadeClientError, renegade_wallet_client::config::RenegadeClientConfig};
 
 // -------------
 // | Constants |
@@ -133,7 +133,7 @@ impl RenegadeWebsocketClient {
     /// Subscribe to the account's task updates stream
     pub async fn subscribe_task_updates(
         &self,
-    ) -> Result<impl Stream<Item = TaskUpdateWebsocketMessage>, RenegadeClientError> {
+    ) -> Result<impl Stream<Item = TaskUpdateWebsocketMessage> + use<>, RenegadeClientError> {
         let stream = self.subscribe_to_topic(self.tasks_topic()).await?;
 
         let filtered_stream = stream.filter_map(|maybe_ws_msg| {
@@ -274,9 +274,10 @@ impl RenegadeWebsocketClient {
     async fn ensure_task_waiters_initialized(
         &self,
     ) -> Result<&Arc<TaskWaiterManager>, RenegadeClientError> {
+        let this = self.clone();
         self.task_waiter_manager
-            .get_or_try_init(|| async {
-                let tasks_topic = self.subscribe_task_updates().await?;
+            .get_or_try_init(|| async move {
+                let tasks_topic = this.subscribe_task_updates().await?;
                 Ok(Arc::new(TaskWaiterManager::new(tasks_topic)))
             })
             .await

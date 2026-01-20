@@ -3,7 +3,8 @@
 use alloy::primitives::Address;
 use renegade_circuit_types::Amount;
 use renegade_crypto::fields::scalar_to_u256;
-use renegade_darkpool_types::balance::{Balance, DarkpoolStateBalance};
+use renegade_darkpool_types::balance::DarkpoolBalance;
+use renegade_darkpool_types::balance::DarkpoolStateBalance;
 use renegade_solidity_abi::v2::{
     relayer_types::u128_to_u256, transfer_auth::deposit::create_deposit_permit, IDarkpoolV2,
 };
@@ -107,7 +108,7 @@ impl RenegadeClient {
             // If this is a deposit into a new balance, we create the balance state object &
             // progress its cryptographic state accordingly.
 
-            let balance = Balance::new(
+            let balance = DarkpoolBalance::new(
                 mint,
                 self.get_account_address(),
                 self.get_relayer_fee_recipient(),

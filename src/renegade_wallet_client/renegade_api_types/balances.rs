@@ -7,7 +7,9 @@ use renegade_circuit_types::{
     Amount,
 };
 use renegade_constants::Scalar;
-use renegade_darkpool_types::balance::{Balance, BalanceShare, DarkpoolStateBalance};
+use renegade_darkpool_types::balance::{
+    DarkpoolBalance, DarkpoolBalanceShare, DarkpoolStateBalance,
+};
 use serde::{Deserialize, Serialize};
 
 use crate::renegade_api_types::account::{ApiBabyJubJubPoint, ApiPoseidonCSPRNG};
@@ -44,7 +46,7 @@ pub struct ApiBalance {
 
 impl From<ApiBalance> for DarkpoolStateBalance {
     fn from(value: ApiBalance) -> Self {
-        let balance = Balance {
+        let balance = DarkpoolBalance {
             mint: value.mint,
             owner: value.owner,
             relayer_fee_recipient: value.relayer_fee_recipient,
@@ -57,7 +59,7 @@ impl From<ApiBalance> for DarkpoolStateBalance {
         let recovery_stream = value.recovery_stream.into();
         let share_stream = value.share_stream.into();
 
-        let public_share: BalanceShare = value.public_shares.into();
+        let public_share: DarkpoolBalanceShare = value.public_shares.into();
 
         DarkpoolStateBalance { recovery_stream, share_stream, inner: balance, public_share }
     }
@@ -88,9 +90,9 @@ pub struct ApiBalanceShare {
     pub amount: Scalar,
 }
 
-impl From<ApiBalanceShare> for BalanceShare {
+impl From<ApiBalanceShare> for DarkpoolBalanceShare {
     fn from(value: ApiBalanceShare) -> Self {
-        BalanceShare {
+        DarkpoolBalanceShare {
             mint: value.mint,
             owner: value.owner,
             relayer_fee_recipient: value.relayer_fee_recipient,

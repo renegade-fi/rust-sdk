@@ -1,7 +1,7 @@
 [package]
 name = "renegade-sdk"
 version = "2.0.0"
-edition = "2021"
+edition = "2024"
 description = "A Rust SDK for the Renegade protocol"
 homepage = "https://renegade.fi/"
 repository = "https://github.com/renegade-fi/rust-sdk"
@@ -180,13 +180,26 @@ alloy-rpc-types-eth = { version = ">=0.12, <2.0" }
 k256 = { version = "0.13", features = ["ecdsa"] }
 
 # === Renegade Dependencies === #
-renegade-types-core = { package = "types-core", git = "https://github.com/renegade-fi/renegade.git", branch = "joey/relayer-v2", features = ["hmac"] }
-renegade-external-api = { package = "external-api", git = "https://github.com/renegade-fi/renegade.git", branch = "joey/relayer-v2", default-features = false, features = ["auth"] }
-renegade-circuit-types = { package = "circuit-types", git = "https://github.com/renegade-fi/renegade.git", branch = "joey/relayer-v2", optional = true, features = ["proof-system-types"] }
-renegade-darkpool-types = { package = "darkpool-types", git = "https://github.com/renegade-fi/renegade.git", branch = "joey/relayer-v2", optional = true, features = ["proof-system-types"] }
+renegade-types-core = { package = "types-core", git = "https://github.com/renegade-fi/renegade.git", branch = "joey/relayer-v2", features = [
+    "hmac",
+] }
+renegade-external-api = { package = "external-api", git = "https://github.com/renegade-fi/renegade.git", branch = "joey/relayer-v2", default-features = false, features = [
+    "auth",
+] }
+renegade-circuit-types = { package = "circuit-types", git = "https://github.com/renegade-fi/renegade.git", branch = "joey/relayer-v2", optional = true, features = [
+    "proof-system-types",
+] }
+renegade-darkpool-types = { package = "darkpool-types", git = "https://github.com/renegade-fi/renegade.git", branch = "joey/relayer-v2", optional = true, features = [
+    "proof-system-types",
+] }
 renegade-constants = { package = "constants", git = "https://github.com/renegade-fi/renegade.git", branch = "joey/relayer-v2", optional = true }
 renegade-crypto = { package = "crypto", git = "https://github.com/renegade-fi/renegade.git", branch = "joey/relayer-v2", optional = true }
-renegade-solidity-abi = { package = "abi", git = "https://github.com/renegade-fi/renegade-contracts.git", features = ["v2", "v2-relayer-types", "v2-auth-helpers", "transfer-auth"], optional = true }
+renegade-solidity-abi = { package = "abi", git = "https://github.com/renegade-fi/renegade-contracts.git", features = [
+    "v2",
+    "v2-relayer-types",
+    "v2-auth-helpers",
+    "transfer-auth",
+], optional = true }
 
 # === Cryptography === #
 ark-ff = "0.4"
