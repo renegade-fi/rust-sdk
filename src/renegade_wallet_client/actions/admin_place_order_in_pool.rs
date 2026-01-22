@@ -11,7 +11,7 @@ use crate::{
     client::RenegadeClient,
     renegade_api_types::{
         ADMIN_CREATE_ORDER_IN_POOL_ROUTE,
-        admin::{ApiAdminOrder, ApiAdminOrderCore},
+        admin::ApiAdminOrderCore,
         orders::{ApiOrderCore, OrderType},
         request_response::{
             AdminCreateOrderInPoolQueryParameters, AdminCreateOrderInPoolRequest,
@@ -38,7 +38,7 @@ impl RenegadeClient {
     pub async fn admin_place_order_in_pool(
         &self,
         built_order: BuiltAdminOrder,
-    ) -> Result<ApiAdminOrder, RenegadeClientError> {
+    ) -> Result<(), RenegadeClientError> {
         let admin_client = self.get_admin_client()?;
 
         let request = self.build_admin_create_order_request(built_order).await?;
@@ -46,10 +46,9 @@ impl RenegadeClient {
         let query_params = AdminCreateOrderInPoolQueryParameters { non_blocking: Some(false) };
         let path = build_admin_create_order_request_path(&query_params)?;
 
-        let AdminCreateOrderInPoolResponse { order, .. } =
-            admin_client.post(&path, request).await?;
+        admin_client.post::<_, AdminCreateOrderInPoolResponse>(&path, request).await?;
 
-        Ok(order)
+        Ok(())
     }
 
     /// Enqueues an order placement task in a specific matching pool via the
@@ -61,7 +60,7 @@ impl RenegadeClient {
     pub async fn enqueue_admin_order_placement_in_pool(
         &self,
         built_order: BuiltAdminOrder,
-    ) -> Result<(ApiAdminOrder, TaskWaiter), RenegadeClientError> {
+    ) -> Result<TaskWaiter, RenegadeClientError> {
         let admin_client = self.get_admin_client()?;
 
         let request = self.build_admin_create_order_request(built_order).await?;
@@ -69,13 +68,13 @@ impl RenegadeClient {
         let query_params = AdminCreateOrderInPoolQueryParameters { non_blocking: Some(true) };
         let path = build_admin_create_order_request_path(&query_params)?;
 
-        let AdminCreateOrderInPoolResponse { task_id, order, .. } =
+        let AdminCreateOrderInPoolResponse { task_id, .. } =
             admin_client.post(&path, request).await?;
 
         // Create a task waiter for the task
         let task_waiter = self.watch_task(task_id, DEFAULT_TASK_TIMEOUT).await?;
 
-        Ok((order, task_waiter))
+        Ok(task_waiter)
     }
 }
 
