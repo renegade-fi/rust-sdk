@@ -3,7 +3,7 @@
 use alloy::{primitives::U256, sol_types::SolValue};
 use alloy_rpc_types_eth::{TransactionInput, TransactionRequest};
 
-use crate::{api_types::ExternalMatchResponse, ExternalMatchClientError};
+use crate::{ExternalMatchClientError, api_types::ExternalMatchResponse};
 
 /// The address used to represent the native asset
 const NATIVE_ASSET_ADDR: &str = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";

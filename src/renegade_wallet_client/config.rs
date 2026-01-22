@@ -5,7 +5,7 @@
 // -------------
 
 use alloy::{
-    primitives::{address, Address},
+    primitives::{Address, address},
     signers::local::PrivateKeySigner,
 };
 use renegade_types_core::HmacKey;

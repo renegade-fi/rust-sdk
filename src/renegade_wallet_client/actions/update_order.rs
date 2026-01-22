@@ -4,13 +4,13 @@ use renegade_circuit_types::Amount;
 use uuid::Uuid;
 
 use crate::{
+    RenegadeClientError,
     client::RenegadeClient,
     renegade_api_types::{
+        UPDATE_ORDER_ROUTE,
         orders::{ApiOrder, ApiOrderCore},
         request_response::{UpdateOrderRequest, UpdateOrderResponse},
-        UPDATE_ORDER_ROUTE,
     },
-    RenegadeClientError,
 };
 
 impl RenegadeClient {

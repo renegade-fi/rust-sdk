@@ -8,21 +8,21 @@ use renegade_external_api::auth::add_expiring_auth_to_headers;
 use renegade_types_core::HmacKey;
 use reqwest::header::HeaderMap;
 use tokio::sync::{
+    RwLock,
     broadcast::{self, Receiver as BroadcastReceiver, Sender as BroadcastSender},
     mpsc::{UnboundedReceiver, UnboundedSender},
-    RwLock,
 };
 use tokio_stream::wrappers::BroadcastStream;
 use tokio_tungstenite::tungstenite::Message;
 use tracing::{error, info, warn};
 
 use crate::{
+    RenegadeClientError,
     renegade_api_types::websocket::{
         ClientWebsocketMessage, ClientWebsocketMessageBody, ServerWebsocketMessage,
         ServerWebsocketMessageBody,
     },
-    websocket::{WsSink, WsStream, ADMIN_BALANCES_TOPIC, ADMIN_ORDERS_TOPIC},
-    RenegadeClientError,
+    websocket::{ADMIN_BALANCES_TOPIC, ADMIN_ORDERS_TOPIC, WsSink, WsStream},
 };
 
 // -------------
@@ -126,7 +126,9 @@ impl SubscriptionManager {
             Some(tx) => {
                 let receiver_count = tx.receiver_count();
                 if receiver_count > 0 {
-                    warn!("There are still {receiver_count} listeners for topic {topic}, retaining subscription");
+                    warn!(
+                        "There are still {receiver_count} listeners for topic {topic}, retaining subscription"
+                    );
                     return Ok(());
                 }
             },

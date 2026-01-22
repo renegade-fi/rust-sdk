@@ -3,9 +3,9 @@
 use renegade_external_api::EmptyRequestResponse;
 
 use crate::{
-    client::{AccountSecrets, RenegadeClient},
-    renegade_api_types::{request_response::CreateAccountRequest, CREATE_ACCOUNT_ROUTE},
     RenegadeClientError,
+    client::{AccountSecrets, RenegadeClient},
+    renegade_api_types::{CREATE_ACCOUNT_ROUTE, request_response::CreateAccountRequest},
 };
 
 impl RenegadeClient {

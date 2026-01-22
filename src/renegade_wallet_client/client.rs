@@ -21,6 +21,7 @@ use crate::renegade_api_types::websocket::{
 use crate::util::get_env_agnostic_chain;
 use crate::websocket::TaskWaiter;
 use crate::{
+    BASE_MAINNET_CHAIN_ID, BASE_SEPOLIA_CHAIN_ID, RenegadeClientError,
     http::RelayerHttpClient,
     renegade_wallet_client::{
         config::RenegadeClientConfig,
@@ -29,7 +30,6 @@ use crate::{
         },
     },
     websocket::RenegadeWebsocketClient,
-    RenegadeClientError, BASE_MAINNET_CHAIN_ID, BASE_SEPOLIA_CHAIN_ID,
 };
 
 // -----------

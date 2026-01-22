@@ -3,12 +3,12 @@
 use alloy::primitives::Address;
 
 use crate::{
+    RenegadeClientError,
     actions::construct_http_path,
     client::RenegadeClient,
     renegade_api_types::{
-        balances::ApiBalance, request_response::GetBalanceByMintResponse, GET_BALANCE_BY_MINT_ROUTE,
+        GET_BALANCE_BY_MINT_ROUTE, balances::ApiBalance, request_response::GetBalanceByMintResponse,
     },
-    RenegadeClientError,
 };
 
 impl RenegadeClient {

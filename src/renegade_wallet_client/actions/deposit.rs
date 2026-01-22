@@ -6,21 +6,21 @@ use renegade_crypto::fields::scalar_to_u256;
 use renegade_darkpool_types::balance::DarkpoolBalance;
 use renegade_darkpool_types::balance::DarkpoolStateBalance;
 use renegade_solidity_abi::v2::{
-    relayer_types::u128_to_u256, transfer_auth::deposit::create_deposit_permit, IDarkpoolV2,
+    IDarkpoolV2, relayer_types::u128_to_u256, transfer_auth::deposit::create_deposit_permit,
 };
 
 use crate::{
+    RenegadeClientError,
     actions::construct_http_path,
     client::RenegadeClient,
     renegade_api_types::{
+        DEPOSIT_BALANCE_ROUTE,
         balances::{ApiBalance, ApiDepositPermit},
         request_response::{
             DepositBalanceQueryParameters, DepositBalanceRequest, DepositBalanceResponse,
         },
-        DEPOSIT_BALANCE_ROUTE,
     },
-    websocket::{TaskWaiter, DEFAULT_TASK_TIMEOUT},
-    RenegadeClientError,
+    websocket::{DEFAULT_TASK_TIMEOUT, TaskWaiter},
 };
 
 // --- Public Actions --- //
