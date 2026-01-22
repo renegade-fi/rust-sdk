@@ -76,6 +76,7 @@ pub(crate) mod f64_string_serde {
 }
 
 /// A module for serializing and deserializing a `U256` as a decimal string
+#[allow(dead_code)]
 pub(crate) mod u256_string_serde {
     use alloy::primitives::U256;
 

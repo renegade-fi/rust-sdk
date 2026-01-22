@@ -15,7 +15,7 @@ use crate::{
     client::RenegadeClient,
     renegade_api_types::{
         DEPOSIT_BALANCE_ROUTE,
-        balances::{ApiBalance, ApiDepositPermit},
+        balances::ApiDepositPermit,
         request_response::{
             DepositBalanceQueryParameters, DepositBalanceRequest, DepositBalanceResponse,
         },
@@ -27,20 +27,15 @@ use crate::{
 impl RenegadeClient {
     /// Deposit funds into an account balance. Waits for the deposit task to
     /// complete before returning the post-deposit balance.
-    pub async fn deposit(
-        &self,
-        mint: Address,
-        amount: Amount,
-    ) -> Result<ApiBalance, RenegadeClientError> {
+    pub async fn deposit(&self, mint: Address, amount: Amount) -> Result<(), RenegadeClientError> {
         let request = self.build_deposit_request(mint, amount).await?;
 
         let query_params = DepositBalanceQueryParameters { non_blocking: Some(false) };
         let path = self.build_deposit_request_path(mint, &query_params)?;
 
-        let DepositBalanceResponse { balance, .. } =
-            self.relayer_client.post(&path, request).await?;
+        self.relayer_client.post::<_, DepositBalanceResponse>(&path, request).await?;
 
-        Ok(balance)
+        Ok(())
     }
 
     /// Enqueues a deposit task in the relayer. Returns the post-deposit
@@ -50,18 +45,18 @@ impl RenegadeClient {
         &self,
         mint: Address,
         amount: Amount,
-    ) -> Result<(ApiBalance, TaskWaiter), RenegadeClientError> {
+    ) -> Result<TaskWaiter, RenegadeClientError> {
         let request = self.build_deposit_request(mint, amount).await?;
 
         let query_params = DepositBalanceQueryParameters { non_blocking: Some(false) };
         let path = self.build_deposit_request_path(mint, &query_params)?;
 
-        let DepositBalanceResponse { balance, task_id, .. } =
+        let DepositBalanceResponse { task_id, .. } =
             self.relayer_client.post(&path, request).await?;
 
         let task_waiter = self.watch_task(task_id, DEFAULT_TASK_TIMEOUT).await?;
 
-        Ok((balance, task_waiter))
+        Ok(task_waiter)
     }
 }
 
