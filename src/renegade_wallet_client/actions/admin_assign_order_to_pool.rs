@@ -3,14 +3,14 @@
 use uuid::Uuid;
 
 use crate::{
+    RenegadeClientError,
     actions::construct_http_path,
     client::RenegadeClient,
     renegade_api_types::{
+        ADMIN_ASSIGN_ORDER_TO_POOL_ROUTE,
         admin::ApiAdminOrder,
         request_response::{AdminAssignOrderToPoolRequest, AdminAssignOrderToPoolResponse},
-        ADMIN_ASSIGN_ORDER_TO_POOL_ROUTE,
     },
-    RenegadeClientError,
 };
 
 impl RenegadeClient {

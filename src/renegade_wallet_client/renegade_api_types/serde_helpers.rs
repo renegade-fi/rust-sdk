@@ -1,6 +1,6 @@
 //! Helpers for serializing / deserializing API types
 
-use base64::{prelude::BASE64_STANDARD_NO_PAD, Engine};
+use base64::{Engine, prelude::BASE64_STANDARD_NO_PAD};
 use renegade_constants::EmbeddedScalarField;
 use renegade_types_core::HmacKey;
 use serde::{Deserialize, Deserializer, Serializer};
@@ -72,6 +72,30 @@ pub(crate) mod f64_string_serde {
     {
         let f64_str = String::deserialize(deserializer)?;
         f64_str.parse::<f64>().map_err(serde::de::Error::custom)
+    }
+}
+
+/// A module for serializing and deserializing a `U256` as a decimal string
+pub(crate) mod u256_string_serde {
+    use alloy::primitives::U256;
+
+    use super::*;
+
+    /// Serialize a `U256` as a decimal string
+    pub(crate) fn serialize<S>(val: &U256, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&val.to_string())
+    }
+
+    /// Deserialize a `U256` from a decimal string
+    pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<U256, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        s.parse::<U256>().map_err(serde::de::Error::custom)
     }
 }
 

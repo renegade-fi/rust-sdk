@@ -5,15 +5,15 @@ use renegade_darkpool_types::intent::DarkpoolStateIntent;
 use uuid::Uuid;
 
 use crate::{
+    RenegadeClientError,
     actions::construct_http_path,
     client::RenegadeClient,
     renegade_api_types::{
+        CANCEL_ORDER_ROUTE,
         orders::ApiOrder,
         request_response::{CancelOrderQueryParameters, CancelOrderRequest, CancelOrderResponse},
-        CANCEL_ORDER_ROUTE,
     },
-    websocket::{TaskWaiter, DEFAULT_TASK_TIMEOUT},
-    RenegadeClientError,
+    websocket::{DEFAULT_TASK_TIMEOUT, TaskWaiter},
 };
 
 // --- Public Actions --- //

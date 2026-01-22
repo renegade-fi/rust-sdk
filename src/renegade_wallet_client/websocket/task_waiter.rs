@@ -10,20 +10,20 @@ use std::{
     time::Duration,
 };
 
-use futures_util::{future::BoxFuture, FutureExt, Stream};
+use futures_util::{FutureExt, Stream, future::BoxFuture};
 use tokio::sync::{
-    oneshot::{self, Receiver as OneshotReceiver, Sender as OneshotSender},
     RwLock,
+    oneshot::{self, Receiver as OneshotReceiver, Sender as OneshotSender},
 };
 use tokio_stream::StreamExt;
 use tracing::error;
 
 use crate::{
+    RenegadeClientError,
     renegade_api_types::{
         tasks::{ApiTask, TaskIdentifier},
         websocket::TaskUpdateWebsocketMessage,
     },
-    RenegadeClientError,
 };
 
 // -------------

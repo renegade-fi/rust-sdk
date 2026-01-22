@@ -3,10 +3,10 @@
 use renegade_darkpool_types::csprng::PoseidonCSPRNG;
 
 use crate::{
+    RenegadeClientError,
     actions::construct_http_path,
     client::RenegadeClient,
-    renegade_api_types::{request_response::GetAccountSeedsResponse, GET_ACCOUNT_SEEDS_ROUTE},
-    RenegadeClientError,
+    renegade_api_types::{GET_ACCOUNT_SEEDS_ROUTE, request_response::GetAccountSeedsResponse},
 };
 
 impl RenegadeClient {

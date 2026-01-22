@@ -1,14 +1,14 @@
 //! Fetches all open orders managed by the relayer
 
 use crate::{
+    RenegadeClientError,
     actions::construct_http_path,
     client::RenegadeClient,
     renegade_api_types::{
+        ADMIN_GET_OPEN_ORDERS_ROUTE,
         admin::ApiAdminOrder,
         request_response::{GetOpenOrdersAdminQueryParameters, GetOpenOrdersAdminResponse},
-        ADMIN_GET_OPEN_ORDERS_ROUTE,
     },
-    RenegadeClientError,
 };
 
 // --- Public Actions --- //

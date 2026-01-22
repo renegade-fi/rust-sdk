@@ -3,12 +3,12 @@
 use uuid::Uuid;
 
 use crate::{
+    RenegadeClientError,
     actions::construct_http_path,
     client::RenegadeClient,
     renegade_api_types::{
-        request_response::AdminTaskQueuePausedResponse, ADMIN_IS_TASK_QUEUE_PAUSED_ROUTE,
+        ADMIN_IS_TASK_QUEUE_PAUSED_ROUTE, request_response::AdminTaskQueuePausedResponse,
     },
-    RenegadeClientError,
 };
 
 impl RenegadeClient {

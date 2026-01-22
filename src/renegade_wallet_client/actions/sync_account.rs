@@ -1,14 +1,14 @@
 //! Sync an account with onchain state
 
 use crate::{
+    RenegadeClientError,
     actions::construct_http_path,
     client::RenegadeClient,
     renegade_api_types::{
-        request_response::{SyncAccountQueryParameters, SyncAccountRequest, SyncAccountResponse},
         SYNC_ACCOUNT_ROUTE,
+        request_response::{SyncAccountQueryParameters, SyncAccountRequest, SyncAccountResponse},
     },
-    websocket::{TaskWaiter, DEFAULT_TASK_TIMEOUT},
-    RenegadeClientError,
+    websocket::{DEFAULT_TASK_TIMEOUT, TaskWaiter},
 };
 
 // --- Public Actions --- //

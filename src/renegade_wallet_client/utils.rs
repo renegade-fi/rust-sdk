@@ -1,6 +1,6 @@
 //! Shared utilities for the Renegade wallet client
 
-use alloy::{primitives::keccak256, signers::local::PrivateKeySigner, signers::SignerSync};
+use alloy::{primitives::keccak256, signers::SignerSync, signers::local::PrivateKeySigner};
 use ark_ff::PrimeField;
 use renegade_circuit_types::schnorr::SchnorrPrivateKey;
 use renegade_constants::{EmbeddedScalarField, Scalar};

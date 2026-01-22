@@ -2,12 +2,12 @@
 
 use alloy::primitives::{Address, TxHash, U256};
 use renegade_circuit_types::{
-    fixed_point::{FixedPoint, FixedPointShare},
     Amount,
+    fixed_point::{FixedPoint, FixedPointShare},
 };
 use renegade_constants::Scalar;
 use renegade_darkpool_types::intent::{DarkpoolStateIntent, Intent, IntentShare};
-use renegade_solidity_abi::v2::{relayer_types::u128_to_u256, IDarkpoolV2};
+use renegade_solidity_abi::v2::{IDarkpoolV2, relayer_types::u128_to_u256};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -170,6 +170,7 @@ pub enum OrderAuth {
 #[derive(Clone, Debug, Serialize)]
 pub struct SignatureWithNonce {
     /// The nonce that was used in the signature
+    #[serde(with = "u256_string_serde")]
     pub nonce: U256,
     /// The signature bytes
     #[serde(serialize_with = "serialize_bytes_b64")]

@@ -2,27 +2,27 @@
 
 use renegade_types_core::HmacKey;
 use reqwest::{
-    header::{HeaderMap, HeaderValue},
     StatusCode,
+    header::{HeaderMap, HeaderValue},
 };
 
 use crate::{
+    ARBITRUM_ONE_RELAYER_BASE_URL, ARBITRUM_SEPOLIA_RELAYER_BASE_URL, AssembleQuoteOptions,
+    BASE_MAINNET_RELAYER_BASE_URL, BASE_SEPOLIA_RELAYER_BASE_URL, ExternalMatchOptions,
+    RequestQuoteOptions,
     api_types::{
-        exchange_metadata::ExchangeMetadataResponse, AssemblyType, ExternalMatchResponse,
+        ASSEMBLE_MATCH_BUNDLE_ROUTE, AssemblyType, ExternalMatchResponse,
+        GET_MARKET_DEPTH_BY_MINT_ROUTE, GET_MARKETS_DEPTH_ROUTE, GET_MARKETS_ROUTE,
         GetMarketDepthByMintResponse, GetMarketDepthsResponse, GetMarketsResponse,
-        ASSEMBLE_MATCH_BUNDLE_ROUTE, GET_MARKETS_DEPTH_ROUTE, GET_MARKETS_ROUTE,
-        GET_MARKET_DEPTH_BY_MINT_ROUTE,
+        exchange_metadata::ExchangeMetadataResponse,
     },
     http::RelayerHttpClient,
-    AssembleQuoteOptions, ExternalMatchOptions, RequestQuoteOptions, ARBITRUM_ONE_RELAYER_BASE_URL,
-    ARBITRUM_SEPOLIA_RELAYER_BASE_URL, BASE_MAINNET_RELAYER_BASE_URL,
-    BASE_SEPOLIA_RELAYER_BASE_URL,
 };
 
 use super::{
     api_types::{
         ApiSignedQuote, AssembleExternalMatchRequest, ExternalOrder, ExternalQuoteRequest,
-        ExternalQuoteResponse, SignedExternalQuote, GET_EXCHANGE_METADATA_ROUTE,
+        ExternalQuoteResponse, GET_EXCHANGE_METADATA_ROUTE, SignedExternalQuote,
     },
     error::ExternalMatchClientError,
 };

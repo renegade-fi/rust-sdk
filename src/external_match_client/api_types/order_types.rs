@@ -3,7 +3,7 @@
 use alloy_rpc_types_eth::TransactionRequest;
 use serde::{Deserialize, Serialize};
 
-use super::{serde_helpers::*, FixedPoint};
+use super::{FixedPoint, serde_helpers::*};
 
 // -------------
 // | Api Types |

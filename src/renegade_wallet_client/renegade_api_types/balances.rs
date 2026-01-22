@@ -2,9 +2,9 @@
 
 use alloy::primitives::{Address, U256};
 use renegade_circuit_types::{
+    Amount,
     baby_jubjub::BabyJubJubPointShare,
     schnorr::{SchnorrPublicKey, SchnorrPublicKeyShare},
-    Amount,
 };
 use renegade_constants::Scalar;
 use renegade_darkpool_types::balance::{
@@ -144,8 +144,10 @@ impl From<ApiSchnorrPublicKeyShare> for SchnorrPublicKeyShare {
 #[derive(Clone, Debug, Serialize)]
 pub struct ApiDepositPermit {
     /// The nonce that was used in the signature
+    #[serde(with = "u256_string_serde")]
     pub nonce: U256,
     /// The deadline of the permit
+    #[serde(with = "u256_string_serde")]
     pub deadline: U256,
     /// The signature bytes
     #[serde(serialize_with = "serialize_bytes_b64")]
