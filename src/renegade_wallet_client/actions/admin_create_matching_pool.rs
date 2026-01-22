@@ -3,11 +3,11 @@
 use renegade_external_api::EmptyRequestResponse;
 
 use crate::{
+    RenegadeClientError,
     client::RenegadeClient,
     renegade_api_types::{
-        request_response::AdminCreateMatchingPoolRequest, ADMIN_CREATE_MATCHING_POOL_ROUTE,
+        ADMIN_CREATE_MATCHING_POOL_ROUTE, request_response::AdminCreateMatchingPoolRequest,
     },
-    RenegadeClientError,
 };
 
 impl RenegadeClient {

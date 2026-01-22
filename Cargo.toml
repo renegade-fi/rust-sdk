@@ -184,7 +184,7 @@ renegade-types-core = { package = "types-core", git = "https://github.com/renega
     "hmac",
 ] }
 renegade-external-api = { package = "external-api", git = "https://github.com/renegade-fi/renegade.git", branch = "joey/relayer-v2", default-features = false, features = [
-    "auth",
+    "auth", "full-api"
 ] }
 renegade-circuit-types = { package = "circuit-types", git = "https://github.com/renegade-fi/renegade.git", branch = "joey/relayer-v2", optional = true, features = [
     "proof-system-types",

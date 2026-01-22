@@ -7,21 +7,21 @@ use renegade_circuit_types::Amount;
 use renegade_crypto::fields::scalar_to_u256;
 use renegade_darkpool_types::balance::DarkpoolStateBalance;
 use renegade_solidity_abi::v2::{
-    transfer_auth::withdrawal::create_withdrawal_auth, IDarkpoolV2::WithdrawalAuth,
+    IDarkpoolV2::WithdrawalAuth, transfer_auth::withdrawal::create_withdrawal_auth,
 };
 
 use crate::{
+    RenegadeClientError,
     actions::construct_http_path,
     client::RenegadeClient,
     renegade_api_types::{
+        WITHDRAW_BALANCE_ROUTE,
         balances::ApiBalance,
         request_response::{
             WithdrawBalanceQueryParameters, WithdrawBalanceRequest, WithdrawBalanceResponse,
         },
-        WITHDRAW_BALANCE_ROUTE,
     },
     websocket::TaskWaiter,
-    RenegadeClientError,
 };
 
 /// The timeout for a withdrawal action to complete.

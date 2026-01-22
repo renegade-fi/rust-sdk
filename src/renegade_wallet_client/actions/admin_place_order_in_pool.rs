@@ -3,23 +3,23 @@
 use std::str::FromStr;
 
 use alloy::primitives::Address;
-use renegade_circuit_types::{fixed_point::FixedPoint, Amount};
+use renegade_circuit_types::{Amount, fixed_point::FixedPoint};
 use uuid::Uuid;
 
 use crate::{
+    RenegadeClientError,
     client::RenegadeClient,
     renegade_api_types::{
+        ADMIN_CREATE_ORDER_IN_POOL_ROUTE,
         admin::{ApiAdminOrder, ApiAdminOrderCore},
         orders::{ApiOrderCore, OrderType},
         request_response::{
             AdminCreateOrderInPoolQueryParameters, AdminCreateOrderInPoolRequest,
             AdminCreateOrderInPoolResponse,
         },
-        ADMIN_CREATE_ORDER_IN_POOL_ROUTE,
     },
     utils::unwrap_field,
-    websocket::{TaskWaiter, DEFAULT_TASK_TIMEOUT},
-    RenegadeClientError,
+    websocket::{DEFAULT_TASK_TIMEOUT, TaskWaiter},
 };
 
 // --- Public Actions --- //

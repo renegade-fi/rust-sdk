@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::api_types::{
-    serde_helpers::*, token::ApiToken, Amount, ApiTimestampedPrice, FeeTakeRate,
+    Amount, ApiTimestampedPrice, FeeTakeRate, serde_helpers::*, token::ApiToken,
 };
 
 /// Information about a tradable market in Renegade

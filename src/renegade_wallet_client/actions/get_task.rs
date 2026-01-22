@@ -3,12 +3,12 @@
 use uuid::Uuid;
 
 use crate::{
+    RenegadeClientError,
     actions::construct_http_path,
     client::RenegadeClient,
     renegade_api_types::{
-        request_response::GetTaskByIdResponse, tasks::ApiTask, GET_TASK_BY_ID_ROUTE,
+        GET_TASK_BY_ID_ROUTE, request_response::GetTaskByIdResponse, tasks::ApiTask,
     },
-    RenegadeClientError,
 };
 
 // --- Public Actions --- //

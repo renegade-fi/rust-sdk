@@ -2,8 +2,8 @@
 use url::form_urlencoded;
 
 use crate::{
-    api_types::{ExternalOrder, ASSEMBLE_MATCH_BUNDLE_ROUTE, GET_QUOTE_ROUTE},
     GAS_REFUND_NATIVE_ETH_QUERY_PARAM,
+    api_types::{ASSEMBLE_MATCH_BUNDLE_ROUTE, ExternalOrder, GET_QUOTE_ROUTE},
 };
 
 use super::{GAS_REFUND_ADDRESS_QUERY_PARAM, GAS_SPONSORSHIP_QUERY_PARAM};

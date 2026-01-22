@@ -1,14 +1,14 @@
 //! Gets the wallet's task history from the historical state engine
 
 use crate::{
+    RenegadeClientError,
     actions::construct_http_path,
     client::RenegadeClient,
     renegade_api_types::{
+        GET_TASKS_ROUTE,
         request_response::{GetTasksQueryParameters, GetTasksResponse},
         tasks::ApiTask,
-        GET_TASKS_ROUTE,
     },
-    RenegadeClientError,
 };
 
 // --- Public Actions --- //

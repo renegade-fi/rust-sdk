@@ -1,14 +1,14 @@
 //! Fetches all orders in the account
 
 use crate::{
+    RenegadeClientError,
     actions::construct_http_path,
     client::RenegadeClient,
     renegade_api_types::{
+        GET_ORDERS_ROUTE,
         orders::ApiOrder,
         request_response::{GetOrdersQueryParameters, GetOrdersResponse},
-        GET_ORDERS_ROUTE,
     },
-    RenegadeClientError,
 };
 
 // --- Public Actions --- //
