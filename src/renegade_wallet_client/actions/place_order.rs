@@ -26,14 +26,20 @@ use crate::{
 
 // --- Public Actions --- //
 impl RenegadeClient {
+    /// Create a new order builder with the client's account address as the
+    /// owner
+    pub fn new_order_builder(&self) -> OrderBuilder {
+        OrderBuilder::new(self.get_account_address())
+    }
+
     /// Places an order via the relayer. Waits for the order creation task to
     /// complete before returning the created order.
     ///
     /// Orders will only be committed to onchain state upon their first fill.
     /// As such, this method alone just registers this order as an intent to
     /// trade with the relayer.
-    pub async fn place_order(&self, order_config: OrderConfig) -> Result<(), RenegadeClientError> {
-        let request = self.build_create_order_request(order_config).await?;
+    pub async fn place_order(&self, built_order: BuiltOrder) -> Result<(), RenegadeClientError> {
+        let request = self.build_create_order_request(built_order).await?;
 
         let query_params = CreateOrderQueryParameters { non_blocking: Some(false) };
         let path = self.build_create_order_request_path(&query_params)?;
@@ -52,9 +58,9 @@ impl RenegadeClient {
     /// trade with the relayer.
     pub async fn enqueue_order_placement(
         &self,
-        order_config: OrderConfig,
+        built_order: BuiltOrder,
     ) -> Result<TaskWaiter, RenegadeClientError> {
-        let request = self.build_create_order_request(order_config).await?;
+        let request = self.build_create_order_request(built_order).await?;
 
         let query_params = CreateOrderQueryParameters { non_blocking: Some(true) };
         let path = self.build_create_order_request_path(&query_params)?;
@@ -69,38 +75,17 @@ impl RenegadeClient {
 
 // --- Private Helpers --- //
 impl RenegadeClient {
-    /// Builds the order creation request from the given order configuration
+    /// Builds the order creation request from the given built order
     async fn build_create_order_request(
         &self,
-        order_config: OrderConfig,
+        built_order: BuiltOrder,
     ) -> Result<CreateOrderRequest, RenegadeClientError> {
-        let precompute_cancellation_proof =
-            order_config.precompute_cancellation_proof.unwrap_or(false);
+        let auth = self.build_order_auth(&built_order.order).await?;
 
-        let order = self.build_order(order_config)?;
-        let auth = self.build_order_auth(&order).await?;
-
-        Ok(CreateOrderRequest { order, auth, precompute_cancellation_proof })
-    }
-
-    /// Builds an ApiOrderCore from an OrderConfig, injecting the client's
-    /// address as the owner
-    fn build_order(&self, config: OrderConfig) -> Result<ApiOrderCore, RenegadeClientError> {
-        let amount_in = unwrap_field!(config, amount_in);
-
-        let min_output_amount: FixedPoint = config.min_output_amount.unwrap_or_default().into();
-        let min_price = min_output_amount.ceil_div_int(amount_in).into();
-
-        Ok(ApiOrderCore {
-            id: config.id.unwrap_or_else(Uuid::new_v4),
-            in_token: unwrap_field!(config, input_mint),
-            out_token: unwrap_field!(config, output_mint),
-            owner: self.get_account_address(),
-            amount_in: unwrap_field!(config, amount_in),
-            min_price,
-            min_fill_size: config.min_fill_size.unwrap_or(0),
-            order_type: unwrap_field!(config, order_type),
-            allow_external_matches: config.allow_external_matches.unwrap_or(true),
+        Ok(CreateOrderRequest {
+            order: built_order.order,
+            auth,
+            precompute_cancellation_proof: built_order.precompute_cancellation_proof,
         })
     }
 
@@ -190,13 +175,24 @@ impl RenegadeClient {
     }
 }
 
-// ----------------
-// | Order Config |
-// ----------------
+// -----------------
+// | Order Builder |
+// -----------------
 
-/// Container for order configuration options
-#[derive(Debug, Default)]
-pub struct OrderConfig {
+/// The result of building an order
+#[derive(Debug)]
+pub struct BuiltOrder {
+    /// The order to be placed
+    pub order: ApiOrderCore,
+    /// Whether to precompute a cancellation proof for the order
+    pub precompute_cancellation_proof: bool,
+}
+
+/// Builder for order configuration
+#[derive(Debug)]
+pub struct OrderBuilder {
+    /// The owner of the order
+    owner: Address,
     /// The ID of the order to create. If not provided, a new UUID will be
     /// generated.
     id: Option<Uuid>,
@@ -221,10 +217,21 @@ pub struct OrderConfig {
     precompute_cancellation_proof: Option<bool>,
 }
 
-impl OrderConfig {
-    /// Create a new OrderConfig
-    pub fn new() -> Self {
-        Self::default()
+impl OrderBuilder {
+    /// Create a new OrderBuilder with the given owner
+    pub(crate) fn new(owner: Address) -> Self {
+        Self {
+            owner,
+            id: None,
+            input_mint: None,
+            output_mint: None,
+            amount_in: None,
+            min_output_amount: None,
+            min_fill_size: None,
+            order_type: None,
+            allow_external_matches: None,
+            precompute_cancellation_proof: None,
+        }
     }
 
     /// Set the ID of the order to create
@@ -289,5 +296,33 @@ impl OrderConfig {
     pub fn with_precompute_cancellation_proof(mut self, precompute: bool) -> Self {
         self.precompute_cancellation_proof = Some(precompute);
         self
+    }
+
+    /// Build the order, validating all required fields
+    pub fn build(self) -> Result<BuiltOrder, RenegadeClientError> {
+        let amount_in = unwrap_field!(self, amount_in);
+
+        let min_output_amount: FixedPoint = self.min_output_amount.unwrap_or_default().into();
+        let min_price = if min_output_amount == FixedPoint::from(0u64) {
+            FixedPoint::from(0u64)
+        } else {
+            min_output_amount.ceil_div_int(amount_in).into()
+        };
+
+        let order = ApiOrderCore {
+            id: self.id.unwrap_or_else(Uuid::new_v4),
+            in_token: unwrap_field!(self, input_mint),
+            out_token: unwrap_field!(self, output_mint),
+            owner: self.owner,
+            amount_in: unwrap_field!(self, amount_in),
+            min_price,
+            min_fill_size: self.min_fill_size.unwrap_or(0),
+            order_type: unwrap_field!(self, order_type),
+            allow_external_matches: self.allow_external_matches.unwrap_or(true),
+        };
+
+        let precompute_cancellation_proof = self.precompute_cancellation_proof.unwrap_or(false);
+
+        Ok(BuiltOrder { order, precompute_cancellation_proof })
     }
 }

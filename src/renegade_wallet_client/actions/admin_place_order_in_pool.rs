@@ -24,6 +24,12 @@ use crate::{
 
 // --- Public Actions --- //
 impl RenegadeClient {
+    /// Create a new admin order builder with the client's account address as
+    /// the owner
+    pub fn new_admin_order_builder(&self) -> AdminOrderBuilder {
+        AdminOrderBuilder::new(self.get_account_address())
+    }
+
     /// Places an order in a specific matching pool via the admin API.
     /// Waits for the order creation task to complete before returning.
     ///
@@ -31,11 +37,11 @@ impl RenegadeClient {
     /// an admin HMAC key.
     pub async fn admin_place_order_in_pool(
         &self,
-        order_config: AdminOrderConfig,
+        built_order: BuiltAdminOrder,
     ) -> Result<ApiAdminOrder, RenegadeClientError> {
         let admin_client = self.get_admin_client()?;
 
-        let request = self.build_admin_create_order_request(order_config).await?;
+        let request = self.build_admin_create_order_request(built_order).await?;
 
         let query_params = AdminCreateOrderInPoolQueryParameters { non_blocking: Some(false) };
         let path = build_admin_create_order_request_path(&query_params)?;
@@ -54,11 +60,11 @@ impl RenegadeClient {
     /// an admin HMAC key.
     pub async fn enqueue_admin_order_placement_in_pool(
         &self,
-        order_config: AdminOrderConfig,
+        built_order: BuiltAdminOrder,
     ) -> Result<(ApiAdminOrder, TaskWaiter), RenegadeClientError> {
         let admin_client = self.get_admin_client()?;
 
-        let request = self.build_admin_create_order_request(order_config).await?;
+        let request = self.build_admin_create_order_request(built_order).await?;
 
         let query_params = AdminCreateOrderInPoolQueryParameters { non_blocking: Some(true) };
         let path = build_admin_create_order_request_path(&query_params)?;
@@ -75,47 +81,18 @@ impl RenegadeClient {
 
 // --- Private Helpers --- //
 impl RenegadeClient {
-    /// Builds the admin order creation request from the given order
-    /// configuration
+    /// Builds the admin order creation request from the given built admin order
     async fn build_admin_create_order_request(
         &self,
-        order_config: AdminOrderConfig,
+        built_order: BuiltAdminOrder,
     ) -> Result<AdminCreateOrderInPoolRequest, RenegadeClientError> {
-        let precompute_cancellation_proof =
-            order_config.precompute_cancellation_proof.unwrap_or(false);
+        let auth = self.build_order_auth(&built_order.order.order_core).await?;
 
-        let order = self.build_admin_order(order_config)?;
-        let auth = self.build_order_auth(&order.order_core).await?;
-
-        Ok(AdminCreateOrderInPoolRequest { order, auth, precompute_cancellation_proof })
-    }
-
-    /// Builds an ApiAdminOrderCore from an AdminOrderConfig, injecting the
-    /// client's address as the owner
-    fn build_admin_order(
-        &self,
-        config: AdminOrderConfig,
-    ) -> Result<ApiAdminOrderCore, RenegadeClientError> {
-        let amount_in = unwrap_field!(config, amount_in);
-
-        let min_output_amount: FixedPoint = config.min_output_amount.unwrap_or_default().into();
-        let min_price = min_output_amount.ceil_div_int(amount_in).into();
-
-        let order_core = ApiOrderCore {
-            id: config.id.unwrap_or_else(Uuid::new_v4),
-            in_token: unwrap_field!(config, input_mint),
-            out_token: unwrap_field!(config, output_mint),
-            owner: self.get_account_address(),
-            amount_in: unwrap_field!(config, amount_in),
-            min_price,
-            min_fill_size: config.min_fill_size.unwrap_or(0),
-            order_type: unwrap_field!(config, order_type),
-            allow_external_matches: config.allow_external_matches.unwrap_or(true),
-        };
-
-        let matching_pool = unwrap_field!(config, matching_pool);
-
-        Ok(ApiAdminOrderCore { order_core, matching_pool })
+        Ok(AdminCreateOrderInPoolRequest {
+            order: built_order.order,
+            auth,
+            precompute_cancellation_proof: built_order.precompute_cancellation_proof,
+        })
     }
 }
 
@@ -129,13 +106,24 @@ fn build_admin_create_order_request_path(
     Ok(format!("{ADMIN_CREATE_ORDER_IN_POOL_ROUTE}?{query_string}"))
 }
 
-// ----------------------
-// | Admin Order Config |
-// ----------------------
+// -----------------------
+// | Admin Order Builder |
+// -----------------------
 
-/// Container for admin order configuration options
-#[derive(Debug, Default)]
-pub struct AdminOrderConfig {
+/// The result of building an admin order
+#[derive(Debug)]
+pub struct BuiltAdminOrder {
+    /// The admin order to be placed
+    pub order: ApiAdminOrderCore,
+    /// Whether to precompute a cancellation proof for the order
+    pub precompute_cancellation_proof: bool,
+}
+
+/// Builder for admin order configuration
+#[derive(Debug)]
+pub struct AdminOrderBuilder {
+    /// The owner of the order
+    owner: Address,
     /// The ID of the order to create. If not provided, a new UUID will be
     /// generated.
     id: Option<Uuid>,
@@ -162,10 +150,22 @@ pub struct AdminOrderConfig {
     matching_pool: Option<String>,
 }
 
-impl AdminOrderConfig {
-    /// Create a new AdminOrderConfig
-    pub fn new() -> Self {
-        Self::default()
+impl AdminOrderBuilder {
+    /// Create a new AdminOrderBuilder with the given owner
+    pub(crate) fn new(owner: Address) -> Self {
+        Self {
+            owner,
+            id: None,
+            input_mint: None,
+            output_mint: None,
+            amount_in: None,
+            min_output_amount: None,
+            min_fill_size: None,
+            order_type: None,
+            allow_external_matches: None,
+            precompute_cancellation_proof: None,
+            matching_pool: None,
+        }
     }
 
     /// Set the ID of the order to create
@@ -236,5 +236,36 @@ impl AdminOrderConfig {
     pub fn with_matching_pool(mut self, matching_pool: String) -> Self {
         self.matching_pool = Some(matching_pool);
         self
+    }
+
+    /// Build the admin order, validating all required fields
+    pub fn build(self) -> Result<BuiltAdminOrder, RenegadeClientError> {
+        let amount_in = unwrap_field!(self, amount_in);
+
+        let min_output_amount: FixedPoint = self.min_output_amount.unwrap_or_default().into();
+        let min_price = if min_output_amount == FixedPoint::from(0u64) {
+            FixedPoint::from(0u64)
+        } else {
+            min_output_amount.ceil_div_int(amount_in).into()
+        };
+
+        let order_core = ApiOrderCore {
+            id: self.id.unwrap_or_else(Uuid::new_v4),
+            in_token: unwrap_field!(self, input_mint),
+            out_token: unwrap_field!(self, output_mint),
+            owner: self.owner,
+            amount_in: unwrap_field!(self, amount_in),
+            min_price,
+            min_fill_size: self.min_fill_size.unwrap_or(0),
+            order_type: unwrap_field!(self, order_type),
+            allow_external_matches: self.allow_external_matches.unwrap_or(true),
+        };
+
+        let matching_pool = unwrap_field!(self, matching_pool);
+
+        let order = ApiAdminOrderCore { order_core, matching_pool };
+        let precompute_cancellation_proof = self.precompute_cancellation_proof.unwrap_or(false);
+
+        Ok(BuiltAdminOrder { order, precompute_cancellation_proof })
     }
 }
