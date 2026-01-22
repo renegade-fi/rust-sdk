@@ -220,8 +220,6 @@ pub struct DepositBalanceRequest {
 pub struct DepositBalanceResponse {
     /// The ID of the deposit task spawned in the relayer
     pub task_id: Uuid,
-    /// The balance that was deposited
-    pub balance: ApiBalance,
     /// Whether the deposit task has completed
     pub completed: bool,
 }
@@ -362,8 +360,6 @@ pub struct AdminCreateOrderInPoolRequest {
 pub struct AdminCreateOrderInPoolResponse {
     /// The ID of the order creation task spawned in the relayer
     pub task_id: Uuid,
-    /// The order that was created
-    pub order: ApiAdminOrder,
     /// Whether the order creation task has completed
     pub completed: bool,
 }
