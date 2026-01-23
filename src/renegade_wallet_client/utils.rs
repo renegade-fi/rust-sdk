@@ -1,6 +1,6 @@
 //! Shared utilities for the Renegade wallet client
 
-use alloy::{primitives::keccak256, signers::SignerSync, signers::local::PrivateKeySigner};
+use alloy::{primitives::keccak256, signers::SignerSync, signers::local::PrivateKeySigner, sol};
 use ark_ff::PrimeField;
 use renegade_circuit_types::schnorr::SchnorrPrivateKey;
 use renegade_constants::{EmbeddedScalarField, Scalar};
@@ -26,6 +26,22 @@ const KECCAK_HASH_BYTES: usize = 32;
 const EXTENDED_BYTES: usize = 64;
 /// The number of bytes in an account ID
 const ACCOUNT_ID_BYTES: usize = 16;
+
+// -------------------------
+// | Contract ABI Bindings |
+// -------------------------
+
+sol! {
+    // ERC20 approve function
+    #[sol(rpc)]
+    function approve(address spender, uint256 amount) external returns (bool);
+
+    // Permit2 AllowanceTransfer interface
+    #[sol(rpc)]
+    interface IAllowanceTransfer {
+        function approve(address token, address spender, uint160 amount, uint48 expiration) external;
+    }
+}
 
 // ----------
 // | Macros |
