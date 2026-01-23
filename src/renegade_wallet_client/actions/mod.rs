@@ -7,6 +7,7 @@ pub mod admin_get_open_orders;
 pub mod admin_get_order;
 pub mod admin_is_task_queue_paused;
 pub mod admin_place_order_in_pool;
+pub mod approvals;
 pub mod cancel_order;
 pub mod create_account;
 pub mod deposit;

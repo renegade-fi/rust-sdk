@@ -23,6 +23,10 @@ pub(crate) mod renegade_wallet_client;
 #[cfg(feature = "darkpool-client")]
 pub use renegade_wallet_client::*;
 
+// Re-export alloy types for SDK users
+pub use alloy::primitives::{U160, U256, aliases::U48};
+pub use alloy_rpc_types_eth::TransactionRequest;
+
 #[cfg(feature = "examples")]
 pub mod example_utils;
 
