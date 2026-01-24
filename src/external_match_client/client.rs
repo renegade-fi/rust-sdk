@@ -348,13 +348,13 @@ impl ExternalMatchClient {
         let path = ASSEMBLE_MATCH_BUNDLE_ROUTE;
 
         let signed_quote = ApiSignedQuote::from(quote);
-        let assembly =
+        let order =
             AssemblyType::QuotedOrder { signed_quote, updated_order: options.updated_order };
 
         let request = AssembleExternalMatchRequest {
             receiver_address: options.receiver_address,
             do_gas_estimation: options.do_gas_estimation,
-            assembly,
+            order,
         };
 
         let headers = self.get_headers()?;
@@ -406,12 +406,11 @@ impl ExternalMatchClient {
     ) -> Result<Option<ExternalMatchResponse>, ExternalMatchClientError> {
         let path = options.build_request_path();
 
-        let assembly = AssemblyType::NewOrder { external_order: order };
-
+        let order = AssemblyType::NewOrder { external_order: order };
         let request = AssembleExternalMatchRequest {
             receiver_address: options.receiver_address,
             do_gas_estimation: options.do_gas_estimation,
-            assembly,
+            order,
         };
 
         let headers = self.get_headers()?;

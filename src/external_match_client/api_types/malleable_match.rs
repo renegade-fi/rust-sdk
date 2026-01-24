@@ -46,7 +46,7 @@ impl ExternalMatchResponse {
     /// Returns a tuple [min_amount, max_amount] inclusive
     pub fn output_bounds(&self) -> (u128, u128) {
         let (min_base, max_base) = self.input_bounds();
-        let price = &self.match_bundle.match_result.output_quoted_price_fp;
+        let price = &self.match_bundle.match_result.price_fp;
 
         let min_output = price.floor_mul_int(min_base);
         let max_output = price.floor_mul_int(max_base);
@@ -68,10 +68,10 @@ impl ExternalMatchResponse {
         pre_sponsored_amt -= total_fee_amount;
 
         // Account for gas sponsorship
-        if let Some(info) = &self.gas_sponsorship_info {
-            if !info.refund_native_eth {
-                pre_sponsored_amt += info.refund_amount;
-            }
+        if let Some(info) = &self.gas_sponsorship_info
+            && !info.refund_native_eth
+        {
+            pre_sponsored_amt += info.refund_amount;
         };
 
         pre_sponsored_amt
@@ -96,7 +96,7 @@ impl ExternalMatchResponse {
 
     /// Get the output amount at the given input amount
     fn output_amount(&self, input_amount: u128) -> u128 {
-        self.match_bundle.match_result.output_quoted_price_fp.floor_mul_int(input_amount)
+        self.match_bundle.match_result.price_fp.floor_mul_int(input_amount)
     }
 
     /// Get the current input amount
