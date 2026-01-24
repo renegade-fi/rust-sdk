@@ -58,11 +58,12 @@ pub struct AssembleExternalMatchRequest {
     #[serde(default)]
     pub receiver_address: Option<String>,
     /// The type of assembly to perform
-    pub assembly: AssemblyType,
+    pub order: AssemblyType,
 }
 
 /// The type of assembly to perform
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "kebab-case")]
 #[allow(clippy::large_enum_variant)]
 pub enum AssemblyType {
     /// Assemble a previously quoted order into a match bundle

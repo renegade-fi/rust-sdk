@@ -88,14 +88,8 @@ pub struct ApiBoundedMatchResult {
     pub input_mint: String,
     /// The mint of the output token in the matched asset pair
     pub output_mint: String,
-    /// The price at which the match executes, in terms of quote token per base
-    /// token.
-    ///
-    /// Renegade always uses USDC as the quote token.
+    /// The price of the match, in terms of output token per input token
     pub price_fp: FixedPoint,
-    /// The price at which the match executes, in terms of output token per
-    /// input token.
-    pub output_quoted_price_fp: FixedPoint,
     /// The minimum input amount of the match
     #[serde(with = "amount_string_serde")]
     pub min_input_amount: Amount,

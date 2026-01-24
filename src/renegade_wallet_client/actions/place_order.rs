@@ -219,7 +219,7 @@ pub struct OrderBuilder {
 
 impl OrderBuilder {
     /// Create a new OrderBuilder with the given owner
-    pub(crate) fn new(owner: Address) -> Self {
+    pub fn new(owner: Address) -> Self {
         Self {
             owner,
             id: None,
