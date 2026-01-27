@@ -13,7 +13,7 @@ use crate::{
     },
     ARBITRUM_ONE_RELAYER_BASE_URL, ARBITRUM_SEPOLIA_RELAYER_BASE_URL,
     BASE_MAINNET_RELAYER_BASE_URL, BASE_SEPOLIA_RELAYER_BASE_URL,
-    ETHEREUM_MAINNET_RELAYER_BASE_URL, ETHEREUM_SEPOLIA_RELAYER_BASE_URL,
+    /*ETHEREUM_MAINNET_RELAYER_BASE_URL,*/ ETHEREUM_SEPOLIA_RELAYER_BASE_URL,
 };
 #[allow(deprecated)]
 use crate::{
@@ -50,7 +50,7 @@ const BASE_MAINNET_AUTH_BASE_URL: &str = "https://base-mainnet.auth-server.reneg
 /// The Ethereum Sepolia auth server base URL
 const ETHEREUM_SEPOLIA_AUTH_BASE_URL: &str = "https://ethereum-sepolia.auth-server.renegade.fi";
 /// The Ethereum mainnet auth server base URL
-const ETHEREUM_MAINNET_AUTH_BASE_URL: &str = "https://ethereum-mainnet.auth-server.renegade.fi";
+//const ETHEREUM_MAINNET_AUTH_BASE_URL: &str = "https://ethereum-mainnet.auth-server.renegade.fi";
 
 // ----------
 // | Client |
@@ -121,18 +121,18 @@ impl ExternalMatchClient {
         )
     }
 
-    /// Create a new client for the Ethereum mainnet network
-    pub fn new_ethereum_mainnet_client(
-        api_key: &str,
-        api_secret: &str,
-    ) -> Result<Self, ExternalMatchClientError> {
-        Self::new(
-            api_key,
-            api_secret,
-            ETHEREUM_MAINNET_AUTH_BASE_URL,
-            ETHEREUM_MAINNET_RELAYER_BASE_URL,
-        )
-    }
+    ///// Create a new client for the Ethereum mainnet network
+    //pub fn new_ethereum_mainnet_client(
+        //api_key: &str,
+        //api_secret: &str,
+    //) -> Result<Self, ExternalMatchClientError> {
+        //Self::new(
+            //api_key,
+            //api_secret,
+            //ETHEREUM_MAINNET_AUTH_BASE_URL,
+            //ETHEREUM_MAINNET_RELAYER_BASE_URL,
+        //)
+    //}
 
     /// Create a new client for the Ethereum Sepolia network with custom HTTP client
     pub fn new_ethereum_sepolia_with_client(
@@ -149,20 +149,20 @@ impl ExternalMatchClient {
         )
     }
 
-    /// Create a new client for the Ethereum mainnet network with custom HTTP client
-    pub fn new_ethereum_mainnet_with_client(
-        api_key: &str,
-        api_secret: &str,
-        client: reqwest::Client,
-    ) -> Result<Self, ExternalMatchClientError> {
-        Self::new_with_client(
-            api_key,
-            api_secret,
-            ETHEREUM_MAINNET_AUTH_BASE_URL,
-            ETHEREUM_MAINNET_RELAYER_BASE_URL,
-            client,
-        )
-    }
+    ///// Create a new client for the Ethereum mainnet network with custom HTTP client
+    //pub fn new_ethereum_mainnet_with_client(
+        //api_key: &str,
+        //api_secret: &str,
+        //client: reqwest::Client,
+    //) -> Result<Self, ExternalMatchClientError> {
+        //Self::new_with_client(
+            //api_key,
+            //api_secret,
+            //ETHEREUM_MAINNET_AUTH_BASE_URL,
+            //ETHEREUM_MAINNET_RELAYER_BASE_URL,
+            //client,
+        //)
+    //}
 
     /// Create a new client for the Arbitrum Sepolia network
     pub fn new_arbitrum_sepolia_client(
