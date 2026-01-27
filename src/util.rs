@@ -8,6 +8,8 @@ use reqwest::header::{HeaderMap, HeaderValue};
 use crate::{
     ExternalMatchClientError, ARBITRUM_ONE_CHAIN_ID, ARBITRUM_SEPOLIA_CHAIN_ID,
     BASE_MAINNET_CHAIN_ID, BASE_SEPOLIA_CHAIN_ID,
+    //ETHEREUM_MAINNET_CHAIN_ID,
+    ETHEREUM_SEPOLIA_CHAIN_ID,
 };
 
 /// The header namespace to include in the HMAC
@@ -110,6 +112,7 @@ pub fn get_env_agnostic_chain(chain_id: u64) -> String {
     match chain_id {
         ARBITRUM_ONE_CHAIN_ID | ARBITRUM_SEPOLIA_CHAIN_ID => "arbitrum".to_string(),
         BASE_MAINNET_CHAIN_ID | BASE_SEPOLIA_CHAIN_ID => "base".to_string(),
+        /*ETHEREUM_MAINNET_CHAIN_ID | */ETHEREUM_SEPOLIA_CHAIN_ID => "ethereum".to_string(),
         _ => panic!("Unsupported chain ID: {chain_id}"),
     }
 }
