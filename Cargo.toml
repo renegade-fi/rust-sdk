@@ -182,15 +182,15 @@ k256 = { version = "0.13", features = ["ecdsa"] }
 darkpool-client = { git = "https://github.com/renegade-fi/renegade.git", features = [
     "all-chains",
     "transfer-auth",
-], optional = true }
-renegade-circuit-types = { package = "circuit-types", git = "https://github.com/renegade-fi/renegade.git", optional = true }
+], optional = true, branch = "wj/ethereum-v1" }
+renegade-circuit-types = { package = "circuit-types", git = "https://github.com/renegade-fi/renegade.git", optional = true, branch = "wj/ethereum-v1"  }
 renegade-api = { package = "external-api", git = "https://github.com/renegade-fi/renegade.git", features = [
     "auth",
-], optional = true }
-renegade-common = { package = "common", git = "https://github.com/renegade-fi/renegade.git", optional = true }
-renegade-constants = { package = "constants", git = "https://github.com/renegade-fi/renegade.git", optional = true }
-renegade-crypto = { package = "renegade-crypto", git = "https://github.com/renegade-fi/renegade.git", optional = true }
-renegade-utils = { package = "util", git = "https://github.com/renegade-fi/renegade.git", optional = true }
+], optional = true, branch = "wj/ethereum-v1"  }
+renegade-common = { package = "common", git = "https://github.com/renegade-fi/renegade.git", optional = true, branch = "wj/ethereum-v1"  }
+renegade-constants = { package = "constants", git = "https://github.com/renegade-fi/renegade.git", optional = true, branch = "wj/ethereum-v1"  }
+renegade-crypto = { package = "renegade-crypto", git = "https://github.com/renegade-fi/renegade.git", optional = true, branch = "wj/ethereum-v1"  }
+renegade-utils = { package = "util", git = "https://github.com/renegade-fi/renegade.git", optional = true, branch = "wj/ethereum-v1"  }
 
 # === Misc === #
 base64 = "0.22"
