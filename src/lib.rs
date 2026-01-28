@@ -7,7 +7,6 @@
 #[cfg(feature = "external-match-client")]
 pub(crate) mod external_match_client;
 mod http;
-pub mod types;
 mod util;
 
 #[cfg(feature = "internal")]
@@ -21,6 +20,10 @@ pub use external_match_client::*;
 pub(crate) mod renegade_wallet_client;
 #[cfg(feature = "darkpool-client")]
 pub use renegade_wallet_client::*;
+
+// Re-export alloy types for SDK users
+pub use alloy::primitives::{U160, U256, aliases::U48};
+pub use alloy_rpc_types_eth::TransactionRequest;
 
 #[cfg(feature = "examples")]
 pub mod example_utils;

@@ -2,9 +2,9 @@
 //! receiver
 
 use renegade_sdk::{
-    example_utils::{build_renegade_client, execute_bundle, get_signer, Wallet},
-    types::{ExternalOrder, OrderSide},
     AssembleQuoteOptions, ExternalMatchClient, ExternalOrderBuilder,
+    example_utils::{Wallet, build_renegade_client, execute_bundle, get_signer},
+    types::{ExternalOrder, OrderSide},
 };
 
 /// Testnet wETH

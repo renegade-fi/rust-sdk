@@ -13,6 +13,11 @@ pub struct ExchangeMetadataResponse {
     pub chain_id: u64,
     /// The address of the settlement contract
     pub settlement_contract_address: String,
+    /// The address of the executor keypair used by the relayer to sign public
+    /// order settlement obligations
+    pub executor_address: String,
+    /// The address at which the relayer receives fees
+    pub relayer_fee_recipient: String,
     /// The supported tokens
     pub supported_tokens: Vec<ApiToken>,
 }
