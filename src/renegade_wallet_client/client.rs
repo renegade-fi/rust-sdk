@@ -170,6 +170,19 @@ impl RenegadeClient {
         Self::new(RenegadeClientConfig::new_base_mainnet(key))
     }
 
+    /// Create a new wallet on Ethereum Sepolia
+    pub fn new_ethereum_sepolia(
+        key: &PrivateKeySigner,
+        admin_hmac_key: HmacKey,
+    ) -> Result<Self, RenegadeClientError> {
+        Self::new(RenegadeClientConfig::new_ethereum_sepolia(key, admin_hmac_key))
+    }
+
+    ///// Create a new wallet on Ethereum Mainnet
+    //pub fn new_ethereum_mainnet(key: &PrivateKeySigner) -> Result<Self, RenegadeClientError> {
+    //    Self::new(RenegadeClientConfig::new_ethereum_mainnet(key))
+    //}
+
     /// Create a new admin wallet on Base Mainnet
     pub fn new_base_mainnet_admin(
         key: &PrivateKeySigner,
