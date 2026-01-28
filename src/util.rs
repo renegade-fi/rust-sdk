@@ -2,6 +2,8 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::{
+    //ETHEREUM_MAINNET_CHAIN_ID,
+    ETHEREUM_SEPOLIA_CHAIN_ID,
     ARBITRUM_ONE_CHAIN_ID, ARBITRUM_SEPOLIA_CHAIN_ID, BASE_MAINNET_CHAIN_ID, BASE_SEPOLIA_CHAIN_ID,
 };
 
@@ -19,6 +21,7 @@ pub fn get_env_agnostic_chain(chain_id: u64) -> String {
     match chain_id {
         ARBITRUM_ONE_CHAIN_ID | ARBITRUM_SEPOLIA_CHAIN_ID => "arbitrum".to_string(),
         BASE_MAINNET_CHAIN_ID | BASE_SEPOLIA_CHAIN_ID => "base".to_string(),
+        /*ETHEREUM_MAINNET_CHAIN_ID | */ETHEREUM_SEPOLIA_CHAIN_ID => "ethereum".to_string(),
         _ => panic!("Unsupported chain ID: {chain_id}"),
     }
 }

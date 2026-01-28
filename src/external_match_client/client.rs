@@ -9,6 +9,7 @@ use reqwest::{
 use crate::{
     ARBITRUM_ONE_RELAYER_BASE_URL, ARBITRUM_SEPOLIA_RELAYER_BASE_URL, AssembleQuoteOptions,
     BASE_MAINNET_RELAYER_BASE_URL, BASE_SEPOLIA_RELAYER_BASE_URL, ExternalMatchOptions,
+    /*ETHEREUM_MAINNET_RELAYER_BASE_URL,*/ ETHEREUM_SEPOLIA_RELAYER_BASE_URL,
     RequestQuoteOptions,
     api_types::{
         ASSEMBLE_MATCH_BUNDLE_ROUTE, AssemblyType, ExternalMatchResponse,

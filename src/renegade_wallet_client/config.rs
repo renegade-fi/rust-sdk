@@ -83,6 +83,12 @@ pub(crate) const BASE_MAINNET_EXECUTOR_ADDRESS: Address =
 /// The executor address on Base Sepolia
 pub(crate) const BASE_SEPOLIA_EXECUTOR_ADDRESS: Address =
     address!("0x0000000000000000000000000000000000000000");
+///// The executor address on Ethereum Mainnet
+//pub(crate) const ETHEREUM_MAINNET_EXECUTOR_ADDRESS: Address =
+    //address!("0x0000000000000000000000000000000000000000");
+/// The executor address on Ethereum Sepolia
+pub(crate) const ETHEREUM_SEPOLIA_EXECUTOR_ADDRESS: Address =
+    address!("0x0000000000000000000000000000000000000000");
 
 // --- Relayer Fee Recipient Addresses --- //
 
@@ -97,6 +103,12 @@ pub(crate) const BASE_MAINNET_RELAYER_FEE_RECIPIENT: Address =
     address!("0x0000000000000000000000000000000000000000");
 /// The relayer fee recipient address on Base Sepolia
 pub(crate) const BASE_SEPOLIA_RELAYER_FEE_RECIPIENT: Address =
+    address!("0x0000000000000000000000000000000000000000");
+///// The relayer fee recipient address on Ethereum Mainnet
+//pub(crate) const ETHEREUM_MAINNET_RELAYER_FEE_RECIPIENT: Address =
+    //address!("0x0000000000000000000000000000000000000000");
+/// The relayer fee recipient address on Ethereum Sepolia
+pub(crate) const ETHEREUM_SEPOLIA_RELAYER_FEE_RECIPIENT: Address =
     address!("0x0000000000000000000000000000000000000000");
 
 /// The client config
@@ -256,14 +268,17 @@ impl RenegadeClientConfig {
     //}
 
     /// Create a new client config for Base Sepolia
-    pub fn new_ethereum_sepolia(key: &PrivateKeySigner) -> Self {
+    pub fn new_ethereum_sepolia(key: &PrivateKeySigner, admin_hmac_key: HmacKey) -> Self {
         Self {
             relayer_base_url: ETHEREUM_SEPOLIA_RELAYER_BASE_URL.to_string(),
             historical_state_base_url: TESTNET_HISTORICAL_STATE_BASE_URL.to_string(),
             chain_id: ETHEREUM_SEPOLIA_CHAIN_ID,
             darkpool_address: ETHEREUM_SEPOLIA_DARKPOOL_ADDRESS,
             permit2_address: ETHEREUM_SEPOLIA_PERMIT2_ADDRESS,
+            executor_address: ETHEREUM_SEPOLIA_EXECUTOR_ADDRESS,
+            relayer_fee_recipient: ETHEREUM_SEPOLIA_RELAYER_FEE_RECIPIENT,
             key: key.clone(),
+            admin_hmac_key: Some(admin_hmac_key),
         }
     }
 }
