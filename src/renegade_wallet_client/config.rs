@@ -43,7 +43,7 @@ pub(crate) const BASE_SEPOLIA_DARKPOOL_ADDRESS: Address =
     address!("0x653C95391644EEE16E4975a7ef1f46e0B8276695");
 /// The darkpool address on Ethereum Sepolia
 pub(crate) const ETHEREUM_SEPOLIA_DARKPOOL_ADDRESS: Address =
-    address!("0x12319dd18C6C10029E60f59862028fe939A1c6e1");
+    address!("0x45537c28F245645CC1E7F7258FCC18A189CE16e3");
 /// The darkpool address on Ethereum Mainnet
 //pub(crate) const ETHEREUM_MAINNET_DARKPOOL_ADDRESS: Address =
     //address!("0x0000000000000000000000000000000000000000"); // not deployed yet
@@ -283,7 +283,7 @@ impl RenegadeClientConfig {
     }
 
     /// Create a new admin client config for Ethereum Sepolia
-    pub fn new_ethereum_sepolia_admin(key: &PrivateKeySigner, admin_hmac_key: &HmacKey) -> Self {
+    pub fn new_ethereum_sepolia_admin(key: &PrivateKeySigner, admin_hmac_key: HmacKey) -> Self {
         Self {
             relayer_base_url: ETHEREUM_SEPOLIA_RELAYER_BASE_URL.to_string(),
             historical_state_base_url: TESTNET_HISTORICAL_STATE_BASE_URL.to_string(),
