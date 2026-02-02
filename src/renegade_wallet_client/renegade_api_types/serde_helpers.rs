@@ -1,6 +1,6 @@
 //! Helpers for serializing / deserializing API types
 
-use base64::{Engine, prelude::BASE64_STANDARD_NO_PAD};
+use base64::{Engine, engine::general_purpose::STANDARD as BASE64_STANDARD};
 use renegade_constants::EmbeddedScalarField;
 use renegade_types_core::HmacKey;
 use serde::{Deserialize, Deserializer, Serializer};
@@ -26,6 +26,33 @@ pub(crate) mod scalar_string_serde {
     {
         let scalar_str = String::deserialize(deserializer)?;
         Scalar::from_decimal_string(&scalar_str).map_err(serde::de::Error::custom)
+    }
+}
+
+/// A module for serializing and deserializing a `Scalar` as a hex string
+pub(crate) mod scalar_hex_serde {
+    use renegade_constants::Scalar;
+    use renegade_crypto::fields::scalar_to_biguint;
+
+    use super::*;
+
+    /// Serialize a `Scalar` as a hex string with 0x prefix
+    pub(crate) fn serialize<S>(val: &Scalar, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let biguint = scalar_to_biguint(val);
+        let hex_str = format!("0x{}", biguint.to_str_radix(16));
+        serializer.serialize_str(&hex_str)
+    }
+
+    /// Deserialize a `Scalar` from a hex string
+    pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<Scalar, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let hex_str = String::deserialize(deserializer)?;
+        Scalar::from_hex_string(&hex_str).map_err(serde::de::Error::custom)
     }
 }
 
@@ -124,6 +151,6 @@ pub(crate) fn serialize_bytes_b64<S>(val: &Vec<u8>, serializer: S) -> Result<S::
 where
     S: Serializer,
 {
-    let bytes_b64 = BASE64_STANDARD_NO_PAD.encode(val);
+    let bytes_b64 = BASE64_STANDARD.encode(val);
     serializer.serialize_str(&bytes_b64)
 }

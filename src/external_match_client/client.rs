@@ -9,7 +9,7 @@ use reqwest::{
 use crate::{
     ARBITRUM_ONE_RELAYER_BASE_URL, ARBITRUM_SEPOLIA_RELAYER_BASE_URL, AssembleQuoteOptions,
     BASE_MAINNET_RELAYER_BASE_URL, BASE_SEPOLIA_RELAYER_BASE_URL, ExternalMatchOptions,
-    /*ETHEREUM_MAINNET_RELAYER_BASE_URL,*/ ETHEREUM_SEPOLIA_RELAYER_BASE_URL,
+    ETHEREUM_SEPOLIA_RELAYER_BASE_URL,
     RequestQuoteOptions,
     api_types::{
         ASSEMBLE_MATCH_BUNDLE_ROUTE, AssemblyType, ExternalMatchResponse,
@@ -17,8 +17,10 @@ use crate::{
         GetMarketDepthByMintResponse, GetMarketDepthsResponse, GetMarketsResponse,
         exchange_metadata::ExchangeMetadataResponse,
     },
-    http::RelayerHttpClient,
 };
+
+#[allow(deprecated)]
+use crate::http::RelayerHttpClient;
 
 use super::{
     api_types::{
@@ -117,19 +119,6 @@ impl ExternalMatchClient {
         )
     }
 
-    ///// Create a new client for the Ethereum mainnet network
-    //pub fn new_ethereum_mainnet_client(
-        //api_key: &str,
-        //api_secret: &str,
-    //) -> Result<Self, ExternalMatchClientError> {
-        //Self::new(
-            //api_key,
-            //api_secret,
-            //ETHEREUM_MAINNET_AUTH_BASE_URL,
-            //ETHEREUM_MAINNET_RELAYER_BASE_URL,
-        //)
-    //}
-
     /// Create a new client for the Ethereum Sepolia network with custom HTTP client
     pub fn new_ethereum_sepolia_with_client(
         api_key: &str,
@@ -144,21 +133,6 @@ impl ExternalMatchClient {
             client,
         )
     }
-
-    ///// Create a new client for the Ethereum mainnet network with custom HTTP client
-    //pub fn new_ethereum_mainnet_with_client(
-        //api_key: &str,
-        //api_secret: &str,
-        //client: reqwest::Client,
-    //) -> Result<Self, ExternalMatchClientError> {
-        //Self::new_with_client(
-            //api_key,
-            //api_secret,
-            //ETHEREUM_MAINNET_AUTH_BASE_URL,
-            //ETHEREUM_MAINNET_RELAYER_BASE_URL,
-            //client,
-        //)
-    //}
 
     /// Create a new client for the Arbitrum Sepolia network
     pub fn new_arbitrum_sepolia_client(
