@@ -180,20 +180,20 @@ alloy-rpc-types-eth = { version = ">=0.12, <2.0" }
 k256 = { version = "0.13", features = ["ecdsa"] }
 
 # === Renegade Dependencies === #
-renegade-types-core = { package = "types-core", git = "https://github.com/renegade-fi/renegade.git", branch = "joey/relayer-v2", features = [
+renegade-types-core = { package = "types-core", git = "https://github.com/renegade-fi/renegade.git", features = [
     "hmac",
 ] }
-renegade-external-api = { package = "external-api", git = "https://github.com/renegade-fi/renegade.git", branch = "joey/relayer-v2", default-features = false, features = [
+renegade-external-api = { package = "external-api", git = "https://github.com/renegade-fi/renegade.git", default-features = false, features = [
     "auth", "full-api"
 ] }
-renegade-circuit-types = { package = "circuit-types", git = "https://github.com/renegade-fi/renegade.git", branch = "joey/relayer-v2", optional = true, features = [
+renegade-circuit-types = { package = "circuit-types", git = "https://github.com/renegade-fi/renegade.git", optional = true, features = [
     "proof-system-types",
 ] }
-renegade-darkpool-types = { package = "darkpool-types", git = "https://github.com/renegade-fi/renegade.git", branch = "joey/relayer-v2", optional = true, features = [
+renegade-darkpool-types = { package = "darkpool-types", git = "https://github.com/renegade-fi/renegade.git", optional = true, features = [
     "proof-system-types",
 ] }
-renegade-constants = { package = "constants", git = "https://github.com/renegade-fi/renegade.git", branch = "joey/relayer-v2", optional = true }
-renegade-crypto = { package = "crypto", git = "https://github.com/renegade-fi/renegade.git", branch = "joey/relayer-v2", optional = true }
+renegade-constants = { package = "constants", git = "https://github.com/renegade-fi/renegade.git", optional = true }
+renegade-crypto = { package = "crypto", git = "https://github.com/renegade-fi/renegade.git", optional = true }
 renegade-solidity-abi = { package = "abi", git = "https://github.com/renegade-fi/renegade-contracts.git", features = [
     "v2",
     "v2-relayer-types",

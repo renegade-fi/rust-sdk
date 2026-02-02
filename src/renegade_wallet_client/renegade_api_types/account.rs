@@ -71,10 +71,10 @@ impl From<SchnorrSignature> for ApiSchnorrSignature {
 #[derive(Copy, Clone, Debug, Serialize, Deserialize)]
 pub struct ApiBabyJubJubPoint {
     /// The x coordinate of the point
-    #[serde(with = "scalar_string_serde")]
+    #[serde(with = "scalar_hex_serde")]
     pub x: Scalar,
     /// The y coordinate of the point
-    #[serde(with = "scalar_string_serde")]
+    #[serde(with = "scalar_hex_serde")]
     pub y: Scalar,
 }
 
