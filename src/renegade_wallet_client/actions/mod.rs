@@ -11,6 +11,7 @@ pub mod approvals;
 pub mod cancel_order;
 pub mod create_account;
 pub mod deposit;
+pub mod get_account;
 pub mod get_account_seeds;
 pub mod get_balance_by_mint;
 pub mod get_balances;

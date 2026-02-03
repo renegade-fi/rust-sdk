@@ -66,7 +66,7 @@ impl From<ApiOrderCore> for Intent {
 }
 
 /// A Renegade order, including metadata
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ApiOrder {
     /// The core order data
     pub order: ApiOrderCore,
@@ -200,7 +200,7 @@ pub enum OrderState {
 }
 
 /// A partial fill on an order
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ApiPartialOrderFill {
     /// The amount of the input token that was filled
     #[serde(with = "amount_string_serde")]

@@ -1,6 +1,6 @@
 //! API types for the Renegade client
 
-mod account;
+pub mod account;
 pub mod admin;
 pub mod balances;
 pub mod orders;
@@ -15,6 +15,9 @@ pub mod websocket;
 
 /// The route for creating an account
 pub const CREATE_ACCOUNT_ROUTE: &str = "/v2/account";
+
+/// The route for getting an account by its ID
+pub const GET_ACCOUNT_BY_ID_ROUTE: &str = "/v2/account/:account_id";
 
 /// The route for getting an account's seed CSPRNG states
 pub const GET_ACCOUNT_SEEDS_ROUTE: &str = "/v2/account/:account_id/seeds";
