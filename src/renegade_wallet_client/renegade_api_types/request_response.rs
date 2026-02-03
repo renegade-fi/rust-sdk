@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::renegade_api_types::{
-    account::ApiPoseidonCSPRNG,
+    account::{ApiAccount, ApiPoseidonCSPRNG},
     admin::{ApiAdminOrder, ApiAdminOrderCore},
     balances::{ApiBalance, ApiDepositPermit, ApiSchnorrPublicKey},
     orders::{ApiOrder, ApiOrderCore, OrderAuth},
@@ -34,6 +34,13 @@ pub struct CreateAccountRequest {
     /// The HMAC key for API authentication
     #[serde(serialize_with = "serialize_hmac_key")]
     pub auth_hmac_key: HmacKey,
+}
+
+/// A response containing an account
+#[derive(Debug, Deserialize)]
+pub struct GetAccountResponse {
+    /// The account
+    pub account: ApiAccount,
 }
 
 /// A response containing the current states of an account's

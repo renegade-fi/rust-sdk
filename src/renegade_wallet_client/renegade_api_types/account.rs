@@ -7,8 +7,20 @@ use renegade_circuit_types::{
 use renegade_constants::{EmbeddedScalarField, Scalar};
 use renegade_darkpool_types::csprng::PoseidonCSPRNG;
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
-use super::serde_helpers::*;
+use super::{balances::ApiBalance, orders::ApiOrder, serde_helpers::*};
+
+/// An account managed by the relayer
+#[derive(Clone, Debug, Deserialize)]
+pub struct ApiAccount {
+    /// The identifier used to index the account
+    pub id: Uuid,
+    /// A list of orders in this account
+    pub orders: Vec<ApiOrder>,
+    /// A list of balances in this account
+    pub balances: Vec<ApiBalance>,
+}
 
 /// A Poseidon CSPRNG's state, with custom serialization
 #[derive(Clone, Debug, Serialize, Deserialize)]
