@@ -34,13 +34,17 @@ pub mod example_utils;
 pub(crate) const ARBITRUM_SEPOLIA_RELAYER_BASE_URL: &str =
     "https://arbitrum-sepolia.v2.relayer.renegade.fi";
 /// The Arbitrum One relayer base URL
-pub(crate) const ARBITRUM_ONE_RELAYER_BASE_URL: &str = "https://arbitrum-one.v2.relayer.renegade.fi";
+pub(crate) const ARBITRUM_ONE_RELAYER_BASE_URL: &str =
+    "https://arbitrum-one.v2.relayer.renegade.fi";
 /// The Base Sepolia relayer base URL                                          
-pub(crate) const BASE_SEPOLIA_RELAYER_BASE_URL: &str = "https://base-sepolia.v2.relayer.renegade.fi";
+pub(crate) const BASE_SEPOLIA_RELAYER_BASE_URL: &str =
+    "https://base-sepolia.v2.relayer.renegade.fi";
 /// The Base mainnet relayer base URL                                          
-pub(crate) const BASE_MAINNET_RELAYER_BASE_URL: &str = "https://base-mainnet.v2.relayer.renegade.fi";
+pub(crate) const BASE_MAINNET_RELAYER_BASE_URL: &str =
+    "https://base-mainnet.v2.relayer.renegade.fi";
 /// The Ethereum Sepolia relayer base URL
-pub(crate) const ETHEREUM_SEPOLIA_RELAYER_BASE_URL: &str = "https://ethereum-sepolia.v2.relayer.renegade.fi";
+pub(crate) const ETHEREUM_SEPOLIA_RELAYER_BASE_URL: &str =
+    "https://ethereum-sepolia.v2.relayer.renegade.fi";
 
 // --- Chain IDs --- //
 

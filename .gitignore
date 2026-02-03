@@ -26,3 +26,5 @@ Cargo.lock
 
 # Misc
 **/.DS_Store
+
+CLAUDE*.md
