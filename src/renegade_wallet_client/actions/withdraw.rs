@@ -34,20 +34,14 @@ const TASK_WAITER_TIMEOUT: Duration = Duration::from_secs(120);
 impl RenegadeClient {
     /// Withdraw funds from an account balance. Waits for the withdrawal task to
     /// complete before returning the post-withdrawal balance.
-    pub async fn withdraw(
-        &self,
-        mint: Address,
-        amount: Amount,
-    ) -> Result<ApiBalance, RenegadeClientError> {
+    pub async fn withdraw(&self, mint: Address, amount: Amount) -> Result<(), RenegadeClientError> {
         let request = self.build_withdrawal_request(mint, amount).await?;
 
         let query_params = WithdrawBalanceQueryParameters { non_blocking: Some(false) };
         let path = self.build_withdrawal_request_path(mint, &query_params)?;
 
-        let WithdrawBalanceResponse { balance, .. } =
-            self.relayer_client.post(&path, request).await?;
-
-        Ok(balance)
+        self.relayer_client.post::<_, WithdrawBalanceResponse>(&path, request).await?;
+        Ok(())
     }
 
     /// Enqueues a withdrawal task in the relayer. Returns the post-withdrawal
@@ -56,18 +50,18 @@ impl RenegadeClient {
         &self,
         mint: Address,
         amount: Amount,
-    ) -> Result<(ApiBalance, TaskWaiter), RenegadeClientError> {
+    ) -> Result<TaskWaiter, RenegadeClientError> {
         let request = self.build_withdrawal_request(mint, amount).await?;
 
         let query_params = WithdrawBalanceQueryParameters { non_blocking: Some(true) };
         let path = self.build_withdrawal_request_path(mint, &query_params)?;
 
-        let WithdrawBalanceResponse { balance, task_id, .. } =
+        let WithdrawBalanceResponse { task_id, .. } =
             self.relayer_client.post(&path, request).await?;
 
         let task_waiter = self.watch_task(task_id, TASK_WAITER_TIMEOUT).await?;
 
-        Ok((balance, task_waiter))
+        Ok(task_waiter)
     }
 }
 
@@ -139,16 +133,22 @@ impl RenegadeClient {
 // ----------------------
 
 /// Simulates fee payments on the balance
+///
+/// Only apply fee simulation if the balance has outstanding fees.
 fn simulate_fee_payments(state_balance: &mut DarkpoolStateBalance) {
     // First, we simulate the relayer fee payment
-    state_balance.pay_relayer_fee();
-    state_balance.reencrypt_relayer_fee();
-    state_balance.compute_recovery_id();
+    if state_balance.inner.relayer_fee_balance > 0 {
+        state_balance.pay_relayer_fee();
+        state_balance.reencrypt_relayer_fee();
+        state_balance.compute_recovery_id();
+    }
 
     // Then, we simulate the protocol fee payment.
     // We use a dummy address for the protocol fee receiver since we don't actually
     // need a valid fee note.
-    state_balance.pay_protocol_fee(Address::ZERO);
-    state_balance.reencrypt_protocol_fee();
-    state_balance.compute_recovery_id();
+    if state_balance.inner.protocol_fee_balance > 0 {
+        state_balance.pay_protocol_fee(Address::ZERO);
+        state_balance.reencrypt_protocol_fee();
+        state_balance.compute_recovery_id();
+    }
 }
