@@ -256,8 +256,6 @@ pub struct WithdrawBalanceRequest {
 pub struct WithdrawBalanceResponse {
     /// The ID of the withdrawal task spawned in the relayer
     pub task_id: Uuid,
-    /// The balance that was withdrawn from
-    pub balance: ApiBalance,
     /// Whether the withdrawal task has completed
     pub completed: bool,
 }
