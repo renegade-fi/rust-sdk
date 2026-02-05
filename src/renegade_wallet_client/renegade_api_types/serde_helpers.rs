@@ -1,6 +1,6 @@
 //! Helpers for serializing / deserializing API types
 
-use base64::{Engine, engine::general_purpose::STANDARD as BASE64_STANDARD};
+use base64::{Engine, engine::general_purpose::STANDARD_NO_PAD as BASE64_STANDARD};
 use renegade_constants::EmbeddedScalarField;
 use renegade_types_core::HmacKey;
 use serde::{Deserialize, Deserializer, Serializer};
