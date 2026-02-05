@@ -33,13 +33,13 @@ pub(crate) const ARBITRUM_ONE_DARKPOOL_ADDRESS: Address =
     address!("0x30bd8eab29181f790d7e495786d4b96d7afdc518");
 /// The darkpool address on Arbitrum Sepolia
 pub(crate) const ARBITRUM_SEPOLIA_DARKPOOL_ADDRESS: Address =
-    address!("0x9af58f1ff20ab22e819e40b57ffd784d115a9ef5");
+    address!("0x57dF3a4449aaBf72f61e4A5DFe83d4A45DcC8537");
 /// The darkpool address on Base Mainnet
 pub(crate) const BASE_MAINNET_DARKPOOL_ADDRESS: Address =
     address!("0xb4a96068577141749CC8859f586fE29016C935dB");
 /// The darkpool address on Base Sepolia
 pub(crate) const BASE_SEPOLIA_DARKPOOL_ADDRESS: Address =
-    address!("0x653C95391644EEE16E4975a7ef1f46e0B8276695");
+    address!("0xDE9BfD62B2187d4c14FBcC7D869920d34e4DB3Da");
 /// The darkpool address on Ethereum Sepolia
 pub(crate) const ETHEREUM_SEPOLIA_DARKPOOL_ADDRESS: Address =
     address!("0x45537c28F245645CC1E7F7258FCC18A189CE16e3");
@@ -69,19 +69,16 @@ pub(crate) const ARBITRUM_ONE_EXECUTOR_ADDRESS: Address =
     address!("0x0000000000000000000000000000000000000000");
 /// The executor address on Arbitrum Sepolia
 pub(crate) const ARBITRUM_SEPOLIA_EXECUTOR_ADDRESS: Address =
-    address!("0x0000000000000000000000000000000000000000");
+    address!("0x9094314D60e3eF5fC73df548A3dD7b1Cd9798729");
 /// The executor address on Base Mainnet
 pub(crate) const BASE_MAINNET_EXECUTOR_ADDRESS: Address =
     address!("0x0000000000000000000000000000000000000000");
 /// The executor address on Base Sepolia
 pub(crate) const BASE_SEPOLIA_EXECUTOR_ADDRESS: Address =
-    address!("0x0000000000000000000000000000000000000000");
-///// The executor address on Ethereum Mainnet
-// pub(crate) const ETHEREUM_MAINNET_EXECUTOR_ADDRESS: Address =
-// address!("0x0000000000000000000000000000000000000000");
+    address!("0x5E2ca57B7F09Cf3DAca07c67CC65e1BfbDf346b0");
 /// The executor address on Ethereum Sepolia
 pub(crate) const ETHEREUM_SEPOLIA_EXECUTOR_ADDRESS: Address =
-    address!("0x0000000000000000000000000000000000000000");
+    address!("0x92467D2FF278383187f0aB04F8511EF45c31b723");
 
 // --- Relayer Fee Recipient Addresses --- //
 
@@ -90,13 +87,13 @@ pub(crate) const ARBITRUM_ONE_RELAYER_FEE_RECIPIENT: Address =
     address!("0x0000000000000000000000000000000000000000");
 /// The relayer fee recipient address on Arbitrum Sepolia
 pub(crate) const ARBITRUM_SEPOLIA_RELAYER_FEE_RECIPIENT: Address =
-    address!("0x0000000000000000000000000000000000000000");
+    address!("0xb0c0d3e8ebc39df5799d9c98d65dacf8637deba1");
 /// The relayer fee recipient address on Base Mainnet
 pub(crate) const BASE_MAINNET_RELAYER_FEE_RECIPIENT: Address =
     address!("0x0000000000000000000000000000000000000000");
 /// The relayer fee recipient address on Base Sepolia
 pub(crate) const BASE_SEPOLIA_RELAYER_FEE_RECIPIENT: Address =
-    address!("0x0000000000000000000000000000000000000000");
+    address!("0xa125ecd644591348d08243d8821120c6d7d3a077");
 /// The relayer fee recipient address on Ethereum Sepolia
 pub(crate) const ETHEREUM_SEPOLIA_RELAYER_FEE_RECIPIENT: Address =
     address!("0x0000000000000000000000000000000000000000");
