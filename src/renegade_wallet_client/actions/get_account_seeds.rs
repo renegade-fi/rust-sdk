@@ -1,13 +1,9 @@
 //! Get an account's seed CSPRNG states from the relayer
 
 use renegade_darkpool_types::csprng::PoseidonCSPRNG;
+use renegade_external_api::http::account::{GET_ACCOUNT_SEEDS_ROUTE, GetAccountSeedsResponse};
 
-use crate::{
-    RenegadeClientError,
-    actions::construct_http_path,
-    client::RenegadeClient,
-    renegade_api_types::{GET_ACCOUNT_SEEDS_ROUTE, request_response::GetAccountSeedsResponse},
-};
+use crate::{RenegadeClientError, actions::construct_http_path, client::RenegadeClient};
 
 impl RenegadeClient {
     /// Get an account's seed CSPRNG states from the relayer.

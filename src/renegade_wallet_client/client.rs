@@ -12,12 +12,8 @@ use renegade_constants::Scalar;
 use renegade_types_core::HmacKey;
 use uuid::Uuid;
 
-use crate::renegade_api_types::tasks::TaskIdentifier;
-use crate::renegade_api_types::websocket::{
-    AdminBalanceUpdateWebsocketMessage, AdminOrderUpdateWebsocketMessage,
-    BalanceUpdateWebsocketMessage, FillWebsocketMessage, OrderUpdateWebsocketMessage,
-    TaskUpdateWebsocketMessage,
-};
+use renegade_external_api::types::websocket::ServerWebsocketMessageBody;
+
 use crate::util::get_env_agnostic_chain;
 use crate::websocket::TaskWaiter;
 use crate::{
@@ -206,7 +202,7 @@ impl RenegadeClient {
     /// completes or times out
     pub async fn watch_task(
         &self,
-        task_id: TaskIdentifier,
+        task_id: Uuid,
         timeout: Duration,
     ) -> Result<TaskWaiter, RenegadeClientError> {
         self.websocket_client.watch_task(task_id, timeout).await
@@ -215,42 +211,42 @@ impl RenegadeClient {
     /// Subscribe to the account's task updates stream
     pub async fn subscribe_task_updates(
         &self,
-    ) -> Result<impl Stream<Item = TaskUpdateWebsocketMessage>, RenegadeClientError> {
+    ) -> Result<impl Stream<Item = ServerWebsocketMessageBody>, RenegadeClientError> {
         self.websocket_client.subscribe_task_updates().await
     }
 
     /// Subscribe to the account's balance updates stream
     pub async fn subscribe_balance_updates(
         &self,
-    ) -> Result<impl Stream<Item = BalanceUpdateWebsocketMessage>, RenegadeClientError> {
+    ) -> Result<impl Stream<Item = ServerWebsocketMessageBody>, RenegadeClientError> {
         self.websocket_client.subscribe_balance_updates().await
     }
 
     /// Subscribe to the account's order updates stream
     pub async fn subscribe_order_updates(
         &self,
-    ) -> Result<impl Stream<Item = OrderUpdateWebsocketMessage>, RenegadeClientError> {
+    ) -> Result<impl Stream<Item = ServerWebsocketMessageBody>, RenegadeClientError> {
         self.websocket_client.subscribe_order_updates().await
     }
 
     /// Subscribe to the account's fills stream
     pub async fn subscribe_fills(
         &self,
-    ) -> Result<impl Stream<Item = FillWebsocketMessage>, RenegadeClientError> {
+    ) -> Result<impl Stream<Item = ServerWebsocketMessageBody>, RenegadeClientError> {
         self.websocket_client.subscribe_fills().await
     }
 
     /// Subscribe to the admin balances updates stream
     pub async fn subscribe_admin_balance_updates(
         &self,
-    ) -> Result<impl Stream<Item = AdminBalanceUpdateWebsocketMessage>, RenegadeClientError> {
+    ) -> Result<impl Stream<Item = ServerWebsocketMessageBody>, RenegadeClientError> {
         self.websocket_client.subscribe_admin_balance_updates().await
     }
 
     /// Subscribe to the admin order updates stream
     pub async fn subscribe_admin_order_updates(
         &self,
-    ) -> Result<impl Stream<Item = AdminOrderUpdateWebsocketMessage>, RenegadeClientError> {
+    ) -> Result<impl Stream<Item = ServerWebsocketMessageBody>, RenegadeClientError> {
         self.websocket_client.subscribe_admin_order_updates().await
     }
 

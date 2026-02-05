@@ -4,20 +4,19 @@ use std::str::FromStr;
 
 use alloy::primitives::Address;
 use renegade_circuit_types::{Amount, fixed_point::FixedPoint};
+use renegade_external_api::{
+    http::{
+        admin::ADMIN_CREATE_ORDER_IN_POOL_ROUTE,
+        order::{CreateOrderInPoolRequest, CreateOrderResponse},
+    },
+    types::{ApiOrderCore, OrderType},
+};
 use uuid::Uuid;
 
 use crate::{
     RenegadeClientError,
+    actions::{NON_BLOCKING_PARAM, construct_http_path},
     client::RenegadeClient,
-    renegade_api_types::{
-        ADMIN_CREATE_ORDER_IN_POOL_ROUTE,
-        admin::ApiAdminOrderCore,
-        orders::{ApiOrderCore, OrderType},
-        request_response::{
-            AdminCreateOrderInPoolQueryParameters, AdminCreateOrderInPoolRequest,
-            AdminCreateOrderInPoolResponse,
-        },
-    },
     utils::unwrap_field,
     websocket::{DEFAULT_TASK_TIMEOUT, TaskWaiter},
 };
@@ -43,10 +42,9 @@ impl RenegadeClient {
 
         let request = self.build_admin_create_order_request(built_order).await?;
 
-        let query_params = AdminCreateOrderInPoolQueryParameters { non_blocking: Some(false) };
-        let path = build_admin_create_order_request_path(&query_params)?;
+        let path = self.build_admin_create_order_request_path(false)?;
 
-        admin_client.post::<_, AdminCreateOrderInPoolResponse>(&path, request).await?;
+        admin_client.post::<_, CreateOrderResponse>(&path, request).await?;
 
         Ok(())
     }
@@ -65,11 +63,9 @@ impl RenegadeClient {
 
         let request = self.build_admin_create_order_request(built_order).await?;
 
-        let query_params = AdminCreateOrderInPoolQueryParameters { non_blocking: Some(true) };
-        let path = build_admin_create_order_request_path(&query_params)?;
+        let path = self.build_admin_create_order_request_path(true)?;
 
-        let AdminCreateOrderInPoolResponse { task_id, .. } =
-            admin_client.post(&path, request).await?;
+        let CreateOrderResponse { task_id, .. } = admin_client.post(&path, request).await?;
 
         // Create a task waiter for the task
         let task_waiter = self.watch_task(task_id, DEFAULT_TASK_TIMEOUT).await?;
@@ -84,25 +80,28 @@ impl RenegadeClient {
     async fn build_admin_create_order_request(
         &self,
         built_order: BuiltAdminOrder,
-    ) -> Result<AdminCreateOrderInPoolRequest, RenegadeClientError> {
-        let auth = self.build_order_auth(&built_order.order.order_core).await?;
+    ) -> Result<CreateOrderInPoolRequest, RenegadeClientError> {
+        let auth = self.build_order_auth(&built_order.order).await?;
 
-        Ok(AdminCreateOrderInPoolRequest {
+        Ok(CreateOrderInPoolRequest {
             order: built_order.order,
             auth,
-            precompute_cancellation_proof: built_order.precompute_cancellation_proof,
+            matching_pool: built_order.matching_pool,
         })
     }
-}
 
-/// Builds the request path for the admin create order in pool endpoint
-fn build_admin_create_order_request_path(
-    query_params: &AdminCreateOrderInPoolQueryParameters,
-) -> Result<String, RenegadeClientError> {
-    let query_string =
-        serde_urlencoded::to_string(query_params).map_err(RenegadeClientError::serde)?;
+    /// Builds the request path for the admin create order in pool endpoint
+    fn build_admin_create_order_request_path(
+        &self,
+        non_blocking: bool,
+    ) -> Result<String, RenegadeClientError> {
+        let path = construct_http_path!(ADMIN_CREATE_ORDER_IN_POOL_ROUTE, "account_id" => self.get_account_id());
+        let query_string =
+            serde_urlencoded::to_string(&[(NON_BLOCKING_PARAM, non_blocking.to_string())])
+                .map_err(RenegadeClientError::serde)?;
 
-    Ok(format!("{ADMIN_CREATE_ORDER_IN_POOL_ROUTE}?{query_string}"))
+        Ok(format!("{path}?{query_string}"))
+    }
 }
 
 // -----------------------
@@ -112,8 +111,10 @@ fn build_admin_create_order_request_path(
 /// The result of building an admin order
 #[derive(Debug)]
 pub struct BuiltAdminOrder {
-    /// The admin order to be placed
-    pub order: ApiAdminOrderCore,
+    /// The order to be placed
+    pub order: ApiOrderCore,
+    /// The matching pool to assign the order to
+    pub matching_pool: String,
     /// Whether to precompute a cancellation proof for the order
     pub precompute_cancellation_proof: bool,
 }
@@ -248,12 +249,12 @@ impl AdminOrderBuilder {
             min_output_amount.ceil_div_int(amount_in).into()
         };
 
-        let order_core = ApiOrderCore {
+        let order = ApiOrderCore {
             id: self.id.unwrap_or_else(Uuid::new_v4),
             in_token: unwrap_field!(self, input_mint),
             out_token: unwrap_field!(self, output_mint),
             owner: self.owner,
-            amount_in: unwrap_field!(self, amount_in),
+            amount_in,
             min_price,
             min_fill_size: self.min_fill_size.unwrap_or(0),
             order_type: unwrap_field!(self, order_type),
@@ -261,10 +262,8 @@ impl AdminOrderBuilder {
         };
 
         let matching_pool = unwrap_field!(self, matching_pool);
-
-        let order = ApiAdminOrderCore { order_core, matching_pool };
         let precompute_cancellation_proof = self.precompute_cancellation_proof.unwrap_or(false);
 
-        Ok(BuiltAdminOrder { order, precompute_cancellation_proof })
+        Ok(BuiltAdminOrder { order, matching_pool, precompute_cancellation_proof })
     }
 }

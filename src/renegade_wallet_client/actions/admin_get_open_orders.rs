@@ -1,14 +1,12 @@
 //! Fetches all open orders managed by the relayer
 
+use renegade_external_api::http::admin::ADMIN_GET_ORDERS_ROUTE;
+use renegade_external_api::types::{ApiAdminOrder, GetOrdersAdminResponse};
+
 use crate::{
     RenegadeClientError,
-    actions::construct_http_path,
+    actions::{MATCHING_POOL_PARAM, PAGE_TOKEN_PARAM},
     client::RenegadeClient,
-    renegade_api_types::{
-        ADMIN_GET_OPEN_ORDERS_ROUTE,
-        admin::ApiAdminOrder,
-        request_response::{GetOpenOrdersAdminQueryParameters, GetOpenOrdersAdminResponse},
-    },
 };
 
 // --- Public Actions --- //
@@ -20,17 +18,15 @@ impl RenegadeClient {
     pub async fn admin_get_open_orders(&self) -> Result<Vec<ApiAdminOrder>, RenegadeClientError> {
         let admin_relayer_client = self.get_admin_client()?;
 
-        let mut query_params: GetOpenOrdersAdminQueryParameters = Default::default();
-        let path = self.build_admin_get_open_orders_request_path(&query_params)?;
+        let path = build_admin_get_orders_path(None, None)?;
 
-        let GetOpenOrdersAdminResponse { mut orders, mut next_page_token } =
+        let GetOrdersAdminResponse { mut orders, mut next_page_token } =
             admin_relayer_client.get(&path).await?;
 
         while let Some(page_token) = next_page_token {
-            query_params.page_token = Some(page_token);
-            let path = self.build_admin_get_open_orders_request_path(&query_params)?;
+            let path = build_admin_get_orders_path(None, Some(page_token))?;
 
-            let response: GetOpenOrdersAdminResponse = admin_relayer_client.get(&path).await?;
+            let response: GetOrdersAdminResponse = admin_relayer_client.get(&path).await?;
 
             orders.extend(response.orders);
             next_page_token = response.next_page_token;
@@ -50,20 +46,15 @@ impl RenegadeClient {
     ) -> Result<Vec<ApiAdminOrder>, RenegadeClientError> {
         let admin_relayer_client = self.get_admin_client()?;
 
-        let mut query_params = GetOpenOrdersAdminQueryParameters {
-            matching_pool: Some(matching_pool),
-            ..Default::default()
-        };
-        let path = self.build_admin_get_open_orders_request_path(&query_params)?;
+        let path = build_admin_get_orders_path(Some(&matching_pool), None)?;
 
-        let GetOpenOrdersAdminResponse { mut orders, mut next_page_token } =
+        let GetOrdersAdminResponse { mut orders, mut next_page_token } =
             admin_relayer_client.get(&path).await?;
 
         while let Some(page_token) = next_page_token {
-            query_params.page_token = Some(page_token);
-            let path = self.build_admin_get_open_orders_request_path(&query_params)?;
+            let path = build_admin_get_orders_path(Some(&matching_pool), Some(page_token))?;
 
-            let response: GetOpenOrdersAdminResponse = admin_relayer_client.get(&path).await?;
+            let response: GetOrdersAdminResponse = admin_relayer_client.get(&path).await?;
 
             orders.extend(response.orders);
             next_page_token = response.next_page_token;
@@ -73,17 +64,26 @@ impl RenegadeClient {
     }
 }
 
-// --- Private Helpers --- //
-impl RenegadeClient {
-    /// Builds the request path for the get open orders endpoint
-    fn build_admin_get_open_orders_request_path(
-        &self,
-        query_params: &GetOpenOrdersAdminQueryParameters,
-    ) -> Result<String, RenegadeClientError> {
-        let path = construct_http_path!(ADMIN_GET_OPEN_ORDERS_ROUTE, "account_id" => self.get_account_id());
-        let query_string =
-            serde_urlencoded::to_string(query_params).map_err(RenegadeClientError::serde)?;
+// --- Helpers --- //
 
-        Ok(format!("{path}?{query_string}"))
+/// Builds the request path for the admin get orders endpoint
+fn build_admin_get_orders_path(
+    matching_pool: Option<&str>,
+    page_token: Option<i64>,
+) -> Result<String, RenegadeClientError> {
+    let mut params: Vec<(&str, String)> = Vec::new();
+    if let Some(pool) = matching_pool {
+        params.push((MATCHING_POOL_PARAM, pool.to_string()));
+    }
+    if let Some(token) = page_token {
+        params.push((PAGE_TOKEN_PARAM, token.to_string()));
+    }
+
+    if params.is_empty() {
+        Ok(ADMIN_GET_ORDERS_ROUTE.to_string())
+    } else {
+        let query_string =
+            serde_urlencoded::to_string(&params).map_err(RenegadeClientError::serde)?;
+        Ok(format!("{ADMIN_GET_ORDERS_ROUTE}?{query_string}"))
     }
 }

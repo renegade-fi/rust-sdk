@@ -1,11 +1,11 @@
 //! Create an account with the relayer
 
 use renegade_external_api::EmptyRequestResponse;
+use renegade_external_api::http::account::{CREATE_ACCOUNT_ROUTE, CreateAccountRequest};
 
 use crate::{
     RenegadeClientError,
     client::{AccountSecrets, RenegadeClient},
-    renegade_api_types::{CREATE_ACCOUNT_ROUTE, request_response::CreateAccountRequest},
 };
 
 impl RenegadeClient {

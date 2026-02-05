@@ -1,15 +1,12 @@
 //! Gets the balance of a given mint in the account
 
 use alloy::primitives::Address;
-
-use crate::{
-    RenegadeClientError,
-    actions::construct_http_path,
-    client::RenegadeClient,
-    renegade_api_types::{
-        GET_BALANCE_BY_MINT_ROUTE, balances::ApiBalance, request_response::GetBalanceByMintResponse,
-    },
+use renegade_external_api::{
+    http::balance::{GET_BALANCE_BY_MINT_ROUTE, GetBalanceByMintResponse},
+    types::ApiBalance,
 };
+
+use crate::{RenegadeClientError, actions::construct_http_path, client::RenegadeClient};
 
 impl RenegadeClient {
     /// Get the account's balance for a given mint

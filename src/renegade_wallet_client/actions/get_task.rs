@@ -1,15 +1,12 @@
 //! Looks up a task by its ID in the relayer
 
+use renegade_external_api::{
+    http::task::{GET_TASK_BY_ID_ROUTE, GetTaskByIdResponse},
+    types::ApiTask,
+};
 use uuid::Uuid;
 
-use crate::{
-    RenegadeClientError,
-    actions::construct_http_path,
-    client::RenegadeClient,
-    renegade_api_types::{
-        GET_TASK_BY_ID_ROUTE, request_response::GetTaskByIdResponse, tasks::ApiTask,
-    },
-};
+use crate::{RenegadeClientError, actions::construct_http_path, client::RenegadeClient};
 
 // --- Public Actions --- //
 impl RenegadeClient {

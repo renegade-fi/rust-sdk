@@ -5,21 +5,18 @@ use renegade_circuit_types::Amount;
 use renegade_crypto::fields::scalar_to_u256;
 use renegade_darkpool_types::balance::DarkpoolBalance;
 use renegade_darkpool_types::balance::DarkpoolStateBalance;
+use renegade_external_api::{
+    http::balance::{DEPOSIT_BALANCE_ROUTE, DepositBalanceRequest, DepositBalanceResponse},
+    types::ApiDepositPermit,
+};
 use renegade_solidity_abi::v2::{
     IDarkpoolV2, relayer_types::u128_to_u256, transfer_auth::deposit::create_deposit_permit,
 };
 
 use crate::{
     RenegadeClientError,
-    actions::construct_http_path,
+    actions::{NON_BLOCKING_PARAM, construct_http_path},
     client::RenegadeClient,
-    renegade_api_types::{
-        DEPOSIT_BALANCE_ROUTE,
-        balances::ApiDepositPermit,
-        request_response::{
-            DepositBalanceQueryParameters, DepositBalanceRequest, DepositBalanceResponse,
-        },
-    },
     websocket::{DEFAULT_TASK_TIMEOUT, TaskWaiter},
 };
 
@@ -30,8 +27,7 @@ impl RenegadeClient {
     pub async fn deposit(&self, mint: Address, amount: Amount) -> Result<(), RenegadeClientError> {
         let request = self.build_deposit_request(mint, amount).await?;
 
-        let query_params = DepositBalanceQueryParameters { non_blocking: Some(false) };
-        let path = self.build_deposit_request_path(mint, &query_params)?;
+        let path = self.build_deposit_request_path(mint, false)?;
 
         self.relayer_client.post::<_, DepositBalanceResponse>(&path, request).await?;
 
@@ -48,8 +44,7 @@ impl RenegadeClient {
     ) -> Result<TaskWaiter, RenegadeClientError> {
         let request = self.build_deposit_request(mint, amount).await?;
 
-        let query_params = DepositBalanceQueryParameters { non_blocking: Some(false) };
-        let path = self.build_deposit_request_path(mint, &query_params)?;
+        let path = self.build_deposit_request_path(mint, false)?;
 
         let DepositBalanceResponse { task_id, .. } =
             self.relayer_client.post(&path, request).await?;
@@ -89,7 +84,8 @@ impl RenegadeClient {
             // If a balance already exists for the token being deposited,
             // we update its amount, progressing its cryptographic state accordingly.
 
-            let mut state_balance: DarkpoolStateBalance = balance.into();
+            let mut state_balance: DarkpoolStateBalance =
+                crate::renegade_wallet_client::conversions::api_balance_to_state_balance(balance)?;
 
             state_balance.inner.amount += amount;
             let new_amount = state_balance.inner.amount;
@@ -149,7 +145,7 @@ impl RenegadeClient {
         Ok(ApiDepositPermit {
             nonce: witness.nonce,
             deadline: witness.deadline,
-            signature: signature.into(),
+            signature: signature.as_bytes().to_vec(),
         })
     }
 
@@ -157,11 +153,12 @@ impl RenegadeClient {
     fn build_deposit_request_path(
         &self,
         mint: Address,
-        query_params: &DepositBalanceQueryParameters,
+        non_blocking: bool,
     ) -> Result<String, RenegadeClientError> {
         let path = construct_http_path!(DEPOSIT_BALANCE_ROUTE, "account_id" => self.get_account_id(), "mint" => mint);
         let query_string =
-            serde_urlencoded::to_string(query_params).map_err(RenegadeClientError::serde)?;
+            serde_urlencoded::to_string(&[(NON_BLOCKING_PARAM, non_blocking.to_string())])
+                .map_err(RenegadeClientError::serde)?;
 
         Ok(format!("{path}?{query_string}"))
     }

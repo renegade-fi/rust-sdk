@@ -1,14 +1,14 @@
 //! Fetches all orders in the account
 
+use renegade_external_api::{
+    http::order::{GET_ORDERS_ROUTE, GetOrdersResponse},
+    types::ApiOrder,
+};
+
 use crate::{
     RenegadeClientError,
-    actions::construct_http_path,
+    actions::{INCLUDE_HISTORIC_ORDERS_PARAM, PAGE_TOKEN_PARAM, construct_http_path},
     client::RenegadeClient,
-    renegade_api_types::{
-        GET_ORDERS_ROUTE,
-        orders::ApiOrder,
-        request_response::{GetOrdersQueryParameters, GetOrdersResponse},
-    },
 };
 
 // --- Public Actions --- //
@@ -22,18 +22,14 @@ impl RenegadeClient {
         &self,
         include_historic_orders: bool,
     ) -> Result<Vec<ApiOrder>, RenegadeClientError> {
-        let mut query_params = GetOrdersQueryParameters {
-            include_historic_orders: Some(include_historic_orders),
-            ..Default::default()
-        };
-        let path = self.build_get_orders_request_path(&query_params)?;
+        let path = self.build_get_orders_request_path(include_historic_orders, None)?;
 
         let GetOrdersResponse { mut orders, mut next_page_token } =
             self.relayer_client.get(&path).await?;
 
         while let Some(page_token) = next_page_token {
-            query_params.page_token = Some(page_token);
-            let path = self.build_get_orders_request_path(&query_params)?;
+            let path =
+                self.build_get_orders_request_path(include_historic_orders, Some(page_token))?;
 
             let response: GetOrdersResponse = self.relayer_client.get(&path).await?;
 
@@ -50,11 +46,18 @@ impl RenegadeClient {
     /// Builds the request path for the get orders endpoint
     fn build_get_orders_request_path(
         &self,
-        query_params: &GetOrdersQueryParameters,
+        include_historic_orders: bool,
+        page_token: Option<i64>,
     ) -> Result<String, RenegadeClientError> {
         let path = construct_http_path!(GET_ORDERS_ROUTE, "account_id" => self.get_account_id());
+
+        let mut params = vec![(INCLUDE_HISTORIC_ORDERS_PARAM, include_historic_orders.to_string())];
+        if let Some(token) = page_token {
+            params.push((PAGE_TOKEN_PARAM, token.to_string()));
+        }
+
         let query_string =
-            serde_urlencoded::to_string(query_params).map_err(RenegadeClientError::serde)?;
+            serde_urlencoded::to_string(&params).map_err(RenegadeClientError::serde)?;
 
         Ok(format!("{path}?{query_string}"))
     }
