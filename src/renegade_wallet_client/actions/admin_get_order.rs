@@ -17,7 +17,7 @@ impl RenegadeClient {
 
         let path = construct_http_path!(ADMIN_GET_ORDER_BY_ID_ROUTE, "order_id" => order_id);
 
-        let GetOrderAdminResponse { order } = admin_relayer_client.get(&path).await?;
+        let GetOrderAdminResponse { order, .. } = admin_relayer_client.get(&path).await?;
         Ok(order)
     }
 }

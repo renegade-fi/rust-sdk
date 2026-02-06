@@ -9,7 +9,7 @@ use renegade_external_api::{
         admin::ADMIN_CREATE_ORDER_IN_POOL_ROUTE,
         order::{CreateOrderInPoolRequest, CreateOrderResponse},
     },
-    types::{ApiOrderCore, OrderType},
+    types::{ApiIntent, ApiOrderCore, OrderType},
 };
 use uuid::Uuid;
 
@@ -251,11 +251,13 @@ impl AdminOrderBuilder {
 
         let order = ApiOrderCore {
             id: self.id.unwrap_or_else(Uuid::new_v4),
-            in_token: unwrap_field!(self, input_mint),
-            out_token: unwrap_field!(self, output_mint),
-            owner: self.owner,
-            amount_in,
-            min_price,
+            intent: ApiIntent {
+                in_token: unwrap_field!(self, input_mint),
+                out_token: unwrap_field!(self, output_mint),
+                owner: self.owner,
+                amount_in,
+                min_price,
+            },
             min_fill_size: self.min_fill_size.unwrap_or(0),
             order_type: unwrap_field!(self, order_type),
             allow_external_matches: self.allow_external_matches.unwrap_or(true),
