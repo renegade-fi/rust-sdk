@@ -10,7 +10,7 @@ use renegade_darkpool_types::{
 };
 use renegade_external_api::{
     http::order::{CREATE_ORDER_ROUTE, CreateOrderRequest, CreateOrderResponse},
-    types::{ApiOrderCore, OrderAuth, OrderType},
+    types::{ApiIntent, ApiOrderCore, ApiPublicIntentPermit, OrderAuth, OrderType},
 };
 use renegade_solidity_abi::v2::IDarkpoolV2::PublicIntentPermit;
 use uuid::Uuid;
@@ -96,15 +96,16 @@ impl RenegadeClient {
         // For public orders, we only need to sign over the circuit intent & executor
         // address
         if matches!(order.order_type, OrderType::PublicOrder) {
-            let permit =
+            let sol_permit =
                 PublicIntentPermit { intent: intent.into(), executor: self.get_executor_address() };
             let chain_id = self.get_chain_id();
-            let intent_signature = permit
+            let intent_signature = sol_permit
                 .sign(chain_id, self.get_account_signer())
                 .map_err(RenegadeClientError::signing)?
                 .into();
+            let permit: ApiPublicIntentPermit = sol_permit.into();
 
-            return Ok(OrderAuth::PublicOrder { intent_signature });
+            return Ok(OrderAuth::PublicOrder { permit, intent_signature });
         }
 
         // For private orders, we need to sample the correct recovery & share stream
@@ -129,8 +130,8 @@ impl RenegadeClient {
                 // Renegade-settled orders *may* require the creation of a new output balance,
                 // which we authorize optimistically by generating a Schnorr signature over a
                 // commitment to the new balance state object.
-                let out_token = order.out_token;
-                let owner = order.owner;
+                let out_token = order.intent.out_token;
+                let owner = order.intent.owner;
 
                 let new_output_balance = DarkpoolBalance::new(
                     out_token,
@@ -310,11 +311,13 @@ impl OrderBuilder {
 
         let order = ApiOrderCore {
             id: self.id.unwrap_or_else(Uuid::new_v4),
-            in_token: unwrap_field!(self, input_mint),
-            out_token: unwrap_field!(self, output_mint),
-            owner: self.owner,
-            amount_in,
-            min_price,
+            intent: ApiIntent {
+                in_token: unwrap_field!(self, input_mint),
+                out_token: unwrap_field!(self, output_mint),
+                owner: self.owner,
+                amount_in,
+                min_price,
+            },
             min_fill_size: self.min_fill_size.unwrap_or(0),
             order_type: unwrap_field!(self, order_type),
             allow_external_matches: self.allow_external_matches.unwrap_or(true),
