@@ -2,16 +2,7 @@
 
 use uuid::Uuid;
 
-use crate::{
-    RenegadeClientError,
-    actions::construct_http_path,
-    client::RenegadeClient,
-    renegade_api_types::{
-        ADMIN_ASSIGN_ORDER_TO_POOL_ROUTE,
-        admin::ApiAdminOrder,
-        request_response::{AdminAssignOrderToPoolRequest, AdminAssignOrderToPoolResponse},
-    },
-};
+use crate::{RenegadeClientError, client::RenegadeClient};
 
 impl RenegadeClient {
     /// Assigns an order to a specific matching pool via the admin API.
@@ -20,16 +11,9 @@ impl RenegadeClient {
     /// an admin HMAC key.
     pub async fn admin_assign_order_to_pool(
         &self,
-        order_id: Uuid,
-        matching_pool: String,
-    ) -> Result<ApiAdminOrder, RenegadeClientError> {
-        let admin_client = self.get_admin_client()?;
-
-        let path = construct_http_path!(ADMIN_ASSIGN_ORDER_TO_POOL_ROUTE, "order_id" => order_id);
-        let request = AdminAssignOrderToPoolRequest { matching_pool };
-
-        let AdminAssignOrderToPoolResponse { order } = admin_client.post(&path, request).await?;
-
-        Ok(order)
+        _order_id: Uuid,
+        _matching_pool: String,
+    ) -> Result<(), RenegadeClientError> {
+        unimplemented!("admin_assign_order_to_pool is not supported in v2")
     }
 }

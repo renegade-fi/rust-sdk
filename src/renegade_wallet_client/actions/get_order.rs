@@ -1,15 +1,12 @@
 //! Looks up an order by its ID in the relayer
 
+use renegade_external_api::{
+    http::order::{GET_ORDER_BY_ID_ROUTE, GetOrderByIdResponse},
+    types::ApiOrder,
+};
 use uuid::Uuid;
 
-use crate::{
-    RenegadeClientError,
-    actions::construct_http_path,
-    client::RenegadeClient,
-    renegade_api_types::{
-        GET_ORDER_BY_ID_ROUTE, orders::ApiOrder, request_response::GetOrderByIdResponse,
-    },
-};
+use crate::{RenegadeClientError, actions::construct_http_path, client::RenegadeClient};
 
 // --- Public Actions --- //
 impl RenegadeClient {

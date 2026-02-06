@@ -1,11 +1,13 @@
 //! The renegade wallet client manages Renegade wallet operations
 
-use crate::{http::RelayerHttpClientError, renegade_api_types::tasks::TaskIdentifier};
+use uuid::Uuid;
+
+use crate::http::RelayerHttpClientError;
 
 pub mod actions;
 pub mod client;
 pub mod config;
-pub mod renegade_api_types;
+pub(crate) mod conversions;
 pub(crate) mod utils;
 pub mod websocket;
 
@@ -40,7 +42,7 @@ pub enum RenegadeClientError {
     #[error("task error: task {task_id}: {message}")]
     Task {
         /// The task identifier
-        task_id: TaskIdentifier,
+        task_id: Uuid,
         /// The error message
         message: String,
     },
@@ -91,7 +93,7 @@ impl RenegadeClientError {
 
     /// Create a new task error
     #[allow(clippy::needless_pass_by_value)]
-    pub fn task<T: ToString>(task_id: TaskIdentifier, msg: T) -> Self {
+    pub fn task<T: ToString>(task_id: Uuid, msg: T) -> Self {
         Self::Task { task_id, message: msg.to_string() }
     }
 

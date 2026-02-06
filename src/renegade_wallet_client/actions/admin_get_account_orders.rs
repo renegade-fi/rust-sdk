@@ -1,16 +1,13 @@
 //! Fetches all orders for a given account (admin)
 
+use renegade_external_api::http::admin::ADMIN_GET_ACCOUNT_ORDERS_ROUTE;
+use renegade_external_api::types::{ApiAdminOrder, GetOrdersAdminResponse};
 use uuid::Uuid;
 
 use crate::{
     RenegadeClientError,
-    actions::construct_http_path,
+    actions::{PAGE_TOKEN_PARAM, construct_http_path},
     client::RenegadeClient,
-    renegade_api_types::{
-        ADMIN_GET_ACCOUNT_ORDERS_ROUTE,
-        admin::ApiAdminOrder,
-        request_response::{GetAccountOrdersAdminQueryParameters, GetAccountOrdersAdminResponse},
-    },
 };
 
 // --- Public Actions --- //
@@ -25,18 +22,16 @@ impl RenegadeClient {
     ) -> Result<Vec<ApiAdminOrder>, RenegadeClientError> {
         let admin_relayer_client = self.get_admin_client()?;
 
-        let mut query_params: GetAccountOrdersAdminQueryParameters = Default::default();
-        let path = Self::build_admin_get_account_orders_request_path(account_id, &query_params)?;
+        let path = Self::build_admin_get_account_orders_request_path(account_id, None)?;
 
-        let GetAccountOrdersAdminResponse { mut orders, mut next_page_token } =
+        let GetOrdersAdminResponse { mut orders, mut next_page_token } =
             admin_relayer_client.get(&path).await?;
 
         while let Some(page_token) = next_page_token {
-            query_params.page_token = Some(page_token);
             let path =
-                Self::build_admin_get_account_orders_request_path(account_id, &query_params)?;
+                Self::build_admin_get_account_orders_request_path(account_id, Some(page_token))?;
 
-            let response: GetAccountOrdersAdminResponse = admin_relayer_client.get(&path).await?;
+            let response: GetOrdersAdminResponse = admin_relayer_client.get(&path).await?;
 
             orders.extend(response.orders);
             next_page_token = response.next_page_token;
@@ -51,12 +46,17 @@ impl RenegadeClient {
     /// Builds the request path for the admin get account orders endpoint
     fn build_admin_get_account_orders_request_path(
         account_id: Uuid,
-        query_params: &GetAccountOrdersAdminQueryParameters,
+        page_token: Option<i64>,
     ) -> Result<String, RenegadeClientError> {
         let path = construct_http_path!(ADMIN_GET_ACCOUNT_ORDERS_ROUTE, "account_id" => account_id);
-        let query_string =
-            serde_urlencoded::to_string(query_params).map_err(RenegadeClientError::serde)?;
 
-        Ok(format!("{path}?{query_string}"))
+        if let Some(token) = page_token {
+            let query_string =
+                serde_urlencoded::to_string(&[(PAGE_TOKEN_PARAM, token.to_string())])
+                    .map_err(RenegadeClientError::serde)?;
+            Ok(format!("{path}?{query_string}"))
+        } else {
+            Ok(path)
+        }
     }
 }

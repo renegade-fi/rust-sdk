@@ -1,15 +1,10 @@
 //! Check if an account's task queue is paused (admin)
 
+use renegade_external_api::http::admin::ADMIN_GET_TASK_QUEUE_PAUSED_ROUTE;
+use renegade_external_api::types::TaskQueuePausedResponse;
 use uuid::Uuid;
 
-use crate::{
-    RenegadeClientError,
-    actions::construct_http_path,
-    client::RenegadeClient,
-    renegade_api_types::{
-        ADMIN_IS_TASK_QUEUE_PAUSED_ROUTE, request_response::AdminTaskQueuePausedResponse,
-    },
-};
+use crate::{RenegadeClientError, actions::construct_http_path, client::RenegadeClient};
 
 impl RenegadeClient {
     /// Check if the given account's task queue is paused
@@ -19,11 +14,11 @@ impl RenegadeClient {
     ) -> Result<bool, RenegadeClientError> {
         let admin_relayer_client = self.get_admin_client()?;
         let path = construct_http_path!(
-            ADMIN_IS_TASK_QUEUE_PAUSED_ROUTE,
+            ADMIN_GET_TASK_QUEUE_PAUSED_ROUTE,
             "account_id" => account_id
         );
 
-        let AdminTaskQueuePausedResponse { paused } = admin_relayer_client.get(&path).await?;
+        let TaskQueuePausedResponse { paused } = admin_relayer_client.get(&path).await?;
         Ok(paused)
     }
 }

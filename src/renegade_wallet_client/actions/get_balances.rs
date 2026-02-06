@@ -1,13 +1,11 @@
 //! Gets all of the balances in the account
 
-use crate::{
-    RenegadeClientError,
-    actions::construct_http_path,
-    client::RenegadeClient,
-    renegade_api_types::{
-        GET_BALANCES_ROUTE, balances::ApiBalance, request_response::GetBalancesResponse,
-    },
+use renegade_external_api::{
+    http::balance::{GET_BALANCES_ROUTE, GetBalancesResponse},
+    types::ApiBalance,
 };
+
+use crate::{RenegadeClientError, actions::construct_http_path, client::RenegadeClient};
 
 impl RenegadeClient {
     /// Fetches all balances in the account.

@@ -46,8 +46,6 @@ const BASE_SEPOLIA_AUTH_BASE_URL: &str = "https://base-sepolia.auth-server.reneg
 const BASE_MAINNET_AUTH_BASE_URL: &str = "https://base-mainnet.auth-server.renegade.fi";
 /// The Ethereum Sepolia auth server base URL
 const ETHEREUM_SEPOLIA_AUTH_BASE_URL: &str = "https://ethereum-sepolia.auth-server.renegade.fi";
-/// The Ethereum mainnet auth server base URL
-// const ETHEREUM_MAINNET_AUTH_BASE_URL: &str = "https://ethereum-mainnet.auth-server.renegade.fi";
 
 // ----------
 // | Client |

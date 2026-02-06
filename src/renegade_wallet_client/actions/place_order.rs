@@ -8,18 +8,17 @@ use renegade_darkpool_types::{
     balance::{DarkpoolBalance, DarkpoolStateBalance},
     intent::DarkpoolStateIntent,
 };
-use renegade_solidity_abi::v2::IDarkpoolV2::{self, PublicIntentPermit};
+use renegade_external_api::{
+    http::order::{CREATE_ORDER_ROUTE, CreateOrderRequest, CreateOrderResponse},
+    types::{ApiOrderCore, OrderAuth, OrderType},
+};
+use renegade_solidity_abi::v2::IDarkpoolV2::PublicIntentPermit;
 use uuid::Uuid;
 
 use crate::{
     RenegadeClientError,
-    actions::construct_http_path,
+    actions::{NON_BLOCKING_PARAM, construct_http_path},
     client::RenegadeClient,
-    renegade_api_types::{
-        CREATE_ORDER_ROUTE,
-        orders::{ApiOrderCore, OrderAuth, OrderType},
-        request_response::{CreateOrderQueryParameters, CreateOrderRequest, CreateOrderResponse},
-    },
     utils::unwrap_field,
     websocket::{DEFAULT_TASK_TIMEOUT, TaskWaiter},
 };
@@ -41,8 +40,7 @@ impl RenegadeClient {
     pub async fn place_order(&self, built_order: BuiltOrder) -> Result<(), RenegadeClientError> {
         let request = self.build_create_order_request(built_order).await?;
 
-        let query_params = CreateOrderQueryParameters { non_blocking: Some(false) };
-        let path = self.build_create_order_request_path(&query_params)?;
+        let path = self.build_create_order_request_path(false)?;
 
         self.relayer_client.post::<_, CreateOrderResponse>(&path, request).await?;
 
@@ -62,8 +60,7 @@ impl RenegadeClient {
     ) -> Result<TaskWaiter, RenegadeClientError> {
         let request = self.build_create_order_request(built_order).await?;
 
-        let query_params = CreateOrderQueryParameters { non_blocking: Some(true) };
-        let path = self.build_create_order_request_path(&query_params)?;
+        let path = self.build_create_order_request_path(true)?;
 
         let CreateOrderResponse { task_id, .. } = self.relayer_client.post(&path, request).await?;
 
@@ -94,12 +91,13 @@ impl RenegadeClient {
         &self,
         order: &ApiOrderCore,
     ) -> Result<OrderAuth, RenegadeClientError> {
-        let intent: IDarkpoolV2::Intent = order.into();
+        let intent = order.get_intent();
 
         // For public orders, we only need to sign over the circuit intent & executor
         // address
         if matches!(order.order_type, OrderType::PublicOrder) {
-            let permit = PublicIntentPermit { intent, executor: self.get_executor_address() };
+            let permit =
+                PublicIntentPermit { intent: intent.into(), executor: self.get_executor_address() };
             let chain_id = self.get_chain_id();
             let intent_signature = permit
                 .sign(chain_id, self.get_account_signer())
@@ -116,11 +114,8 @@ impl RenegadeClient {
         let intent_recovery_stream_seed = recovery_seed_csprng.next().unwrap();
         let intent_share_stream_seed = share_seed_csprng.next().unwrap();
 
-        let state_intent = DarkpoolStateIntent::new(
-            intent.into(),
-            intent_share_stream_seed,
-            intent_recovery_stream_seed,
-        );
+        let state_intent =
+            DarkpoolStateIntent::new(intent, intent_share_stream_seed, intent_recovery_stream_seed);
 
         let commitment = state_intent.compute_commitment();
         let intent_signature = self.schnorr_sign(&commitment)?.into();
@@ -134,9 +129,12 @@ impl RenegadeClient {
                 // Renegade-settled orders *may* require the creation of a new output balance,
                 // which we authorize optimistically by generating a Schnorr signature over a
                 // commitment to the new balance state object.
+                let out_token = order.out_token;
+                let owner = order.owner;
+
                 let new_output_balance = DarkpoolBalance::new(
-                    order.out_token,
-                    order.owner,
+                    out_token,
+                    owner,
                     self.get_relayer_fee_recipient(),
                     self.get_schnorr_public_key(),
                 );
@@ -165,11 +163,12 @@ impl RenegadeClient {
     /// Builds the request path for the create order endpoint
     fn build_create_order_request_path(
         &self,
-        query_params: &CreateOrderQueryParameters,
+        non_blocking: bool,
     ) -> Result<String, RenegadeClientError> {
         let path = construct_http_path!(CREATE_ORDER_ROUTE, "account_id" => self.get_account_id());
         let query_string =
-            serde_urlencoded::to_string(query_params).map_err(RenegadeClientError::serde)?;
+            serde_urlencoded::to_string(&[(NON_BLOCKING_PARAM, non_blocking.to_string())])
+                .map_err(RenegadeClientError::serde)?;
 
         Ok(format!("{path}?{query_string}"))
     }
@@ -314,7 +313,7 @@ impl OrderBuilder {
             in_token: unwrap_field!(self, input_mint),
             out_token: unwrap_field!(self, output_mint),
             owner: self.owner,
-            amount_in: unwrap_field!(self, amount_in),
+            amount_in,
             min_price,
             min_fill_size: self.min_fill_size.unwrap_or(0),
             order_type: unwrap_field!(self, order_type),
