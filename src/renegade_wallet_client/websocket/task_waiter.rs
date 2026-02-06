@@ -120,8 +120,8 @@ impl TaskWaiterManager {
         S: Stream<Item = ServerWebsocketMessageBody> + Unpin,
     {
         while let Some(message) = tasks_topic.next().await {
-            if let ServerWebsocketMessageBody::TaskUpdate { task } = message {
-                self.handle_task_update(task).await;
+            if let ServerWebsocketMessageBody::TaskUpdate(update) = message {
+                self.handle_task_update(update.task).await;
             }
         }
 
