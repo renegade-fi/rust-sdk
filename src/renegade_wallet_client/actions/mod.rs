@@ -24,6 +24,21 @@ pub mod sync_account;
 pub mod update_order;
 pub mod withdraw;
 
+// ----------------------------
+// | Query Parameter Constants |
+// ----------------------------
+
+/// The query parameter for non-blocking requests
+pub(crate) const NON_BLOCKING_PARAM: &str = "non_blocking";
+/// The query parameter for page token
+pub(crate) const PAGE_TOKEN_PARAM: &str = "page_token";
+/// The query parameter for including historic orders
+pub(crate) const INCLUDE_HISTORIC_ORDERS_PARAM: &str = "include_historic_orders";
+/// The query parameter for including historic tasks
+pub(crate) const INCLUDE_HISTORIC_TASKS_PARAM: &str = "include_historic_tasks";
+/// The query parameter for matching pool
+pub(crate) const MATCHING_POOL_PARAM: &str = "matching_pool";
+
 // -----------
 // | Helpers |
 // -----------

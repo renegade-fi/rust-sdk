@@ -1,13 +1,11 @@
 //! Looks up an account by its ID in the relayer
 
-use crate::{
-    RenegadeClientError,
-    actions::construct_http_path,
-    client::RenegadeClient,
-    renegade_api_types::{
-        GET_ACCOUNT_BY_ID_ROUTE, account::ApiAccount, request_response::GetAccountResponse,
-    },
+use renegade_external_api::{
+    http::account::{GET_ACCOUNT_BY_ID_ROUTE, GetAccountResponse},
+    types::ApiAccount,
 };
+
+use crate::{RenegadeClientError, actions::construct_http_path, client::RenegadeClient};
 
 impl RenegadeClient {
     /// Look up an account by its ID

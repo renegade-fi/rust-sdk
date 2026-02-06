@@ -1,17 +1,13 @@
 //! Updates an order
 
 use renegade_circuit_types::Amount;
+use renegade_external_api::{
+    http::order::{UPDATE_ORDER_ROUTE, UpdateOrderRequest, UpdateOrderResponse},
+    types::{ApiOrder, ApiOrderCore},
+};
 use uuid::Uuid;
 
-use crate::{
-    RenegadeClientError,
-    client::RenegadeClient,
-    renegade_api_types::{
-        UPDATE_ORDER_ROUTE,
-        orders::{ApiOrder, ApiOrderCore},
-        request_response::{UpdateOrderRequest, UpdateOrderResponse},
-    },
-};
+use crate::{RenegadeClientError, actions::construct_http_path, client::RenegadeClient};
 
 impl RenegadeClient {
     /// Updates an order.
@@ -22,15 +18,15 @@ impl RenegadeClient {
         &self,
         order_update_config: OrderUpdateConfig,
     ) -> Result<ApiOrder, RenegadeClientError> {
-        let request = self.build_request(order_update_config).await?;
-        let UpdateOrderResponse { order } =
-            self.relayer_client.post(UPDATE_ORDER_ROUTE, request).await?;
+        let request = self.build_update_order_request(order_update_config).await?;
+        let path = construct_http_path!(UPDATE_ORDER_ROUTE, "account_id" => self.get_account_id(), "order_id" => request.order.id);
+        let UpdateOrderResponse { order } = self.relayer_client.post(&path, request).await?;
 
         Ok(order)
     }
 
     /// Builds the order update request
-    async fn build_request(
+    async fn build_update_order_request(
         &self,
         order_update_config: OrderUpdateConfig,
     ) -> Result<UpdateOrderRequest, RenegadeClientError> {

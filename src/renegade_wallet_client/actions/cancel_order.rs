@@ -1,55 +1,53 @@
 //! Cancels an order in the wallet
 
-use alloy::{primitives::keccak256, signers::SignerSync};
+use alloy::{
+    primitives::{U256, keccak256},
+    signers::SignerSync,
+};
 use renegade_darkpool_types::intent::DarkpoolStateIntent;
+use renegade_external_api::{
+    http::order::{CANCEL_ORDER_ROUTE, CancelOrderRequest, CancelOrderResponse},
+    types::SignatureWithNonce,
+};
 use uuid::Uuid;
 
 use crate::{
     RenegadeClientError,
-    actions::construct_http_path,
+    actions::{NON_BLOCKING_PARAM, construct_http_path},
     client::RenegadeClient,
-    renegade_api_types::{
-        CANCEL_ORDER_ROUTE,
-        orders::ApiOrder,
-        request_response::{CancelOrderQueryParameters, CancelOrderRequest, CancelOrderResponse},
-    },
     websocket::{DEFAULT_TASK_TIMEOUT, TaskWaiter},
 };
 
 // --- Public Actions --- //
 impl RenegadeClient {
     /// Cancels the order with the given ID. Waits for the order cancellation
-    /// task to complete before returning the cancelled order.
-    pub async fn cancel_order(&self, order_id: Uuid) -> Result<ApiOrder, RenegadeClientError> {
+    /// task to complete before returning.
+    pub async fn cancel_order(&self, order_id: Uuid) -> Result<(), RenegadeClientError> {
         let request = self.build_cancel_order_request(order_id).await?;
 
-        let query_params = CancelOrderQueryParameters { non_blocking: Some(false) };
-        let path = self.build_cancel_order_request_path(order_id, &query_params)?;
+        let path = self.build_cancel_order_request_path(order_id, false)?;
 
-        let CancelOrderResponse { order, .. } = self.relayer_client.post(&path, request).await?;
+        self.relayer_client.post::<_, CancelOrderResponse>(&path, request).await?;
 
-        Ok(order)
+        Ok(())
     }
 
-    /// Enqueues an order cancellation task in the relayer. Returns the
-    /// cancelled order, and a `TaskWaiter` that can be used to await task
-    /// completion.
+    /// Enqueues an order cancellation task in the relayer. Returns a
+    /// `TaskWaiter` that can be used to await task completion.
     pub async fn enqueue_order_cancellation(
         &self,
         order_id: Uuid,
-    ) -> Result<(ApiOrder, TaskWaiter), RenegadeClientError> {
+    ) -> Result<TaskWaiter, RenegadeClientError> {
         let request = self.build_cancel_order_request(order_id).await?;
 
-        let query_params = CancelOrderQueryParameters { non_blocking: Some(true) };
-        let path = self.build_cancel_order_request_path(order_id, &query_params)?;
+        let path = self.build_cancel_order_request_path(order_id, true)?;
 
-        let CancelOrderResponse { task_id, order, .. } =
-            self.relayer_client.post(&path, request).await?;
+        let CancelOrderResponse { task_id, .. } = self.relayer_client.post(&path, request).await?;
 
         // Create a task waiter for the task
         let task_waiter = self.watch_task(task_id, DEFAULT_TASK_TIMEOUT).await?;
 
-        Ok((order, task_waiter))
+        Ok(task_waiter)
     }
 }
 
@@ -65,24 +63,33 @@ impl RenegadeClient {
 
         let nullifier = intent.compute_nullifier();
         let nullifier_hash = keccak256(nullifier.to_bytes_be());
+
+        // Generate a nonce for the cancellation signature
+        let nonce = rand::random::<u64>();
+
         let signature = self
             .get_account_signer()
             .sign_hash_sync(&nullifier_hash)
-            .map_err(RenegadeClientError::signing)?
-            .into();
+            .map_err(RenegadeClientError::signing)?;
 
-        Ok(CancelOrderRequest { signature })
+        let cancel_signature = SignatureWithNonce {
+            nonce: U256::from(nonce),
+            signature: signature.as_bytes().to_vec(),
+        };
+
+        Ok(CancelOrderRequest { cancel_signature })
     }
 
     /// Builds the request path for the cancel order endpoint
     fn build_cancel_order_request_path(
         &self,
         order_id: Uuid,
-        query_params: &CancelOrderQueryParameters,
+        non_blocking: bool,
     ) -> Result<String, RenegadeClientError> {
         let path = construct_http_path!(CANCEL_ORDER_ROUTE, "account_id" => self.get_account_id(), "order_id" => order_id);
         let query_string =
-            serde_urlencoded::to_string(query_params).map_err(RenegadeClientError::serde)?;
+            serde_urlencoded::to_string(&[(NON_BLOCKING_PARAM, non_blocking.to_string())])
+                .map_err(RenegadeClientError::serde)?;
 
         Ok(format!("{path}?{query_string}"))
     }

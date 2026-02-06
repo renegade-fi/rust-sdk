@@ -5,6 +5,10 @@ use std::{collections::HashMap, time::Duration};
 
 use futures_util::{SinkExt, StreamExt};
 use renegade_external_api::auth::add_expiring_auth_to_headers;
+use renegade_external_api::types::websocket::{
+    ClientWebsocketMessage, ClientWebsocketMessageBody, ServerWebsocketMessage,
+    ServerWebsocketMessageBody,
+};
 use renegade_types_core::HmacKey;
 use reqwest::header::HeaderMap;
 use tokio::sync::{
@@ -18,10 +22,6 @@ use tracing::{error, info, warn};
 
 use crate::{
     RenegadeClientError,
-    renegade_api_types::websocket::{
-        ClientWebsocketMessage, ClientWebsocketMessageBody, ServerWebsocketMessage,
-        ServerWebsocketMessageBody,
-    },
     websocket::{ADMIN_BALANCES_TOPIC, ADMIN_ORDERS_TOPIC, WsSink, WsStream},
 };
 
@@ -63,6 +63,18 @@ pub type SubscriptionMap = RwLock<HashMap<String, TopicTx>>;
 /// messages fast enough.
 fn create_topic_channel() -> (TopicTx, TopicRx) {
     broadcast::channel(100)
+}
+
+// -----------
+// | Helpers |
+// -----------
+
+/// Get the topic from a `ClientWebsocketMessageBody`
+fn get_topic(body: &ClientWebsocketMessageBody) -> &str {
+    match body {
+        ClientWebsocketMessageBody::Subscribe { topic } => topic,
+        ClientWebsocketMessageBody::Unsubscribe { topic } => topic,
+    }
 }
 
 // ------------------------
@@ -262,20 +274,16 @@ impl SubscriptionManager {
         let body_ser = serde_json::to_vec(&body).map_err(RenegadeClientError::serde)?;
         let mut headers = HeaderMap::new();
 
+        let topic = get_topic(&body);
+
         // Determine which HMAC key to use based on whether this is an admin topic
-        let hmac_key = if self.is_admin_topic(body.topic()) {
+        let hmac_key = if self.is_admin_topic(topic) {
             self.admin_hmac_key.as_ref().ok_or(RenegadeClientError::NotAdmin)?
         } else {
             &self.auth_hmac_key
         };
 
-        add_expiring_auth_to_headers(
-            body.topic(),
-            &mut headers,
-            &body_ser,
-            hmac_key,
-            AUTH_EXPIRATION,
-        );
+        add_expiring_auth_to_headers(topic, &mut headers, &body_ser, hmac_key, AUTH_EXPIRATION);
 
         let headers = header_map_to_hash_map(headers);
 

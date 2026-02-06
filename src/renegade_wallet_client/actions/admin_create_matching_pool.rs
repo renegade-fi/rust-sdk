@@ -1,14 +1,9 @@
 //! Admin action to create a matching pool
 
 use renegade_external_api::EmptyRequestResponse;
+use renegade_external_api::http::admin::ADMIN_MATCHING_POOL_CREATE_ROUTE;
 
-use crate::{
-    RenegadeClientError,
-    client::RenegadeClient,
-    renegade_api_types::{
-        ADMIN_CREATE_MATCHING_POOL_ROUTE, request_response::AdminCreateMatchingPoolRequest,
-    },
-};
+use crate::{RenegadeClientError, actions::construct_http_path, client::RenegadeClient};
 
 impl RenegadeClient {
     /// Creates a new matching pool via the admin API.
@@ -24,11 +19,9 @@ impl RenegadeClient {
     ) -> Result<(), RenegadeClientError> {
         let admin_client = self.get_admin_client()?;
 
-        let request = AdminCreateMatchingPoolRequest { matching_pool };
+        let path = construct_http_path!(ADMIN_MATCHING_POOL_CREATE_ROUTE, "matching_pool" => matching_pool);
 
-        admin_client
-            .post::<_, EmptyRequestResponse>(ADMIN_CREATE_MATCHING_POOL_ROUTE, request)
-            .await?;
+        admin_client.post::<_, EmptyRequestResponse>(&path, EmptyRequestResponse {}).await?;
 
         Ok(())
     }
