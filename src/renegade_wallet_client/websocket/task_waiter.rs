@@ -11,8 +11,7 @@ use std::{
 };
 
 use futures_util::{FutureExt, Stream, future::BoxFuture};
-use renegade_external_api::types::ApiTask;
-use renegade_external_api::types::websocket::ServerWebsocketMessageBody;
+use renegade_external_api::types::{ApiTask, TaskUpdateMessage};
 use tokio::sync::{
     RwLock,
     oneshot::{self, Receiver as OneshotReceiver, Sender as OneshotSender},
@@ -95,7 +94,7 @@ impl TaskWaiterManager {
     /// Create a new task waiter manager
     pub fn new<S>(tasks_topic: S) -> Self
     where
-        S: Stream<Item = ServerWebsocketMessageBody> + Unpin + Send + 'static,
+        S: Stream<Item = TaskUpdateMessage> + Unpin + Send + 'static,
     {
         let this = Self { notifications: Arc::new(RwLock::new(HashMap::new())) };
 
@@ -117,12 +116,10 @@ impl TaskWaiterManager {
     /// is being awaited
     async fn watch_task_updates<S>(&self, mut tasks_topic: S)
     where
-        S: Stream<Item = ServerWebsocketMessageBody> + Unpin,
+        S: Stream<Item = TaskUpdateMessage> + Unpin,
     {
         while let Some(message) = tasks_topic.next().await {
-            if let ServerWebsocketMessageBody::TaskUpdate(update) = message {
-                self.handle_task_update(update.task).await;
-            }
+            self.handle_task_update(message.task).await;
         }
 
         error!("Task update stream closed");
