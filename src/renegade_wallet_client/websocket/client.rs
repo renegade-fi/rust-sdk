@@ -6,6 +6,10 @@ use std::{collections::HashMap, time::Duration};
 use futures_util::Stream;
 use futures_util::stream::SplitSink;
 use renegade_external_api::types::websocket::ServerWebsocketMessageBody;
+use renegade_external_api::types::{
+    AdminBalanceUpdateMessage, AdminOrderUpdateMessage, BalanceUpdateMessage, FillMessage,
+    OrderUpdateMessage, TaskUpdateMessage,
+};
 use renegade_types_core::HmacKey;
 use tokio::net::TcpStream;
 use tokio::sync::{
@@ -128,12 +132,12 @@ impl RenegadeWebsocketClient {
     /// Subscribe to the account's task updates stream
     pub async fn subscribe_task_updates(
         &self,
-    ) -> Result<impl Stream<Item = ServerWebsocketMessageBody> + use<>, RenegadeClientError> {
+    ) -> Result<impl Stream<Item = TaskUpdateMessage> + use<>, RenegadeClientError> {
         let stream = self.subscribe_to_topic(self.tasks_topic()).await?;
 
         let filtered_stream = stream.filter_map(|maybe_ws_msg| {
-            maybe_ws_msg.ok().and_then(|ws_msg| match &ws_msg {
-                ServerWebsocketMessageBody::TaskUpdate { .. } => Some(ws_msg),
+            maybe_ws_msg.ok().and_then(|ws_msg| match ws_msg {
+                ServerWebsocketMessageBody::TaskUpdate(message) => Some(message),
                 _ => None,
             })
         });
@@ -151,12 +155,12 @@ impl RenegadeWebsocketClient {
     /// Subscribe to the account's balance updates stream
     pub async fn subscribe_balance_updates(
         &self,
-    ) -> Result<impl Stream<Item = ServerWebsocketMessageBody>, RenegadeClientError> {
+    ) -> Result<impl Stream<Item = BalanceUpdateMessage>, RenegadeClientError> {
         let stream = self.subscribe_to_topic(self.balances_topic()).await?;
 
         let filtered_stream = stream.filter_map(|maybe_ws_msg| {
-            maybe_ws_msg.ok().and_then(|ws_msg| match &ws_msg {
-                ServerWebsocketMessageBody::BalanceUpdate { .. } => Some(ws_msg),
+            maybe_ws_msg.ok().and_then(|ws_msg| match ws_msg {
+                ServerWebsocketMessageBody::BalanceUpdate(message) => Some(message),
                 _ => None,
             })
         });
@@ -174,12 +178,12 @@ impl RenegadeWebsocketClient {
     /// Subscribe to the account's order updates stream
     pub async fn subscribe_order_updates(
         &self,
-    ) -> Result<impl Stream<Item = ServerWebsocketMessageBody>, RenegadeClientError> {
+    ) -> Result<impl Stream<Item = OrderUpdateMessage>, RenegadeClientError> {
         let stream = self.subscribe_to_topic(self.orders_topic()).await?;
 
         let filtered_stream = stream.filter_map(|maybe_ws_msg| {
-            maybe_ws_msg.ok().and_then(|ws_msg| match &ws_msg {
-                ServerWebsocketMessageBody::OrderUpdate { .. } => Some(ws_msg),
+            maybe_ws_msg.ok().and_then(|ws_msg| match ws_msg {
+                ServerWebsocketMessageBody::OrderUpdate(message) => Some(message),
                 _ => None,
             })
         });
@@ -197,12 +201,12 @@ impl RenegadeWebsocketClient {
     /// Subscribe to the account's fills stream
     pub async fn subscribe_fills(
         &self,
-    ) -> Result<impl Stream<Item = ServerWebsocketMessageBody>, RenegadeClientError> {
+    ) -> Result<impl Stream<Item = FillMessage>, RenegadeClientError> {
         let stream = self.subscribe_to_topic(self.fills_topic()).await?;
 
         let filtered_stream = stream.filter_map(|maybe_ws_msg| {
-            maybe_ws_msg.ok().and_then(|ws_msg| match &ws_msg {
-                ServerWebsocketMessageBody::Fill { .. } => Some(ws_msg),
+            maybe_ws_msg.ok().and_then(|ws_msg| match ws_msg {
+                ServerWebsocketMessageBody::Fill(message) => Some(message),
                 _ => None,
             })
         });
@@ -220,12 +224,12 @@ impl RenegadeWebsocketClient {
     /// Subscribe to the admin balances updates stream
     pub async fn subscribe_admin_balance_updates(
         &self,
-    ) -> Result<impl Stream<Item = ServerWebsocketMessageBody>, RenegadeClientError> {
+    ) -> Result<impl Stream<Item = AdminBalanceUpdateMessage>, RenegadeClientError> {
         let stream = self.subscribe_to_topic(ADMIN_BALANCES_TOPIC.to_string()).await?;
 
         let filtered_stream = stream.filter_map(|maybe_ws_msg| {
-            maybe_ws_msg.ok().and_then(|ws_msg| match &ws_msg {
-                ServerWebsocketMessageBody::AdminBalanceUpdate { .. } => Some(ws_msg),
+            maybe_ws_msg.ok().and_then(|ws_msg| match ws_msg {
+                ServerWebsocketMessageBody::AdminBalanceUpdate(message) => Some(message),
                 _ => None,
             })
         });
@@ -236,12 +240,12 @@ impl RenegadeWebsocketClient {
     /// Subscribe to the admin order updates stream
     pub async fn subscribe_admin_order_updates(
         &self,
-    ) -> Result<impl Stream<Item = ServerWebsocketMessageBody>, RenegadeClientError> {
+    ) -> Result<impl Stream<Item = AdminOrderUpdateMessage>, RenegadeClientError> {
         let stream = self.subscribe_to_topic(ADMIN_ORDERS_TOPIC.to_string()).await?;
 
         let filtered_stream = stream.filter_map(|maybe_ws_msg| {
-            maybe_ws_msg.ok().and_then(|ws_msg| match &ws_msg {
-                ServerWebsocketMessageBody::AdminOrderUpdate { .. } => Some(ws_msg),
+            maybe_ws_msg.ok().and_then(|ws_msg| match ws_msg {
+                ServerWebsocketMessageBody::AdminOrderUpdate(message) => Some(message),
                 _ => None,
             })
         });
