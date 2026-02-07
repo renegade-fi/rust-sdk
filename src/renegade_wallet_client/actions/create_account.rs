@@ -18,8 +18,15 @@ impl RenegadeClient {
         let AccountSecrets { account_id, master_view_seed, auth_hmac_key, .. } = self.secrets;
 
         let address = self.get_account_address();
+        let schnorr_public_key = self.get_schnorr_public_key();
 
-        let request = CreateAccountRequest { account_id, address, master_view_seed, auth_hmac_key };
+        let request = CreateAccountRequest {
+            account_id,
+            address,
+            master_view_seed,
+            auth_hmac_key,
+            schnorr_public_key,
+        };
 
         self.relayer_client.post::<_, EmptyRequestResponse>(CREATE_ACCOUNT_ROUTE, request).await?;
 
