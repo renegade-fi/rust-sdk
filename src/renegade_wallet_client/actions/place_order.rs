@@ -2,17 +2,21 @@
 
 use std::str::FromStr;
 
-use alloy::primitives::Address;
+use alloy::primitives::{Address, keccak256};
 use renegade_circuit_types::{Amount, fixed_point::FixedPoint};
+use renegade_crypto::fields::scalar_to_u256;
 use renegade_darkpool_types::{
     balance::{DarkpoolBalance, DarkpoolStateBalance},
     intent::DarkpoolStateIntent,
 };
 use renegade_external_api::{
     http::order::{CREATE_ORDER_ROUTE, CreateOrderRequest, CreateOrderResponse},
-    types::{ApiIntent, ApiOrderCore, ApiPublicIntentPermit, OrderAuth, OrderType},
+    types::{
+        ApiIntent, ApiOrderCore, ApiPublicIntentPermit, OrderAuth, OrderType,
+        SignatureWithNonce as ApiSignatureWithNonce,
+    },
 };
-use renegade_solidity_abi::v2::IDarkpoolV2::PublicIntentPermit;
+use renegade_solidity_abi::v2::IDarkpoolV2::{PublicIntentPermit, SignatureWithNonce};
 use uuid::Uuid;
 
 use crate::{
@@ -109,8 +113,7 @@ impl RenegadeClient {
         }
 
         // For private orders, we need to sample the correct recovery & share stream
-        // seeds, then generate a Schnorr signature over the commitment to the
-        // intent state object.
+        // seeds, then compute a commitment to the intent state object.
         let (mut recovery_seed_csprng, mut share_seed_csprng) = self.get_account_seeds().await?;
         let intent_recovery_stream_seed = recovery_seed_csprng.next().unwrap();
         let intent_share_stream_seed = share_seed_csprng.next().unwrap();
@@ -119,14 +122,24 @@ impl RenegadeClient {
             DarkpoolStateIntent::new(intent, intent_share_stream_seed, intent_recovery_stream_seed);
 
         let commitment = state_intent.compute_commitment();
-        let intent_signature = self.schnorr_sign(&commitment)?.into();
 
         match order.order_type {
             OrderType::NativelySettledPrivateOrder => {
+                // For Ring 1, sign the commitment with ECDSA using a nonce
+                // The commitment is pre-hashed to match the relayer's validation logic
+                let commitment_u256 = scalar_to_u256(&commitment);
+                let commitment_hash = keccak256(commitment_u256.to_be_bytes::<32>());
+                let chain_id = self.get_chain_id();
+                let sig = SignatureWithNonce::sign(commitment_hash.as_slice(), chain_id, self.get_account_signer())
+                    .map_err(RenegadeClientError::signing)?;
+                let intent_signature: ApiSignatureWithNonce = sig.into();
                 Ok(OrderAuth::NativelySettledPrivateOrder { intent_signature })
             },
             OrderType::RenegadeSettledPublicFillOrder
             | OrderType::RenegadeSettledPrivateFillOrder => {
+                // For Ring 2/3, sign the commitment with Schnorr
+                let intent_signature = self.schnorr_sign(&commitment)?.into();
+
                 // Renegade-settled orders *may* require the creation of a new output balance,
                 // which we authorize optimistically by generating a Schnorr signature over a
                 // commitment to the new balance state object.
@@ -149,8 +162,8 @@ impl RenegadeClient {
                     balance_recovery_stream_seed,
                 );
 
-                let commitment = state_output_balance.compute_commitment();
-                let new_output_balance_signature = self.schnorr_sign(&commitment)?.into();
+                let balance_commitment = state_output_balance.compute_commitment();
+                let new_output_balance_signature = self.schnorr_sign(&balance_commitment)?.into();
 
                 Ok(OrderAuth::RenegadeSettledOrder {
                     intent_signature,

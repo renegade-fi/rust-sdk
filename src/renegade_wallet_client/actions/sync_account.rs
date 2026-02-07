@@ -48,6 +48,7 @@ impl RenegadeClient {
             account_id: self.get_account_id(),
             master_view_seed: self.get_master_view_seed(),
             auth_hmac_key: self.get_auth_hmac_key(),
+            schnorr_public_key: self.get_schnorr_public_key(),
         }
     }
 
