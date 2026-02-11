@@ -66,13 +66,13 @@ pub(crate) const ETHEREUM_SEPOLIA_PERMIT2_ADDRESS: Address =
 
 /// The executor address on Arbitrum One
 pub(crate) const ARBITRUM_ONE_EXECUTOR_ADDRESS: Address =
-    address!("0x0000000000000000000000000000000000000000");
+    address!("0x336A6b8AE5589d40ba4391020649E268E8323CA1");
 /// The executor address on Arbitrum Sepolia
 pub(crate) const ARBITRUM_SEPOLIA_EXECUTOR_ADDRESS: Address =
     address!("0x9094314D60e3eF5fC73df548A3dD7b1Cd9798729");
 /// The executor address on Base Mainnet
 pub(crate) const BASE_MAINNET_EXECUTOR_ADDRESS: Address =
-    address!("0x0000000000000000000000000000000000000000");
+    address!("0x1b5A1833d8566FACb138aa6BF1cd040f572B1D56");
 /// The executor address on Base Sepolia
 pub(crate) const BASE_SEPOLIA_EXECUTOR_ADDRESS: Address =
     address!("0x5E2ca57B7F09Cf3DAca07c67CC65e1BfbDf346b0");
