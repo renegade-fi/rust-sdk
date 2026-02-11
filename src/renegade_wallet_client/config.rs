@@ -30,13 +30,13 @@ pub(crate) const TESTNET_HISTORICAL_STATE_BASE_URL: &str =
 
 /// The darkpool address on Arbitrum One
 pub(crate) const ARBITRUM_ONE_DARKPOOL_ADDRESS: Address =
-    address!("0x30bd8eab29181f790d7e495786d4b96d7afdc518");
+    address!("0xC5D1B8096BbdEC83Bc6049e42822c7483BBA6500");
 /// The darkpool address on Arbitrum Sepolia
 pub(crate) const ARBITRUM_SEPOLIA_DARKPOOL_ADDRESS: Address =
     address!("0x57dF3a4449aaBf72f61e4A5DFe83d4A45DcC8537");
 /// The darkpool address on Base Mainnet
 pub(crate) const BASE_MAINNET_DARKPOOL_ADDRESS: Address =
-    address!("0xb4a96068577141749CC8859f586fE29016C935dB");
+    address!("0x15d7CF277BE6463F153Dd0d4d73F92Ad65e6348C");
 /// The darkpool address on Base Sepolia
 pub(crate) const BASE_SEPOLIA_DARKPOOL_ADDRESS: Address =
     address!("0xDE9BfD62B2187d4c14FBcC7D869920d34e4DB3Da");
