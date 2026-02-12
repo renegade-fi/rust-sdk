@@ -4,7 +4,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::api_types::markets::{MarketDepth, MarketInfo};
 
-use super::{ApiSignedQuote, ExternalOrder, GasSponsorshipInfo, MalleableAtomicMatchApiBundle};
+use super::{
+    ApiSignedQuoteV2, ExternalOrderV2, GasSponsorshipInfo, MalleableAtomicMatchApiBundleV2,
+};
 
 // -------------------------------
 // | HTTP Requests and Responses |
@@ -35,14 +37,14 @@ pub struct GetMarketDepthByMintResponse {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ExternalQuoteRequest {
     /// The external order
-    pub external_order: ExternalOrder,
+    pub external_order: ExternalOrderV2,
 }
 
 /// The response type for a quote on an external order
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ExternalQuoteResponse {
     /// The signed quote
-    pub signed_quote: ApiSignedQuote,
+    pub signed_quote: ApiSignedQuoteV2,
     /// The signed gas sponsorship info, if sponsorship was requested
     pub gas_sponsorship_info: Option<GasSponsorshipInfo>,
 }
@@ -69,27 +71,27 @@ pub enum AssemblyType {
     /// Assemble a previously quoted order into a match bundle
     QuotedOrder {
         /// The signed quote
-        signed_quote: ApiSignedQuote,
+        signed_quote: ApiSignedQuoteV2,
         /// The updated order if any changes have been made
         #[serde(default)]
-        updated_order: Option<ExternalOrder>,
+        updated_order: Option<ExternalOrderV2>,
     },
     /// Assemble a new order into a match bundle
-    NewOrder {
+    DirectOrder {
         /// The external order
-        external_order: ExternalOrder,
+        external_order: ExternalOrderV2,
     },
 }
 
-/// The response type for requesting a malleable quote on an external order
+/// The response type for requesting a match on an external order
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct ExternalMatchResponse {
+pub struct ExternalMatchResponseV2 {
     /// The match bundle
-    pub match_bundle: MalleableAtomicMatchApiBundle,
+    pub match_bundle: MalleableAtomicMatchApiBundleV2,
     /// The input amount chosen for the match
     ///
     /// If `None`, the input amount has not been selected and will default to
-    /// the `max_input_amount`
+    /// the originally requested input amount.
     ///
     /// This field is not meant for client use directly, rather it is set by
     /// operating on the type and allows the response type to stay internally

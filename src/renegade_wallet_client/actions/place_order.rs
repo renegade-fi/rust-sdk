@@ -130,8 +130,12 @@ impl RenegadeClient {
                 let commitment_u256 = scalar_to_u256(&commitment);
                 let commitment_hash = keccak256(commitment_u256.to_be_bytes::<32>());
                 let chain_id = self.get_chain_id();
-                let sig = SignatureWithNonce::sign(commitment_hash.as_slice(), chain_id, self.get_account_signer())
-                    .map_err(RenegadeClientError::signing)?;
+                let sig = SignatureWithNonce::sign(
+                    commitment_hash.as_slice(),
+                    chain_id,
+                    self.get_account_signer(),
+                )
+                .map_err(RenegadeClientError::signing)?;
                 let intent_signature: ApiSignatureWithNonce = sig.into();
                 Ok(OrderAuth::NativelySettledPrivateOrder { intent_signature })
             },

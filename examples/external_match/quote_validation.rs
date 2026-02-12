@@ -56,18 +56,20 @@ async fn fetch_quote_and_execute(
 
 /// Validate a quote
 async fn validate_quote(quote: &ApiExternalQuote) -> Result<(), eyre::Error> {
-    const MIN_AMOUNT: u128 = 1000000000000000; // 0.001 WETH
-    const MAX_FEE: u128 = 100000000000000; // 0.0001 WETH
+    const MIN_AMOUNT: u128 = 10000000000000; // 0.001 WETH
+    const MAX_FEE: u128 = 1000000000000; // 0.0001 WETH
 
     let total_fee = quote.fees.total();
     let recv_amount = quote.receive.amount;
 
     if recv_amount < MIN_AMOUNT {
-        eyre::bail!("Received amount is less than the minimum amount");
+        eyre::bail!(
+            "Received amount ({recv_amount}) is less than the minimum amount ({MIN_AMOUNT})"
+        );
     }
 
     if total_fee > MAX_FEE {
-        eyre::bail!("Total fee is greater than the maximum fee");
+        eyre::bail!("Total fee ({total_fee}) is greater than the maximum fee ({MAX_FEE})");
     }
 
     Ok(())

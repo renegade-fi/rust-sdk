@@ -38,7 +38,7 @@ async fn main() -> Result<(), eyre::Error> {
         .unwrap();
 
     println!("=== Buy Order with Exact Quote Output ===");
-    println!("Order: {:?}", order);
+    println!("Order: {order:?}");
     fetch_quote_and_execute(&client, order, &signer).await?;
 
     Ok(())
