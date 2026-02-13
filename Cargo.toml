@@ -1,6 +1,6 @@
 [package]
 name = "renegade-sdk"
-version = "1.0.0"
+version = "1.1.0"
 edition = "2024"
 description = "A Rust SDK for the Renegade protocol"
 homepage = "https://renegade.fi/"
@@ -88,11 +88,6 @@ path = "examples/external_match/malleable_match.rs"
 required-features = ["examples"]
 
 [[example]]
-name = "connector_malleable_match"
-path = "examples/external_match/connector_malleable_match.rs"
-required-features = ["examples"]
-
-[[example]]
 name = "direct_malleable_match"
 path = "examples/external_match/direct_malleable_match.rs"
 required-features = ["examples"]
@@ -143,17 +138,18 @@ required-features = ["examples", "darkpool-client"]
 default = ["external-match-client", "darkpool-client"]
 external-match-client = []
 darkpool-client = [
-    "dep:darkpool-client",
     "dep:futures-util",
+    "dep:rand",
     "dep:renegade-circuit-types",
-    "dep:renegade-api",
-    "dep:renegade-common",
+    "dep:renegade-darkpool-types",
     "dep:renegade-constants",
     "dep:renegade-crypto",
-    "dep:renegade-utils",
+    "dep:renegade-solidity-abi",
     "dep:tokio",
+    "dep:tokio-stream",
     "dep:tokio-tungstenite",
     "dep:tracing",
+    "renegade-external-api/full-api",
 ]
 examples = []
 internal = []
@@ -168,7 +164,9 @@ futures-util = { version = "0.3", optional = true }
 reqwest = { version = ">=0.12, <1.0", features = ["json"] }
 serde = { version = "^1.0.197" }
 serde_json = "1.0.64"
+serde_urlencoded = "0.7.1"
 tokio = { version = "1.30.0", features = ["full"], optional = true }
+tokio-stream = { version = "0.1.17", features = ["sync"], optional = true }
 tokio-tungstenite = { version = "0.20.0", features = [
     "native-tls",
 ], optional = true }
@@ -179,18 +177,30 @@ alloy-rpc-types-eth = { version = ">=0.12, <2.0" }
 k256 = { version = "0.13", features = ["ecdsa"] }
 
 # === Renegade Dependencies === #
-darkpool-client = { git = "https://github.com/renegade-fi/renegade.git", features = [
-    "all-chains",
+renegade-types-core = { package = "types-core", git = "https://github.com/renegade-fi/renegade.git", features = [
+    "hmac",
+] }
+renegade-external-api = { package = "external-api", git = "https://github.com/renegade-fi/renegade.git", default-features = false, features = [
+    "auth", "external-match-api"
+] }
+renegade-circuit-types = { package = "circuit-types", git = "https://github.com/renegade-fi/renegade.git", optional = true, features = [
+    "proof-system-types",
+] }
+renegade-darkpool-types = { package = "darkpool-types", git = "https://github.com/renegade-fi/renegade.git", optional = true, features = [
+    "proof-system-types",
+] }
+renegade-constants = { package = "constants", git = "https://github.com/renegade-fi/renegade.git", optional = true }
+renegade-crypto = { package = "crypto", git = "https://github.com/renegade-fi/renegade.git", optional = true }
+renegade-solidity-abi = { package = "abi", git = "https://github.com/renegade-fi/renegade-contracts.git", features = [
+    "v2",
+    "v2-relayer-types",
+    "v2-auth-helpers",
     "transfer-auth",
 ], optional = true }
-renegade-circuit-types = { package = "circuit-types", git = "https://github.com/renegade-fi/renegade.git", optional = true }
-renegade-api = { package = "external-api", git = "https://github.com/renegade-fi/renegade.git", features = [
-    "auth",
-], optional = true }
-renegade-common = { package = "common", git = "https://github.com/renegade-fi/renegade.git", optional = true }
-renegade-constants = { package = "constants", git = "https://github.com/renegade-fi/renegade.git", optional = true }
-renegade-crypto = { package = "renegade-crypto", git = "https://github.com/renegade-fi/renegade.git", optional = true }
-renegade-utils = { package = "util", git = "https://github.com/renegade-fi/renegade.git", optional = true }
+
+# === Cryptography === #
+ark-ff = "0.4"
+rand = { version = "0.8", optional = true }
 
 # === Misc === #
 base64 = "0.22"
@@ -202,9 +212,8 @@ num-integer = "0.1"
 thiserror = "1.0.31"
 tracing = { version = "0.1.39", optional = true }
 url = "2.5.0"
-uuid = "1.13.0"
+uuid = { version = "1.13.0", features = ["serde", "v4"] }
 
 # === Example Dependencies === #
 [dev-dependencies]
-rand = "0.8"
 tokio = { version = "1.30.0", features = ["full"] }

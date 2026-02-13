@@ -3,7 +3,7 @@
 use alloy_rpc_types_eth::TransactionRequest;
 use serde::{Deserialize, Serialize};
 
-use super::FixedPoint;
+use super::{FixedPoint, serde_helpers::*};
 
 // -------------
 // | Api Types |
@@ -22,28 +22,25 @@ pub enum OrderSide {
 }
 
 /// An external order
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct ExternalOrder {
-    /// The mint (erc20 address) of the quote token
-    pub quote_mint: String,
-    /// The mint (erc20 address) of the base token
-    pub base_mint: String,
-    /// The side of the market this order is on
-    pub side: OrderSide,
-    /// The base amount of the order
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct ExternalOrderV2 {
+    /// The mint (erc20 address) of the input token
+    pub input_mint: String,
+    /// The mint (erc20 address) of the output token
+    pub output_mint: String,
+    /// The input amount of the order
     #[serde(default)]
-    pub base_amount: Amount,
-    /// The quote amount of the order
+    #[serde(with = "amount_string_serde")]
+    pub input_amount: Amount,
+    /// The output amount of the order
     #[serde(default)]
-    pub quote_amount: Amount,
-    /// The exact base amount to output from the order
-    #[serde(default)]
-    pub exact_base_output: Amount,
-    /// The exact quote amount to output from the order
-    #[serde(default)]
-    pub exact_quote_output: Amount,
+    #[serde(with = "amount_string_serde")]
+    pub output_amount: Amount,
+    /// Whether to consider the output amount as an exact amount (net of fees)
+    pub use_exact_output_amount: bool,
     /// The minimum fill size for the order
     #[serde(default)]
+    #[serde(with = "amount_string_serde")]
     pub min_fill_size: Amount,
 }
 
@@ -51,11 +48,13 @@ pub struct ExternalOrder {
 /// the external party when the match is settled
 ///
 /// Fees are always paid in the receive token
-#[derive(Copy, Clone, Debug, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Default, Serialize, Deserialize)]
 pub struct FeeTake {
     /// The amount of fees paid to the relayer
+    #[serde(with = "amount_string_serde")]
     pub relayer_fee: Amount,
     /// The amount of fees paid to the protocol
+    #[serde(with = "amount_string_serde")]
     pub protocol_fee: Amount,
 }
 
@@ -84,32 +83,32 @@ impl FeeTakeRate {
 
 /// An API server bounded match result
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct ApiBoundedMatchResult {
-    /// The mint of the quote token in the matched asset pair
-    pub quote_mint: String,
-    /// The mint of the base token in the matched asset pair
-    pub base_mint: String,
-    /// The price at which the match executes
+pub struct ApiBoundedMatchResultV2 {
+    /// The mint of the input token in the matched asset pair
+    pub input_mint: String,
+    /// The mint of the output token in the matched asset pair
+    pub output_mint: String,
+    /// The price of the match, in terms of output token per input token
     pub price_fp: FixedPoint,
-    /// The minimum base amount of the match
-    pub min_base_amount: Amount,
-    /// The maximum base amount of the match
-    pub max_base_amount: Amount,
-    /// The direction of the match
-    pub direction: OrderSide,
+    /// The minimum input amount of the match
+    #[serde(with = "amount_string_serde")]
+    pub min_input_amount: Amount,
+    /// The maximum input amount of the match
+    #[serde(with = "amount_string_serde")]
+    pub max_input_amount: Amount,
 }
 
 /// An atomic match settlement bundle using a malleable match result
 ///
-/// A malleable match result is one in which the exact `base_amount` swapped
+/// A malleable match result is one in which the exact `input_amount` swapped
 /// is not known at the time the proof is generated, and may be changed up until
 /// it is submitted on-chain. Instead, a bounded match result gives a
-/// `min_base_amount` and a `max_base_amount`, between which the `base_amount`
-/// may take any value
+/// `min_input_amount` and a `max_input_amount`, between which the
+/// `input_amount` may take any value
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct MalleableAtomicMatchApiBundle {
+pub struct MalleableAtomicMatchApiBundleV2 {
     /// The match result
-    pub match_result: ApiBoundedMatchResult,
+    pub match_result: ApiBoundedMatchResultV2,
     /// The fees owed by the external party
     pub fee_rates: FeeTakeRate,
     /// The maximum amount that the external party will receive
@@ -126,62 +125,45 @@ pub struct MalleableAtomicMatchApiBundle {
     pub deadline: u64,
 }
 
-/// An atomic match settlement bundle, sent to the client so that they may
-/// settle the match on-chain
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct AtomicMatchApiBundle {
-    /// The match result
-    pub match_result: ApiExternalMatchResult,
-    /// The fees owed by the external party
-    pub fees: FeeTake,
-    /// The transfer received by the external party, net of fees
-    pub receive: ApiExternalAssetTransfer,
-    /// The transfer sent by the external party
-    pub send: ApiExternalAssetTransfer,
-    /// The transaction which settles the match on-chain
-    pub settlement_tx: TransactionRequest,
-    /// The deadline of the bundle, in milliseconds since the epoch
-    pub deadline: u64,
-}
-
 /// An asset transfer from an external party
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ApiExternalAssetTransfer {
     /// The mint of the asset
     pub mint: String,
     /// The amount of the asset
+    #[serde(with = "amount_string_serde")]
     pub amount: Amount,
 }
 
 /// An API server external match result
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct ApiExternalMatchResult {
-    /// The mint of the quote token in the matched asset pair
-    pub quote_mint: String,
-    /// The mint of the base token in the matched asset pair
-    pub base_mint: String,
-    /// The amount of the quote token exchanged by the match
-    pub quote_amount: Amount,
-    /// The amount of the base token exchanged by the match
-    pub base_amount: Amount,
-    /// The direction of the match
-    pub direction: OrderSide,
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct ApiExternalMatchResultV2 {
+    /// The mint of the input token in the matched asset pair
+    pub input_mint: String,
+    /// The mint of the output token in the matched asset pair
+    pub output_mint: String,
+    /// The amount of the input token exchanged by the match
+    #[serde(with = "amount_string_serde")]
+    pub input_amount: Amount,
+    /// The amount of the output token exchanged by the match
+    #[serde(with = "amount_string_serde")]
+    pub output_amount: Amount,
 }
 
 /// A signed quote directly returned by the auth server
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct ApiSignedQuote {
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct ApiSignedQuoteV2 {
     /// The quote
-    pub quote: ApiExternalQuote,
+    pub quote: ApiExternalQuoteV2,
     /// The signature
     pub signature: String,
     /// The deadline of the quote, in milliseconds since the epoch
     pub deadline: u64,
 }
 
-impl From<SignedExternalQuote> for ApiSignedQuote {
-    fn from(signed_quote: SignedExternalQuote) -> Self {
-        ApiSignedQuote {
+impl From<SignedExternalQuoteV2> for ApiSignedQuoteV2 {
+    fn from(signed_quote: SignedExternalQuoteV2) -> Self {
+        ApiSignedQuoteV2 {
             quote: signed_quote.quote,
             signature: signed_quote.signature,
             deadline: signed_quote.deadline,
@@ -191,24 +173,24 @@ impl From<SignedExternalQuote> for ApiSignedQuote {
 
 /// A signed quote for an external order, including gas sponsorship info, if any
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct SignedExternalQuote {
+pub struct SignedExternalQuoteV2 {
     /// The quote
-    pub quote: ApiExternalQuote,
+    pub quote: ApiExternalQuoteV2,
     /// The signature
     pub signature: String,
     /// The deadline of the quote, in milliseconds since the epoch
     pub deadline: u64,
     /// The signed gas sponsorship info, if sponsorship was requested
-    pub gas_sponsorship_info: Option<SignedGasSponsorshipInfo>,
+    pub gas_sponsorship_info: Option<GasSponsorshipInfo>,
 }
 
-impl SignedExternalQuote {
+impl SignedExternalQuoteV2 {
     /// Create a signed quote from an external quote
     pub fn from_api_quote(
-        external_quote: ApiSignedQuote,
-        gas_sponsorship_info: Option<SignedGasSponsorshipInfo>,
+        external_quote: ApiSignedQuoteV2,
+        gas_sponsorship_info: Option<GasSponsorshipInfo>,
     ) -> Self {
-        SignedExternalQuote {
+        SignedExternalQuoteV2 {
             quote: external_quote.quote,
             signature: external_quote.signature,
             deadline: external_quote.deadline,
@@ -216,7 +198,7 @@ impl SignedExternalQuote {
         }
     }
     /// Get the match result from the quote
-    pub fn match_result(&self) -> ApiExternalMatchResult {
+    pub fn match_result(&self) -> ApiExternalMatchResultV2 {
         self.quote.match_result.clone()
     }
 
@@ -237,12 +219,12 @@ impl SignedExternalQuote {
 }
 
 /// A quote for an external order
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct ApiExternalQuote {
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct ApiExternalQuoteV2 {
     /// The external order
-    pub order: ExternalOrder,
+    pub order: ExternalOrderV2,
     /// The match result
-    pub match_result: ApiExternalMatchResult,
+    pub match_result: ApiExternalMatchResultV2,
     /// The estimated fees for the match
     pub fees: FeeTake,
     /// The amount sent by the external party
@@ -256,7 +238,7 @@ pub struct ApiExternalQuote {
 }
 
 /// The price of a quote
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ApiTimestampedPrice {
     /// The price, serialized as a string to prevent floating point precision
     /// issues
@@ -268,16 +250,6 @@ pub struct ApiTimestampedPrice {
 // -----------------------------
 // | Gas Sponsorship API Types |
 // -----------------------------
-
-/// Signed metadata regarding gas sponsorship for a quote
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct SignedGasSponsorshipInfo {
-    /// The signed gas sponsorship info
-    pub gas_sponsorship_info: GasSponsorshipInfo,
-    /// The auth server's signature over the gas sponsorship info
-    #[deprecated(since = "0.1.2", note = "Gas sponsorship info is no longer signed")]
-    pub signature: String,
-}
 
 /// Metadata regarding gas sponsorship for a quote
 #[derive(Clone, Debug, Serialize, Deserialize)]

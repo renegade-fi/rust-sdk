@@ -1,10 +1,9 @@
-//! Types for the Renegade SDK
+//! Re-exports of v1 types for backwards compatibility
 
-// We re-export these types here because they were previously re-exported here
-// from `renegade` dependencies, and we don't want to break existing code that
-// uses them.
+#[cfg(feature = "external-match-client")]
 pub use crate::external_match_client::api_types::{
-    ApiExternalQuote, AtomicMatchApiBundle, ExternalOrder, OrderSide, SignedExternalQuote,
+    OrderSide,
+    v1_types::{ApiExternalQuote, AtomicMatchApiBundle, ExternalOrder, SignedExternalQuote},
 };
 
 /// The address used to represent the native asset

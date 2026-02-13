@@ -2,22 +2,60 @@
 //! transforms the status into a result
 
 use std::{
+    collections::HashMap,
     future::Future,
     pin::Pin,
+    sync::Arc,
     task::{Context, Poll},
     time::Duration,
 };
 
-use futures_util::{future::BoxFuture, FutureExt};
-use renegade_common::types::tasks::TaskIdentifier;
+use futures_util::{FutureExt, Stream, future::BoxFuture};
+use renegade_external_api::types::{ApiTask, TaskUpdateMessage};
+use tokio::sync::{
+    RwLock,
+    oneshot::{self, Receiver as OneshotReceiver, Sender as OneshotSender},
+};
+use tokio_stream::StreamExt;
+use tracing::error;
+use uuid::Uuid;
 
-use crate::{websocket::RenegadeWebsocketClient, RenegadeClientError};
+use crate::RenegadeClientError;
+
+// -------------
+// | Constants |
+// -------------
 
 /// The timeout for a task to complete
-const DEFAULT_TASK_TIMEOUT: Duration = Duration::from_secs(60);
+pub const DEFAULT_TASK_TIMEOUT: Duration = Duration::from_secs(60);
+
+// ----------------
+// | Type Aliases |
+// ----------------
+
+/// A oneshot channel on which to send task status notifications
+type TaskNotificationTx = OneshotSender<TaskStatusNotification>;
+/// A oneshot channel on which to receive task status notifications
+type TaskNotificationRx = OneshotReceiver<TaskStatusNotification>;
+
+/// A map of task IDs to their corresponding notification channels
+type NotificationMap = Arc<RwLock<HashMap<Uuid, TaskNotificationTx>>>;
 
 /// The future type for a task waiter
 type TaskWaiterFuture = BoxFuture<'static, Result<(), RenegadeClientError>>;
+
+// -------------------
+// | Channel Helpers |
+// -------------------
+
+/// Create a new notification channel
+pub fn create_notification_channel() -> (TaskNotificationTx, TaskNotificationRx) {
+    oneshot::channel()
+}
+
+// ---------
+// | Types |
+// ---------
 
 /// A task status notification
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -33,7 +71,7 @@ pub enum TaskStatusNotification {
 
 impl TaskStatusNotification {
     /// Convert the task status into a Result<(), RenegadeClientError>
-    pub fn into_result(self, task_id: TaskIdentifier) -> Result<(), RenegadeClientError> {
+    pub fn into_result(self, task_id: Uuid) -> Result<(), RenegadeClientError> {
         match self {
             Self::Success => Ok(()),
             Self::Failed { error } => Err(RenegadeClientError::task(task_id, error)),
@@ -41,13 +79,103 @@ impl TaskStatusNotification {
     }
 }
 
+// -----------------------
+// | Task Waiter Manager |
+// -----------------------
+
+/// Manages sending notifications to task waiters
+#[derive(Clone)]
+pub struct TaskWaiterManager {
+    /// The notification map
+    notifications: NotificationMap,
+}
+
+impl TaskWaiterManager {
+    /// Create a new task waiter manager
+    pub fn new<S>(tasks_topic: S) -> Self
+    where
+        S: Stream<Item = TaskUpdateMessage> + Unpin + Send + 'static,
+    {
+        let this = Self { notifications: Arc::new(RwLock::new(HashMap::new())) };
+
+        let this_clone = this.clone();
+        tokio::spawn(async move { this_clone.watch_task_updates(tasks_topic).await });
+
+        this
+    }
+
+    /// Create a task waiter which can be awaited until the given task completes
+    pub async fn create_task_waiter(&self, task_id: Uuid, timeout: Duration) -> TaskWaiter {
+        let (tx, rx) = create_notification_channel();
+        self.notifications.write().await.insert(task_id, tx);
+        TaskWaiter::new(task_id, rx, timeout)
+    }
+
+    /// A persistent loop which watches for task updates and forward the task
+    /// status notification to the appropriate receiver if the task's status
+    /// is being awaited
+    async fn watch_task_updates<S>(&self, mut tasks_topic: S)
+    where
+        S: Stream<Item = TaskUpdateMessage> + Unpin,
+    {
+        while let Some(message) = tasks_topic.next().await {
+            self.handle_task_update(message.task).await;
+        }
+
+        error!("Task update stream closed");
+    }
+
+    /// Handle a task update, forwarding the task status notification to the
+    /// appropriate receiver if the task's status is being awaited
+    async fn handle_task_update(&self, task: ApiTask) {
+        let ApiTask { id, state, .. } = task;
+        let state = state.to_lowercase();
+        if state.contains("completed") {
+            self.handle_completed_task(id).await;
+        } else if state.contains("failed") {
+            self.handle_failed_task(id, state).await;
+        }
+    }
+
+    /// Handle a completed task, forwarding a success notification
+    async fn handle_completed_task(&self, task_id: Uuid) {
+        let mut notifications = self.notifications.write().await;
+
+        let tx = match notifications.remove(&task_id) {
+            Some(tx) => tx,
+            None => return,
+        };
+
+        // We explicitly ignore errors here in case the receiver is dropped
+        let _ = tx.send(TaskStatusNotification::Success);
+    }
+
+    /// Handle a failed task, forwarding a failure notification
+    async fn handle_failed_task(&self, task_id: Uuid, error: String) {
+        let mut notifications = self.notifications.write().await;
+
+        let tx = match notifications.remove(&task_id) {
+            Some(tx) => tx,
+            None => return,
+        };
+
+        // We explicitly ignore errors here in case the receiver is dropped
+        let _ = tx.send(TaskStatusNotification::Failed { error });
+    }
+}
+
+// ---------------
+// | Task Waiter |
+// ---------------
+
 /// A thin wrapper around a notification channel that waits for a task to
 /// complete then transforms the status into a result
 pub struct TaskWaiter {
     /// The task ID
-    task_id: TaskIdentifier,
-    /// The websocket client
-    ws_client: RenegadeWebsocketClient,
+    task_id: Uuid,
+    /// The task status notification receiver.
+    /// This will be `taken` once the task waiter is first polled.
+    notification_rx: Option<TaskNotificationRx>,
     /// The duration to wait for the task to complete before timing out
     timeout: Duration,
     /// The underlying future that waits for the task to complete
@@ -56,27 +184,22 @@ pub struct TaskWaiter {
 
 impl TaskWaiter {
     /// Create a new task waiter
-    pub fn new(
-        task_id: TaskIdentifier,
-        ws_client: RenegadeWebsocketClient,
-        timeout: Duration,
-    ) -> Self {
-        Self { task_id, ws_client, timeout, fut: None }
+    pub fn new(task_id: Uuid, notification_rx: TaskNotificationRx, timeout: Duration) -> Self {
+        Self { task_id, notification_rx: Some(notification_rx), timeout, fut: None }
     }
 
     /// Watch a task until it terminates as a success or failure
     async fn watch_task(
-        task_id: TaskIdentifier,
-        ws_client: RenegadeWebsocketClient,
+        task_id: Uuid,
+        notification_rx: TaskNotificationRx,
         timeout: Duration,
     ) -> Result<(), RenegadeClientError> {
         // Register a notification channel for the task and await
-        let mut notification_rx = ws_client.watch_task(task_id).await?;
-        let timeout = tokio::time::timeout(timeout, notification_rx.recv());
+        let timeout = tokio::time::timeout(timeout, notification_rx);
         let notification = timeout
             .await
             .map_err(|_| RenegadeClientError::task(task_id, "Task timed out"))?
-            .ok_or_else(|| RenegadeClientError::task(task_id, "Task waiter closed"))?;
+            .map_err(|_| RenegadeClientError::task(task_id, "Task waiter closed"))?;
 
         notification.into_result(task_id)
     }
@@ -88,38 +211,11 @@ impl Future for TaskWaiter {
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let this = self.get_mut();
         if this.fut.is_none() {
-            let fut = Self::watch_task(this.task_id, this.ws_client.clone(), this.timeout).boxed();
+            let notification_rx = this.notification_rx.take().unwrap();
+            let fut = Self::watch_task(this.task_id, notification_rx, this.timeout).boxed();
             this.fut = Some(fut);
         }
 
         this.fut.as_mut().unwrap().as_mut().poll(cx)
-    }
-}
-
-/// A builder for creating task waiters
-pub struct TaskWaiterBuilder {
-    /// The task ID
-    task_id: TaskIdentifier,
-    /// The websocket client
-    ws_client: RenegadeWebsocketClient,
-    /// The duration to wait for the task to complete before timing out
-    timeout: Option<Duration>,
-}
-
-impl TaskWaiterBuilder {
-    /// Create a new task waiter builder
-    pub fn new(task_id: TaskIdentifier, ws_client: RenegadeWebsocketClient) -> Self {
-        Self { task_id, ws_client, timeout: None }
-    }
-
-    /// Set the timeout for the task waiter
-    pub fn with_timeout(mut self, timeout: Duration) -> Self {
-        self.timeout = Some(timeout);
-        self
-    }
-
-    /// Build the task waiter
-    pub fn build(self) -> TaskWaiter {
-        TaskWaiter::new(self.task_id, self.ws_client, self.timeout.unwrap_or(DEFAULT_TASK_TIMEOUT))
     }
 }

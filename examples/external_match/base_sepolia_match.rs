@@ -1,7 +1,7 @@
-use renegade_sdk::example_utils::{build_renegade_client, execute_bundle, get_signer, Wallet};
+use renegade_sdk::example_utils::{Wallet, build_renegade_client, execute_bundle, get_signer};
 use renegade_sdk::{
-    types::{ExternalOrder, OrderSide},
     ExternalMatchClient, ExternalOrderBuilder,
+    types::{ExternalOrder, OrderSide},
 };
 
 /// Testnet cbBTC
