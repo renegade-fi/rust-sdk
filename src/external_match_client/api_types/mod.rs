@@ -7,6 +7,7 @@ mod order_types;
 mod request_response;
 mod serde_helpers;
 pub mod token;
+pub mod v1_types;
 
 pub use fixed_point::*;
 pub use order_types::*;

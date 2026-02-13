@@ -3,10 +3,9 @@
 use alloy::{primitives::U256, sol_types::SolValue};
 use alloy_rpc_types_eth::{TransactionInput, TransactionRequest};
 
-use crate::{ExternalMatchClientError, api_types::ExternalMatchResponse};
-
-/// The address used to represent the native asset
-const NATIVE_ASSET_ADDR: &str = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
+use crate::{
+    ExternalMatchClientError, api_types::ExternalMatchResponseV2, types::NATIVE_ASSET_ADDR,
+};
 
 /// The offset of the input amount in the calldata, which is `4` because it's
 /// the first calldata argument after the 4-byte function selector.
@@ -17,7 +16,7 @@ const AMOUNT_CALLDATA_LENGTH: usize = 32;
 /// The error emitted when a selected input amount is not in the valid range
 const ERR_INVALID_INPUT_AMOUNT: &str = "invalid input amount";
 
-impl ExternalMatchResponse {
+impl ExternalMatchResponseV2 {
     /// Get a settlement transaction with the current base amount
     pub fn settlement_tx(&self) -> TransactionRequest {
         self.match_bundle.settlement_tx.clone()
@@ -122,7 +121,7 @@ impl ExternalMatchResponse {
     }
 }
 
-impl ExternalMatchResponse {
+impl ExternalMatchResponseV2 {
     /// Set the input amount of the `match_result`. Returns the receive amount
     /// (output amount net of fees).
     pub fn set_input_amount(
