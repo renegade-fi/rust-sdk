@@ -1,6 +1,8 @@
 //! Order types for the external match client
 
 use alloy_rpc_types_eth::TransactionRequest;
+use num_bigint::BigUint;
+use num_traits::Zero;
 use serde::{Deserialize, Serialize};
 
 use super::{FixedPoint, serde_helpers::*};
@@ -135,6 +137,21 @@ pub struct ApiExternalAssetTransfer {
     pub amount: Amount,
 }
 
+/// A timestamped price with full fixed-point precision
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct ApiTimestampedPriceFp {
+    /// The price as a fixed-point value (output/input)
+    pub price: FixedPoint,
+    /// The timestamp in milliseconds
+    pub timestamp: u64,
+}
+
+impl Default for ApiTimestampedPriceFp {
+    fn default() -> Self {
+        Self { price: FixedPoint::new(BigUint::zero()), timestamp: 0 }
+    }
+}
+
 /// An API server external match result
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct ApiExternalMatchResultV2 {
@@ -148,6 +165,8 @@ pub struct ApiExternalMatchResultV2 {
     /// The amount of the output token exchanged by the match
     #[serde(with = "amount_string_serde")]
     pub output_amount: Amount,
+    /// The execution price with full fixed-point precision
+    pub price_fp: ApiTimestampedPriceFp,
 }
 
 /// A signed quote directly returned by the auth server
