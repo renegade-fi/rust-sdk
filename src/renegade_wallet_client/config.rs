@@ -13,7 +13,8 @@ use renegade_types_core::HmacKey;
 use crate::{
     ARBITRUM_ONE_CHAIN_ID, ARBITRUM_ONE_RELAYER_BASE_URL, ARBITRUM_SEPOLIA_CHAIN_ID,
     ARBITRUM_SEPOLIA_RELAYER_BASE_URL, BASE_MAINNET_CHAIN_ID, BASE_MAINNET_RELAYER_BASE_URL,
-    BASE_SEPOLIA_CHAIN_ID, BASE_SEPOLIA_RELAYER_BASE_URL, ETHEREUM_SEPOLIA_CHAIN_ID,
+    BASE_SEPOLIA_CHAIN_ID, BASE_SEPOLIA_RELAYER_BASE_URL, ETHEREUM_MAINNET_CHAIN_ID,
+    ETHEREUM_MAINNET_RELAYER_BASE_URL, ETHEREUM_SEPOLIA_CHAIN_ID,
     ETHEREUM_SEPOLIA_RELAYER_BASE_URL,
 };
 
@@ -43,6 +44,10 @@ pub(crate) const BASE_SEPOLIA_DARKPOOL_ADDRESS: Address =
 /// The darkpool address on Ethereum Sepolia
 pub(crate) const ETHEREUM_SEPOLIA_DARKPOOL_ADDRESS: Address =
     address!("0x45537c28F245645CC1E7F7258FCC18A189CE16e3");
+/// The darkpool address on Ethereum Mainnet
+/// TODO: Set after deployment
+pub(crate) const ETHEREUM_MAINNET_DARKPOOL_ADDRESS: Address =
+    address!("0x0000000000000000000000000000000000000000");
 
 // --- Permit2 Addresses --- //
 
@@ -60,6 +65,9 @@ pub(crate) const BASE_SEPOLIA_PERMIT2_ADDRESS: Address =
     address!("0x000000000022D473030F116dDEE9F6B43aC78BA3");
 /// The permit2 address on Ethereum Sepolia
 pub(crate) const ETHEREUM_SEPOLIA_PERMIT2_ADDRESS: Address =
+    address!("0x000000000022D473030F116dDEE9F6B43aC78BA3");
+/// The permit2 address on Ethereum Mainnet
+pub(crate) const ETHEREUM_MAINNET_PERMIT2_ADDRESS: Address =
     address!("0x000000000022D473030F116dDEE9F6B43aC78BA3");
 
 // --- Executor Addresses --- //
@@ -79,6 +87,10 @@ pub(crate) const BASE_SEPOLIA_EXECUTOR_ADDRESS: Address =
 /// The executor address on Ethereum Sepolia
 pub(crate) const ETHEREUM_SEPOLIA_EXECUTOR_ADDRESS: Address =
     address!("0x92467D2FF278383187f0aB04F8511EF45c31b723");
+/// The executor address on Ethereum Mainnet
+/// TODO: Set after deployment
+pub(crate) const ETHEREUM_MAINNET_EXECUTOR_ADDRESS: Address =
+    address!("0x0000000000000000000000000000000000000000");
 
 // --- Relayer Fee Recipient Addresses --- //
 
@@ -96,6 +108,9 @@ pub(crate) const BASE_SEPOLIA_RELAYER_FEE_RECIPIENT: Address =
     address!("0xa125ecd644591348d08243d8821120c6d7d3a077");
 /// The relayer fee recipient address on Ethereum Sepolia
 pub(crate) const ETHEREUM_SEPOLIA_RELAYER_FEE_RECIPIENT: Address =
+    address!("0x0000000000000000000000000000000000000000");
+/// The relayer fee recipient address on Ethereum Mainnet
+pub(crate) const ETHEREUM_MAINNET_RELAYER_FEE_RECIPIENT: Address =
     address!("0x0000000000000000000000000000000000000000");
 
 /// The client config
@@ -267,6 +282,36 @@ impl RenegadeClientConfig {
             permit2_address: ETHEREUM_SEPOLIA_PERMIT2_ADDRESS,
             executor_address: ETHEREUM_SEPOLIA_EXECUTOR_ADDRESS,
             relayer_fee_recipient: ETHEREUM_SEPOLIA_RELAYER_FEE_RECIPIENT,
+            key: key.clone(),
+            admin_hmac_key: Some(admin_hmac_key),
+        }
+    }
+
+    /// Create a new client config for Ethereum Mainnet
+    pub fn new_ethereum_mainnet(key: &PrivateKeySigner) -> Self {
+        Self {
+            relayer_base_url: ETHEREUM_MAINNET_RELAYER_BASE_URL.to_string(),
+            historical_state_base_url: MAINNET_HISTORICAL_STATE_BASE_URL.to_string(),
+            chain_id: ETHEREUM_MAINNET_CHAIN_ID,
+            darkpool_address: ETHEREUM_MAINNET_DARKPOOL_ADDRESS,
+            permit2_address: ETHEREUM_MAINNET_PERMIT2_ADDRESS,
+            executor_address: ETHEREUM_MAINNET_EXECUTOR_ADDRESS,
+            relayer_fee_recipient: ETHEREUM_MAINNET_RELAYER_FEE_RECIPIENT,
+            key: key.clone(),
+            admin_hmac_key: None,
+        }
+    }
+
+    /// Create a new admin client config for Ethereum Mainnet
+    pub fn new_ethereum_mainnet_admin(key: &PrivateKeySigner, admin_hmac_key: HmacKey) -> Self {
+        Self {
+            relayer_base_url: ETHEREUM_MAINNET_RELAYER_BASE_URL.to_string(),
+            historical_state_base_url: MAINNET_HISTORICAL_STATE_BASE_URL.to_string(),
+            chain_id: ETHEREUM_MAINNET_CHAIN_ID,
+            darkpool_address: ETHEREUM_MAINNET_DARKPOOL_ADDRESS,
+            permit2_address: ETHEREUM_MAINNET_PERMIT2_ADDRESS,
+            executor_address: ETHEREUM_MAINNET_EXECUTOR_ADDRESS,
+            relayer_fee_recipient: ETHEREUM_MAINNET_RELAYER_FEE_RECIPIENT,
             key: key.clone(),
             admin_hmac_key: Some(admin_hmac_key),
         }

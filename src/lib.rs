@@ -46,6 +46,9 @@ pub(crate) const BASE_MAINNET_RELAYER_BASE_URL: &str =
 /// The Ethereum Sepolia relayer base URL
 pub(crate) const ETHEREUM_SEPOLIA_RELAYER_BASE_URL: &str =
     "https://ethereum-sepolia.v2.relayer.renegade.fi";
+/// The Ethereum Mainnet relayer base URL
+pub(crate) const ETHEREUM_MAINNET_RELAYER_BASE_URL: &str =
+    "https://ethereum-mainnet.v2.relayer.renegade.fi";
 
 // --- Chain IDs --- //
 
@@ -59,3 +62,5 @@ pub const BASE_MAINNET_CHAIN_ID: u64 = 8453;
 pub const BASE_SEPOLIA_CHAIN_ID: u64 = 84532;
 /// The Ethereum Sepolia chain ID
 pub const ETHEREUM_SEPOLIA_CHAIN_ID: u64 = 11155111;
+/// The Ethereum Mainnet chain ID
+pub const ETHEREUM_MAINNET_CHAIN_ID: u64 = 1;
