@@ -5,8 +5,8 @@ use std::collections::HashSet;
 use alloy::{primitives::U256, sol_types::SolValue};
 
 use crate::api_types::{
-    ApiExternalAssetTransfer, ApiTimestampedPrice, ExternalMatchResponseV2, ExternalOrderV2,
-    FeeTake, OrderSide, SignedExternalQuoteV2,
+    ApiExternalAssetTransfer, ApiSignedQuoteV2, ApiTimestampedPrice, ExternalMatchResponseV2,
+    ExternalOrderV2, FeeTake, OrderSide, SignedExternalQuoteV2,
     markets::MarketDepth,
     v1_types::{
         ApiExternalMatchResult, ApiExternalQuote, AtomicMatchApiBundle, ExternalMatchResponse,
@@ -265,7 +265,7 @@ pub(crate) fn v2_quote_to_v1(
         .map(|info| SignedGasSponsorshipInfo { gas_sponsorship_info: info.clone() });
 
     // Store the original v2 ApiSignedQuote for round-tripping
-    let inner_v2 = crate::api_types::ApiSignedQuoteV2 {
+    let inner_v2 = ApiSignedQuoteV2 {
         quote: v2_signed_quote.quote,
         signature: v2_signed_quote.signature.clone(),
         deadline: v2_signed_quote.deadline,
