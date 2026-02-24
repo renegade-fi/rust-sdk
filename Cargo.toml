@@ -1,6 +1,6 @@
 [package]
 name = "renegade-sdk"
-version = "2.0.0"
+version = "2.0.1"
 edition = "2024"
 description = "A Rust SDK for the Renegade protocol"
 homepage = "https://renegade.fi/"
@@ -138,13 +138,16 @@ required-features = ["examples", "darkpool-client"]
 default = ["external-match-client", "darkpool-client"]
 external-match-client = []
 darkpool-client = [
+    "dep:ark-ff",
     "dep:futures-util",
     "dep:rand",
     "dep:renegade-circuit-types",
     "dep:renegade-darkpool-types",
     "dep:renegade-constants",
     "dep:renegade-crypto",
+    "dep:renegade-external-api",
     "dep:renegade-solidity-abi",
+    "dep:renegade-types-core",
     "dep:tokio",
     "dep:tokio-stream",
     "dep:tokio-tungstenite",
@@ -156,6 +159,7 @@ internal = []
 
 [dependencies]
 # === Auth === #
+hex = "0.4"
 hmac = "0.12"
 sha2 = { version = "0.10", features = ["asm"] }
 
@@ -177,10 +181,10 @@ alloy-rpc-types-eth = { version = ">=0.12, <2.0" }
 k256 = { version = "0.13", features = ["ecdsa"] }
 
 # === Renegade Dependencies === #
-renegade-types-core = { package = "types-core", git = "https://github.com/renegade-fi/renegade.git", features = [
+renegade-types-core = { package = "types-core", git = "https://github.com/renegade-fi/renegade.git", optional = true, features = [
     "hmac",
 ] }
-renegade-external-api = { package = "external-api", git = "https://github.com/renegade-fi/renegade.git", default-features = false, features = [
+renegade-external-api = { package = "external-api", git = "https://github.com/renegade-fi/renegade.git", optional = true, default-features = false, features = [
     "auth", "external-match-api"
 ] }
 renegade-circuit-types = { package = "circuit-types", git = "https://github.com/renegade-fi/renegade.git", optional = true, features = [
@@ -199,7 +203,7 @@ renegade-solidity-abi = { package = "abi", git = "https://github.com/renegade-fi
 ], optional = true }
 
 # === Cryptography === #
-ark-ff = "0.4"
+ark-ff = { version = "0.4", optional = true }
 rand = { version = "0.8", optional = true }
 
 # === Misc === #

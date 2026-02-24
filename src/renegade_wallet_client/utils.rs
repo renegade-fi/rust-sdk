@@ -1,10 +1,10 @@
 //! Shared utilities for the Renegade wallet client
 
+use crate::auth::HmacKey;
 use alloy::{primitives::keccak256, signers::SignerSync, signers::local::PrivateKeySigner, sol};
 use ark_ff::PrimeField;
 use renegade_circuit_types::schnorr::SchnorrPrivateKey;
 use renegade_constants::{EmbeddedScalarField, Scalar};
-use renegade_types_core::HmacKey;
 use uuid::Uuid;
 
 // -------------

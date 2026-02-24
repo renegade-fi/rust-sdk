@@ -3,13 +3,13 @@
 
 use std::{collections::HashMap, time::Duration};
 
+use crate::auth::HmacKey;
+use crate::auth::add_expiring_auth_to_headers;
 use futures_util::{SinkExt, StreamExt};
-use renegade_external_api::auth::add_expiring_auth_to_headers;
 use renegade_external_api::types::websocket::{
     ClientWebsocketMessage, ClientWebsocketMessageBody, ServerWebsocketMessage,
     ServerWebsocketMessageBody,
 };
-use renegade_types_core::HmacKey;
 use reqwest::header::HeaderMap;
 use tokio::sync::{
     RwLock,

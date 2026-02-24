@@ -1,6 +1,6 @@
 //! The client for requesting external matches
 
-use renegade_types_core::HmacKey;
+use crate::auth::HmacKey;
 use reqwest::{
     StatusCode,
     header::{HeaderMap, HeaderValue},

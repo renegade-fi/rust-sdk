@@ -3,6 +3,7 @@
 use std::sync::{Arc, OnceLock};
 use std::{collections::HashMap, time::Duration};
 
+use crate::auth::HmacKey;
 use futures_util::Stream;
 use futures_util::stream::SplitSink;
 use renegade_external_api::types::websocket::ServerWebsocketMessageBody;
@@ -10,7 +11,6 @@ use renegade_external_api::types::{
     AdminBalanceUpdateMessage, AdminOrderUpdateMessage, BalanceUpdateMessage, FillMessage,
     OrderUpdateMessage, TaskUpdateMessage,
 };
-use renegade_types_core::HmacKey;
 use tokio::net::TcpStream;
 use tokio::sync::{
     OnceCell as AsyncOnceCell, RwLock,
