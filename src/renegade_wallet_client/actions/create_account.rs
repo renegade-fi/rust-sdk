@@ -24,7 +24,7 @@ impl RenegadeClient {
             account_id,
             address,
             master_view_seed,
-            auth_hmac_key,
+            auth_hmac_key: auth_hmac_key.into(),
             schnorr_public_key,
         };
 

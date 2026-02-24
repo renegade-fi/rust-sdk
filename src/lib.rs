@@ -4,11 +4,14 @@
 #![deny(unsafe_code)]
 #![deny(clippy::needless_pass_by_ref_mut)]
 
+pub mod auth;
 #[cfg(feature = "external-match-client")]
 pub(crate) mod external_match_client;
 mod http;
 pub mod types;
 mod util;
+
+pub use auth::HmacKey;
 
 #[cfg(feature = "internal")]
 pub use http::*;

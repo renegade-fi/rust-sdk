@@ -1,7 +1,6 @@
 //! HTTP client for connecting to the relayer
 
-use renegade_external_api::auth::add_expiring_auth_to_headers;
-use renegade_types_core::HmacKey;
+use crate::auth::{HmacKey, add_expiring_auth_to_headers};
 use reqwest::{Client, header::HeaderMap};
 use serde::{Serialize, de::DeserializeOwned};
 use std::time::Duration;

@@ -3,13 +3,13 @@
 use std::sync::Arc;
 use std::time::Duration;
 
+use crate::auth::HmacKey;
 use alloy::primitives::Address;
 use alloy::signers::local::PrivateKeySigner;
 use futures_util::Stream;
 use renegade_circuit_types::schnorr::{SchnorrPrivateKey, SchnorrPublicKey, SchnorrSignature};
 use renegade_circuit_types::traits::BaseType;
 use renegade_constants::Scalar;
-use renegade_types_core::HmacKey;
 use uuid::Uuid;
 
 use renegade_external_api::types::websocket::{

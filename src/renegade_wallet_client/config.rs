@@ -4,11 +4,11 @@
 // | Constants |
 // -------------
 
+use crate::auth::HmacKey;
 use alloy::{
     primitives::{Address, address},
     signers::local::PrivateKeySigner,
 };
-use renegade_types_core::HmacKey;
 
 use crate::{
     ARBITRUM_ONE_CHAIN_ID, ARBITRUM_ONE_RELAYER_BASE_URL, ARBITRUM_SEPOLIA_CHAIN_ID,
