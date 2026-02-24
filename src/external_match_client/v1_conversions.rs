@@ -44,7 +44,8 @@ pub(crate) fn v1_order_to_v2(order: &ExternalOrder) -> ExternalOrderV2 {
             } else if order.exact_base_output != 0 {
                 (0, order.exact_base_output, true)
             } else {
-                (order.exact_quote_output, 0, true)
+                // v1 alias: exact_quote_output on Buy is input-side exact spend
+                (order.exact_quote_output, 0, false)
             };
 
             ExternalOrderV2 {
@@ -65,7 +66,8 @@ pub(crate) fn v1_order_to_v2(order: &ExternalOrder) -> ExternalOrderV2 {
             } else if order.exact_quote_output != 0 {
                 (0, order.exact_quote_output, true)
             } else {
-                (order.exact_base_output, 0, true)
+                // v1 alias: exact_base_output on Sell is input-side exact spend
+                (order.exact_base_output, 0, false)
             };
 
             ExternalOrderV2 {

@@ -1,10 +1,10 @@
-//! Sell with exact quote output: receive exactly N quote tokens.
+//! Buy with exact base output: receive exactly N base tokens.
 //!
-//! "I'm selling wETH and want to receive exactly this much USDC."
+//! "I'm buying wETH and want to receive exactly this many."
 
 use renegade_sdk::example_utils::{Wallet, build_renegade_client, execute_bundle, get_signer};
 use renegade_sdk::{
-    ExternalMatchClient, ExternalOrderBuilder, RequestQuoteOptions,
+    ExternalMatchClient, ExternalOrderBuilder,
     types::{ExternalOrder, OrderSide},
 };
 
@@ -21,13 +21,13 @@ async fn main() -> Result<(), eyre::Error> {
     let order = ExternalOrderBuilder::new()
         .base_mint(BASE_MINT)
         .quote_mint(QUOTE_MINT)
-        .exact_quote_output(30_000_000) // 30 USDC (6 decimals)
-        .side(OrderSide::Sell)
+        .exact_base_output(10_000_000_000_000_000) // 0.01 wETH (18 decimals)
+        .side(OrderSide::Buy)
         .build()
         .unwrap();
 
-    println!("=== Sell + exact_quote_output (exact receive) ===");
-    println!("Goal: receive exactly 30 USDC, sell whatever wETH is needed");
+    println!("=== Buy + exact_base_output (exact receive) ===");
+    println!("Goal: receive exactly 0.01 wETH, pay whatever USDC is needed");
     fetch_quote_and_execute(&client, order, &signer).await
 }
 
@@ -37,10 +37,7 @@ async fn fetch_quote_and_execute(
     wallet: &Wallet,
 ) -> Result<(), eyre::Error> {
     println!("Fetching quote...");
-    let quote = client
-        .request_quote_with_options(order, RequestQuoteOptions::default())
-        .await?
-        .ok_or_else(|| eyre::eyre!("No quote found"))?;
+    let quote = client.request_quote(order).await?.ok_or_else(|| eyre::eyre!("No quote found"))?;
 
     println!("Assembling quote...");
     let resp = client.assemble_quote(quote).await?.ok_or_else(|| eyre::eyre!("No bundle found"))?;
