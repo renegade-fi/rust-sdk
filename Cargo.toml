@@ -48,6 +48,11 @@ path = "examples/external_match/in_kind_gas_sponsorship.rs"
 required-features = ["examples"]
 
 [[example]]
+name = "exact_base_output"
+path = "examples/external_match/exact_base_output.rs"
+required-features = ["examples"]
+
+[[example]]
 name = "exact_quote_output"
 path = "examples/external_match/exact_quote_output.rs"
 required-features = ["examples"]
