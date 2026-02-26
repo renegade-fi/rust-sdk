@@ -207,7 +207,8 @@ impl ExternalMatchClient {
     /// and fee rates for each market.
     pub async fn get_markets(&self) -> Result<GetMarketsResponse, ExternalMatchClientError> {
         let path = GET_MARKETS_ROUTE;
-        let resp = self.relayer_http_client.get(path).await?;
+        let headers = self.get_headers()?;
+        let resp = self.auth_http_client.get_with_headers(path, headers).await?;
 
         Ok(resp)
     }
