@@ -8,7 +8,7 @@ use crate::auth::add_expiring_auth_to_headers;
 use futures_util::{SinkExt, StreamExt};
 use renegade_external_api::types::websocket::{
     ClientWebsocketMessage, ClientWebsocketMessageBody, ServerWebsocketMessage,
-    ServerWebsocketMessageBody,
+    ServerWebsocketMessageBody, SubscriptionsMessage,
 };
 use reqwest::header::HeaderMap;
 use tokio::sync::{
@@ -298,8 +298,16 @@ impl SubscriptionManager {
     /// Handle an incoming server message, routing it to the appropriate topic
     /// channel
     async fn handle_server_message(&self, txt: String) -> Result<(), RenegadeClientError> {
-        let msg: ServerWebsocketMessage =
-            serde_json::from_str(&txt).map_err(RenegadeClientError::serde)?;
+        let msg: ServerWebsocketMessage = match serde_json::from_str(&txt) {
+            Ok(msg) => msg,
+            Err(e) => {
+                // Subscription acks have no topic field and don't need routing
+                if serde_json::from_str::<SubscriptionsMessage>(&txt).is_ok() {
+                    return Ok(());
+                }
+                return Err(RenegadeClientError::serde(e));
+            },
+        };
 
         if let Some(tx) = self.try_get_subscription(&msg.topic).await {
             tx.send(msg.body).map_err(RenegadeClientError::subscription)?;
