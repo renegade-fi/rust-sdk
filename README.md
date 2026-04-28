@@ -1,10 +1,6 @@
 # rust-sdk
 A rust SDK for building Renegade clients.
 
-## Basic Use
-
-Todo...
-
 # External (Atomic) Matches
 
 In addition to the standard darkpool flow -- deposit, place order, receive a match, then withdraw -- Renegade also supports *external* matches. An external match is a match between an internal party -- with state committed into the darkpool -- and an external party, with no state in the darkpool. Importantly, external matches are settled atomically; that is, the deposit, place order, match, withdraw flow is emulated in a _single transaction_ for the external party.
@@ -19,83 +15,7 @@ Upon receiving an external match, the darkpool contract will update the encrypte
 
 ### Generating an External Match
 
-Generating an external match breaks down into three steps:
-1. Fetch a quote for the order.
-2. If the quote is acceptable, assemble the quote into a **bundle**. Bundles contain a transaction that may be used to settle the trade on-chain.
-3. Submit the settlement transaction on-chain.
-
-### Example
-A full example can be found in [`examples/external_match.rs`](examples/external_match.rs).
-
-This can be run with `cargo run --example external_match`.
-
-<details>
-<summary>Rust Code</summary>
-
-```rust
-
-// ... See `examples/external_match.rs` for full example ... //
-
-#[tokio::main]
-async fn main() -> Result<(), eyre::Error> {
-    // Get wallet from private key
-    let signer = get_signer().await?;
-
-    // Get the external match client
-    let api_key = std::env::var("EXTERNAL_MATCH_KEY").unwrap();
-    let api_secret = std::env::var("EXTERNAL_MATCH_SECRET").unwrap();
-    let client = ExternalMatchClient::new_sepolia_client(&api_key, &api_secret).unwrap();
-
-    let order = ExternalOrderBuilder::new()
-        .base_mint(BASE_MINT)
-        .quote_mint(QUOTE_MINT)
-        .quote_amount(30_000_000) // $30 USDC
-        .min_fill_size(30_000_000) // $30 USDC
-        .side(OrderSide::Sell)
-        .build()
-        .unwrap();
-
-    fetch_quote_and_execute(&client, order, &signer).await?;
-    Ok(())
-}
-
-/// Fetch a quote from the external api and print it
-async fn fetch_quote_and_execute(
-    client: &ExternalMatchClient,
-    order: ExternalOrder,
-    wallet: &OurMiddleware,
-) -> Result<(), eyre::Error> {
-    // Fetch a quote from the relayer
-    println!("Fetching quote...");
-    let res = client.request_quote(order).await?;
-    let quote = match res {
-        Some(quote) => quote,
-        None => eyre::bail!("No quote found"),
-    };
-
-    // Assemble the quote into a bundle
-    println!("Assembling quote...");
-    let bundle = match client.assemble_quote(quote).await? {
-        Some(bundle) => bundle,
-        None => eyre::bail!("No bundle found"),
-    };
-    execute_bundle(wallet, bundle).await
-}
-
-/// Execute a bundle directly
-async fn execute_bundle(
-    wallet: &OurMiddleware,
-    bundle: AtomicMatchApiBundle,
-) -> Result<(), eyre::Error> {
-    println!("Submitting bundle...\n");
-    let tx = bundle.settlement_tx.clone();
-    let receipt: PendingTransaction<_> = wallet.send_transaction(tx, None).await.unwrap();
-
-    println!("Successfully submitted transaction: {:#x}", receipt.tx_hash());
-    Ok(())
-}
-```
-</details>
+See: https://docs-v2.renegade.fi/integration-quickstart/solver-rfqs
 
 ## Gas Sponsorship
 
