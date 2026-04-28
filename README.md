@@ -1,10 +1,6 @@
 # rust-sdk
 A rust SDK for building Renegade clients.
 
-## Basic Use
-
-Todo...
-
 # External (Atomic) Matches
 
 In addition to the standard darkpool flow -- deposit, place order, receive a match, then withdraw -- Renegade also supports *external* matches. An external match is a match between an internal party -- with state committed into the darkpool -- and an external party, with no state in the darkpool. Importantly, external matches are settled atomically; that is, the deposit, place order, match, withdraw flow is emulated in a _single transaction_ for the external party.
