@@ -190,6 +190,19 @@ impl RenegadeClient {
         Self::new(RenegadeClientConfig::new_base_mainnet_admin(key, admin_hmac_key))
     }
 
+    /// Create a new wallet on Ethereum Mainnet
+    pub fn new_ethereum_mainnet(key: &PrivateKeySigner) -> Result<Self, RenegadeClientError> {
+        Self::new(RenegadeClientConfig::new_ethereum_mainnet(key))
+    }
+
+    /// Create a new admin wallet on Ethereum Mainnet
+    pub fn new_ethereum_mainnet_admin(
+        key: &PrivateKeySigner,
+        admin_hmac_key: HmacKey,
+    ) -> Result<Self, RenegadeClientError> {
+        Self::new(RenegadeClientConfig::new_ethereum_mainnet_admin(key, admin_hmac_key))
+    }
+
     /// Whether the client is on a chain in which Renegade is deployed as a
     /// solidity contract
     pub fn is_solidity_chain(&self) -> bool {
