@@ -20,7 +20,7 @@ use renegade_external_api::types::websocket::{
 use crate::util::get_env_agnostic_chain;
 use crate::websocket::TaskWaiter;
 use crate::{
-    BASE_MAINNET_CHAIN_ID, BASE_SEPOLIA_CHAIN_ID, RenegadeClientError,
+    ETHEREUM_SEPOLIA_CHAIN_ID, BASE_MAINNET_CHAIN_ID, BASE_SEPOLIA_CHAIN_ID, RenegadeClientError,
     http::RelayerHttpClient,
     renegade_wallet_client::{
         config::RenegadeClientConfig,
@@ -195,6 +195,7 @@ impl RenegadeClient {
     pub fn is_solidity_chain(&self) -> bool {
         self.config.chain_id == BASE_MAINNET_CHAIN_ID
             || self.config.chain_id == BASE_SEPOLIA_CHAIN_ID
+            || self.config.chain_id == ETHEREUM_SEPOLIA_CHAIN_ID
     }
 
     // --------------
