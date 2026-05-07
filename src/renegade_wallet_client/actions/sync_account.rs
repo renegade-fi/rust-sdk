@@ -1,5 +1,6 @@
 //! Sync an account with onchain state
 
+use alloy::primitives::Address;
 use renegade_external_api::http::account::{
     SYNC_ACCOUNT_ROUTE, SyncAccountRequest, SyncAccountResponse,
 };
@@ -16,7 +17,18 @@ impl RenegadeClient {
     /// Sync an account with onchain state. Awaits the completion of the sync
     /// task before returning.
     pub async fn sync_account(&self) -> Result<(), RenegadeClientError> {
-        let request = self.build_sync_account_request();
+        self.sync_account_with_tokens(Vec::new()).await
+    }
+
+    /// Sync an account with onchain state, additionally forcing a balance
+    /// refresh for the given tokens regardless of whether they appear in
+    /// the wallet's active intents. Awaits the completion of the sync
+    /// task before returning.
+    pub async fn sync_account_with_tokens(
+        &self,
+        additional_tokens: Vec<Address>,
+    ) -> Result<(), RenegadeClientError> {
+        let request = self.build_sync_account_request(additional_tokens);
 
         let path = self.build_sync_account_request_path(false)?;
 
@@ -28,7 +40,17 @@ impl RenegadeClient {
     /// Enqueues a sync task in the relayer. Returns a `TaskWaiter` that can be
     /// used to await task completion.
     pub async fn enqueue_sync_account(&self) -> Result<TaskWaiter, RenegadeClientError> {
-        let request = self.build_sync_account_request();
+        self.enqueue_sync_account_with_tokens(Vec::new()).await
+    }
+
+    /// Enqueues a sync task in the relayer, additionally forcing a balance
+    /// refresh for the given tokens. Returns a `TaskWaiter` that can be
+    /// used to await task completion.
+    pub async fn enqueue_sync_account_with_tokens(
+        &self,
+        additional_tokens: Vec<Address>,
+    ) -> Result<TaskWaiter, RenegadeClientError> {
+        let request = self.build_sync_account_request(additional_tokens);
 
         let path = self.build_sync_account_request_path(true)?;
 
@@ -43,12 +65,16 @@ impl RenegadeClient {
 // --- Private Helpers --- //
 impl RenegadeClient {
     /// Builds the sync account request
-    fn build_sync_account_request(&self) -> SyncAccountRequest {
+    fn build_sync_account_request(
+        &self,
+        additional_tokens: Vec<Address>,
+    ) -> SyncAccountRequest {
         SyncAccountRequest {
             account_id: self.get_account_id(),
             master_view_seed: self.get_master_view_seed(),
             auth_hmac_key: self.get_auth_hmac_key().into(),
             schnorr_public_key: self.get_schnorr_public_key(),
+            additional_tokens,
         }
     }
 
