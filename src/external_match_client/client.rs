@@ -9,7 +9,8 @@ use reqwest::{
 use crate::{
     ARBITRUM_ONE_RELAYER_BASE_URL, ARBITRUM_SEPOLIA_RELAYER_BASE_URL, AssembleQuoteOptionsV2,
     BASE_MAINNET_RELAYER_BASE_URL, BASE_SEPOLIA_RELAYER_BASE_URL,
-    ETHEREUM_SEPOLIA_RELAYER_BASE_URL, ExternalMatchOptions, RequestQuoteOptions,
+    ETHEREUM_MAINNET_RELAYER_BASE_URL, ETHEREUM_SEPOLIA_RELAYER_BASE_URL, ExternalMatchOptions,
+    RequestQuoteOptions,
     api_types::{
         ASSEMBLE_MATCH_BUNDLE_ROUTE, AssemblyType, ExternalMatchResponseV2,
         GET_MARKET_DEPTH_BY_MINT_ROUTE, GET_MARKETS_DEPTH_ROUTE, GET_MARKETS_ROUTE,
@@ -46,6 +47,8 @@ const BASE_SEPOLIA_AUTH_BASE_URL: &str = "https://base-sepolia.v2.auth-server.re
 const BASE_MAINNET_AUTH_BASE_URL: &str = "https://base-mainnet.v2.auth-server.renegade.fi";
 /// The Ethereum Sepolia auth server base URL
 const ETHEREUM_SEPOLIA_AUTH_BASE_URL: &str = "https://ethereum-sepolia.v2.auth-server.renegade.fi";
+/// The Ethereum Mainnet auth server base URL
+const ETHEREUM_MAINNET_AUTH_BASE_URL: &str = "https://ethereum-mainnet.v2.auth-server.renegade.fi";
 
 // ----------
 // | Client |
@@ -195,6 +198,35 @@ impl ExternalMatchClient {
             api_secret,
             BASE_MAINNET_AUTH_BASE_URL,
             BASE_MAINNET_RELAYER_BASE_URL,
+            client,
+        )
+    }
+
+    /// Create a new client for the Ethereum Mainnet network
+    pub fn new_ethereum_mainnet_client(
+        api_key: &str,
+        api_secret: &str,
+    ) -> Result<Self, ExternalMatchClientError> {
+        Self::new(
+            api_key,
+            api_secret,
+            ETHEREUM_MAINNET_AUTH_BASE_URL,
+            ETHEREUM_MAINNET_RELAYER_BASE_URL,
+        )
+    }
+
+    /// Create a new client for the Ethereum Mainnet network with custom HTTP
+    /// client
+    pub fn new_ethereum_mainnet_with_client(
+        api_key: &str,
+        api_secret: &str,
+        client: reqwest::Client,
+    ) -> Result<Self, ExternalMatchClientError> {
+        Self::new_with_client(
+            api_key,
+            api_secret,
+            ETHEREUM_MAINNET_AUTH_BASE_URL,
+            ETHEREUM_MAINNET_RELAYER_BASE_URL,
             client,
         )
     }
