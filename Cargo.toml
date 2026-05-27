@@ -200,7 +200,7 @@ renegade-darkpool-types = { package = "darkpool-types", git = "https://github.co
 ] }
 renegade-constants = { package = "constants", git = "https://github.com/renegade-fi/renegade.git", branch = "wj/pool-runner", optional = true }
 renegade-crypto = { package = "crypto", git = "https://github.com/renegade-fi/renegade.git", branch = "wj/pool-runner", optional = true }
-renegade-solidity-abi = { package = "abi", git = "https://github.com/renegade-fi/renegade-contracts.git", features = [
+renegade-solidity-abi = { package = "abi", git = "https://github.com/renegade-fi/renegade-contracts", features = [
     "v2",
     "v2-relayer-types",
     "v2-auth-helpers",
@@ -233,3 +233,17 @@ tokio = { version = "1.30.0", features = ["full"] }
 # fork at the 0.4.0 source. Pin to a specific rev for reproducibility.
 [patch.crates-io]
 core2 = { git = "https://github.com/tcharding/core2", rev = "545e84bcb0f235b12e21351e0c69767958efe2a7" }
+
+# DEVELOPMENT WORKAROUND: see the matching comment in
+# relayer-extensions/Cargo.toml. Paths are relative to this workspace root,
+# assuming a sibling layout:
+#   <parent>/rust-sdk/   (this repo)
+#   <parent>/renegade/   (renegade.git on the wj/pool-runner branch)
+#
+# Replace with a portable form (e.g., rev pin on renegade-contracts'
+# darkpool-types dep) once the feature work merges back to main.
+[patch."https://github.com/renegade-fi/renegade"]
+darkpool-types = { path = "../renegade/crates/darkpool-types" }
+circuit-types = { path = "../renegade/crates/circuits/circuit-types" }
+constants = { path = "../renegade/crates/constants" }
+crypto = { path = "../renegade/crates/crypto" }
