@@ -186,20 +186,20 @@ alloy-rpc-types-eth = { version = ">=0.12, <2.0" }
 k256 = { version = "0.13", features = ["ecdsa"] }
 
 # === Renegade Dependencies === #
-renegade-types-core = { package = "types-core", git = "https://github.com/renegade-fi/renegade.git", branch = "wj/pool-runner", optional = true, features = [
+renegade-types-core = { package = "types-core", git = "https://github.com/renegade-fi/renegade.git", optional = true, features = [
     "hmac",
 ] }
-renegade-external-api = { package = "external-api", git = "https://github.com/renegade-fi/renegade.git", branch = "wj/pool-runner", optional = true, default-features = false, features = [
+renegade-external-api = { package = "external-api", git = "https://github.com/renegade-fi/renegade.git", optional = true, default-features = false, features = [
     "auth", "external-match-api"
 ] }
-renegade-circuit-types = { package = "circuit-types", git = "https://github.com/renegade-fi/renegade.git", branch = "wj/pool-runner", optional = true, features = [
+renegade-circuit-types = { package = "circuit-types", git = "https://github.com/renegade-fi/renegade.git", optional = true, features = [
     "proof-system-types",
 ] }
-renegade-darkpool-types = { package = "darkpool-types", git = "https://github.com/renegade-fi/renegade.git", branch = "wj/pool-runner", optional = true, features = [
+renegade-darkpool-types = { package = "darkpool-types", git = "https://github.com/renegade-fi/renegade.git", optional = true, features = [
     "proof-system-types",
 ] }
-renegade-constants = { package = "constants", git = "https://github.com/renegade-fi/renegade.git", branch = "wj/pool-runner", optional = true }
-renegade-crypto = { package = "crypto", git = "https://github.com/renegade-fi/renegade.git", branch = "wj/pool-runner", optional = true }
+renegade-constants = { package = "constants", git = "https://github.com/renegade-fi/renegade.git", optional = true }
+renegade-crypto = { package = "crypto", git = "https://github.com/renegade-fi/renegade.git", optional = true }
 renegade-solidity-abi = { package = "abi", git = "https://github.com/renegade-fi/renegade-contracts", features = [
     "v2",
     "v2-relayer-types",
@@ -233,17 +233,3 @@ tokio = { version = "1.30.0", features = ["full"] }
 # fork at the 0.4.0 source. Pin to a specific rev for reproducibility.
 [patch.crates-io]
 core2 = { git = "https://github.com/tcharding/core2", rev = "545e84bcb0f235b12e21351e0c69767958efe2a7" }
-
-# DEVELOPMENT WORKAROUND: see the matching comment in
-# relayer-extensions/Cargo.toml. Paths are relative to this workspace root,
-# assuming a sibling layout:
-#   <parent>/rust-sdk/   (this repo)
-#   <parent>/renegade/   (renegade.git on the wj/pool-runner branch)
-#
-# Replace with a portable form (e.g., rev pin on renegade-contracts'
-# darkpool-types dep) once the feature work merges back to main.
-[patch."https://github.com/renegade-fi/renegade"]
-darkpool-types = { path = "../renegade/crates/darkpool-types" }
-circuit-types = { path = "../renegade/crates/circuits/circuit-types" }
-constants = { path = "../renegade/crates/constants" }
-crypto = { path = "../renegade/crates/crypto" }
