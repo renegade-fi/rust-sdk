@@ -18,7 +18,7 @@ use tokio::sync::{
 };
 use tokio_stream::wrappers::BroadcastStream;
 use tokio_tungstenite::tungstenite::Message;
-use tracing::{error, info, warn};
+use tracing::{debug, error, info, warn};
 
 use crate::{
     RenegadeClientError,
@@ -131,7 +131,6 @@ impl SubscriptionManager {
     }
 
     /// Unsubscribe from the given topic
-    #[allow(dead_code)]
     pub async fn unsubscribe_from_topic(&self, topic: String) -> Result<(), RenegadeClientError> {
         match self.try_get_subscription(&topic).await {
             // If there are still listeners for the topic, do nothing
@@ -310,7 +309,17 @@ impl SubscriptionManager {
         };
 
         if let Some(tx) = self.try_get_subscription(&msg.topic).await {
-            tx.send(msg.body).map_err(RenegadeClientError::subscription)?;
+            // A broadcast `send` fails only when there are zero receivers: every
+            // consumer dropped its `TopicStream` but the subscription was never
+            // torn down. The server keeps pushing, so each message hit a
+            // receiver-less channel and logged an error per push. Reap the dead
+            // subscription instead: `unsubscribe_from_topic` rechecks the receiver
+            // count (handling a concurrent re-subscribe) and, if it is still zero,
+            // tells the server to stop and drops the local sender.
+            if tx.send(msg.body).is_err() {
+                debug!("topic {} has no receivers; unsubscribing", msg.topic);
+                self.unsubscribe_from_topic(msg.topic).await?;
+            }
         }
 
         Ok(())
