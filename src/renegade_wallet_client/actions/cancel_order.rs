@@ -130,7 +130,11 @@ impl RenegadeClient {
         let chain_id = self.get_chain_id();
         let signer = self.get_account_signer();
 
-        let intent: DarkpoolStateIntent = order.into();
+        let mut intent: DarkpoolStateIntent = order.into();
+        // Advance the recovery stream if needed 
+        if intent.recovery_stream.index == 0 {
+            intent.compute_recovery_id();
+        }
         let nullifier = intent.compute_nullifier();
         let nullifier_bytes = nullifier.to_bytes_be();
 
